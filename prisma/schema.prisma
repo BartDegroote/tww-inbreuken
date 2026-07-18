@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Wetgeving {
+  id     String @id
+  naam   String
+  boeken Boek[]
+}
+
+model Boek {
+  id   String @id
+  naam String
+
+  wetgevingId String
+  wetgeving   Wetgeving @relation(fields: [wetgevingId], references: [id])
+
+  titels Titel[]
+
+  @@index([wetgevingId])
+}
+
+model Titel {
+  id        String @id
+  naam      String
+  onderwerp String
+
+  boekId String
+  boek   Boek   @relation(fields: [boekId], references: [id])
+
+  inbreuken Standaardinbreuk[]
+
+  @@index([boekId])
+}
+
+model Standaardinbreuk {
+  id String @id @default(cuid())
+
+  wetgevingId String
+  boekId      String
+  titelId     String
+
+  titel Titel @relation(fields: [titelId], references: [id])
+
+  // 1. Omschrijving van de inbreuk
+  // De fysieke databasekolom blijft "beschrijving".
+  omschrijving       String @map("beschrijving")
+  omschrijvingOpmaak Json?
+
+  // 2. Situering van de inbreuk
+  situering String?
+
+  // 3. Toelichting / Goede praktijk
+  // De fysieke databasekolom blijft "extraInfo".
+  toelichting String? @map("extraInfo")
+
+  // 4. Aanvulling inbreuk
+  aanvulling       String?
+  aanvullingOpmaak Json?
+
+  // 5. Wettelijke verwijzing
+  wettelijkeVerwijzing String
+
+  kernwoorden String[]
+
+  aangemaaktOp DateTime @default(now())
+  gewijzigdOp  DateTime @updatedAt
+
+  @@index([wetgevingId])
+  @@index([boekId])
+  @@index([titelId])
+}
