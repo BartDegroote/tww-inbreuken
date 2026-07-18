@@ -943,8 +943,7 @@ export default function InspectieUitvoerenClient({
                           <span className="h-2 w-2 rounded-full bg-blue-600" />
 
                           <h4 className="text-sm font-semibold text-slate-700">
-                            Beschrijving van de
-                            inbreuk
+                            Omschrijving
                           </h4>
                         </div>
 
@@ -1035,14 +1034,11 @@ export default function InspectieUitvoerenClient({
                           id="inspectievaststelling-titel"
                           className="text-lg font-bold text-slate-900"
                         >
-                          Inspectievaststelling
+                          Situering
                         </h3>
 
                         <p className="mt-1 text-sm leading-6 text-slate-600">
-                          Beschrijf hieronder de
-                          concrete situatie die
-                          tijdens de inspectie werd
-                          vastgesteld.
+                          Beschrijf de concrete situering zoals vastgesteld tijdens de inspectie.
                         </p>
                       </div>
                     </div>
@@ -1052,7 +1048,7 @@ export default function InspectieUitvoerenClient({
                         htmlFor="inCasu"
                         className="block text-sm font-semibold text-slate-700"
                       >
-                        In casu
+                        Situering
                       </label>
 
                       <textarea
@@ -1064,17 +1060,13 @@ export default function InspectieUitvoerenClient({
                           )
                         }
                         rows={7}
-                        placeholder="Beschrijf de concrete vaststelling tijdens de inspectie."
+                        placeholder="Beschrijf de situering tijdens de inspectie."
                         required
                         className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-7 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                       />
 
                       <p className="mt-2 text-sm text-slate-500">
-                        Vermeld feitelijke,
-                        controleerbare elementen en
-                        de plaats of situatie
-                        waarop de vaststelling
-                        betrekking heeft.
+                        Vermeld feitelijke, controleerbare elementen en de plaats waarop de situering betrekking heeft.
                       </p>
                     </div>
                   </section>
