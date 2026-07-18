@@ -14,6 +14,7 @@ import type {
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 import {
   downloadWordVerslag,
+  type WordFoto,
   type WordInbreuk,
 } from "@/lib/word-export";
 
@@ -82,6 +83,75 @@ function platteSegmenten(
         },
       ]
     : [];
+}
+
+async function bestandNaarPngFoto(
+  bestand: File,
+): Promise<WordFoto> {
+  let bitmap: ImageBitmap;
+
+  try {
+    bitmap = await createImageBitmap(bestand);
+  } catch {
+    throw new Error(
+      `De foto "${bestand.name}" kon niet worden gelezen. Gebruik een gangbaar beeldformaat zoals JPG of PNG.`,
+    );
+  }
+
+  try {
+    const canvas = window.document.createElement(
+      "canvas",
+    );
+
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error(
+        `De foto "${bestand.name}" kon niet worden verwerkt.`,
+      );
+    }
+
+    context.drawImage(bitmap, 0, 0);
+
+    const pngBlob = await new Promise<Blob>(
+      (resolve, reject) => {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+            return;
+          }
+
+          reject(
+            new Error(
+              `De foto "${bestand.name}" kon niet naar PNG worden omgezet.`,
+            ),
+          );
+        }, "image/png");
+      },
+    );
+
+    return {
+      naam: bestand.name,
+      data: new Uint8Array(
+        await pngBlob.arrayBuffer(),
+      ),
+      breedte: bitmap.width,
+      hoogte: bitmap.height,
+    };
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function maakWordFotos(
+  bestanden: File[],
+): Promise<WordFoto[]> {
+  return Promise.all(
+    bestanden.map(bestandNaarPngFoto),
+  );
 }
 
 export default function InspectieUitvoerenClient({
@@ -457,18 +527,28 @@ export default function InspectieUitvoerenClient({
       setInbreuken(actueleInbreuken);
 
       const wordInbreuken: WordInbreuk[] =
-        actueleInbreuken.map((inbreuk) => ({
-          beschrijving: inbreuk.beschrijving,
-          beschrijvingOpmaak:
-            inbreuk.beschrijvingOpmaak,
-          inCasu: inbreuk.inCasu,
-          toelichting: inbreuk.toelichting,
-          aanvulling: inbreuk.aanvulling,
-          aanvullingOpmaak:
-            inbreuk.aanvullingOpmaak,
-          wettelijkeVerwijzing:
-            inbreuk.wettelijkeVerwijzing,
-        }));
+        await Promise.all(
+          actueleInbreuken.map(
+            async (inbreuk) => ({
+              beschrijving:
+                inbreuk.beschrijving,
+              beschrijvingOpmaak:
+                inbreuk.beschrijvingOpmaak,
+              inCasu: inbreuk.inCasu,
+              fotos: await maakWordFotos(
+                inbreuk.fotos,
+              ),
+              toelichting:
+                inbreuk.toelichting,
+              aanvulling:
+                inbreuk.aanvulling,
+              aanvullingOpmaak:
+                inbreuk.aanvullingOpmaak,
+              wettelijkeVerwijzing:
+                inbreuk.wettelijkeVerwijzing,
+            }),
+          ),
+        );
 
       await downloadWordVerslag({
         onderneming,
@@ -1116,9 +1196,11 @@ export default function InspectieUitvoerenClient({
                     <p className="mt-2 text-sm text-slate-500">
                       Deze foto’s horen
                       uitsluitend bij deze
-                      concrete inbreuk. Foto’s
-                      worden in deze Word-versie
-                      nog niet opgenomen.
+                      concrete inbreuk. In het
+                      Word-verslag worden ze
+                      onder de situering geplaatst
+                      met een vaste hoogte van
+                      5 cm.
                     </p>
                     </div>
                   </section>
