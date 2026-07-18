@@ -891,123 +891,196 @@ export default function InspectieUitvoerenClient({
               ) : (
                 <form
                   onSubmit={bewaarWijzigingen}
-                  className="mt-8 space-y-6"
+                  className="mt-8 space-y-8"
                 >
-                  <div>
-                    <label
-                      htmlFor="beschrijving"
-                      className="block text-sm font-medium text-slate-700"
-                    >
-                      Beschrijving van de
-                      inbreuk
-                    </label>
+                  <section
+                    aria-labelledby="bibliotheekinformatie-titel"
+                    className="overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-slate-50 shadow-sm"
+                  >
+                    <div className="flex items-start gap-4 border-b border-blue-100 bg-blue-50/80 px-5 py-4 sm:px-6">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-700 text-white shadow-sm">
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          className="h-5 w-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V5H6.5A2.5 2.5 0 0 0 4 7.5v12Z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M8 8h8M8 12h6"
+                          />
+                        </svg>
+                      </div>
 
-                    <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        Opgemaakte weergave
-                      </p>
+                      <div>
+                        <h3
+                          id="bibliotheekinformatie-titel"
+                          className="text-lg font-bold text-slate-900"
+                        >
+                          Bibliotheekinformatie
+                        </h3>
 
-                      <TekstMetOpmaak
-                        tekst={beschrijving}
-                        segmenten={
-                          actueleBeschrijvingOpmaak
-                        }
-                        className="block"
-                      />
-                    </div>
-
-                    <textarea
-                      id="beschrijving"
-                      value={beschrijving}
-                      onChange={(event) =>
-                        setBeschrijving(
-                          event.target.value,
-                        )
-                      }
-                      rows={7}
-                      required
-                      className="mt-3 w-full resize-y rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
-                    />
-
-                    <p className="mt-2 text-sm text-slate-500">
-                      Een tekstvak kan geen
-                      gedeeltelijke vet- of
-                      grijsopmaak tonen. De
-                      opgemaakte weergave staat
-                      daarom hierboven. Zodra je
-                      de tekst handmatig wijzigt,
-                      wordt ze als gewone tekst
-                      opgeslagen.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="inCasu"
-                      className="block text-sm font-medium text-slate-700"
-                    >
-                      In casu
-                    </label>
-
-                    <textarea
-                      id="inCasu"
-                      value={inCasu}
-                      onChange={(event) =>
-                        setInCasu(
-                          event.target.value,
-                        )
-                      }
-                      rows={6}
-                      placeholder="Beschrijf de concrete vaststelling tijdens de inspectie."
-                      required
-                      className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="wettelijkeVerwijzing"
-                      className="block text-sm font-medium text-slate-700"
-                    >
-                      Wettelijke verwijzing
-                    </label>
-
-                    <textarea
-                      id="wettelijkeVerwijzing"
-                      value={wettelijkeVerwijzing}
-                      onChange={(event) =>
-                        setWettelijkeVerwijzing(
-                          event.target.value,
-                        )
-                      }
-                      rows={4}
-                      required
-                      className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
-                    />
-                  </div>
-
-                  {geselecteerdeInbreuk?.aanvulling && (
-                    <div>
-                      <p className="block text-sm font-medium text-slate-700">
-                        Aanvulling uit de
-                        bibliotheek
-                      </p>
-
-                      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <TekstMetOpmaak
-                          tekst={
-                            geselecteerdeInbreuk.aanvulling
-                          }
-                          segmenten={
-                            geselecteerdeInbreuk.aanvullingOpmaak
-                          }
-                          className="block"
-                        />
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Deze goedgekeurde
+                          standaardinformatie ligt
+                          vast en wordt ongewijzigd
+                          opgenomen in het verslag.
+                        </p>
                       </div>
                     </div>
-                  )}
 
-                  <div>
+                    <div className="space-y-5 p-5 sm:p-6">
+                      <article>
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-blue-600" />
+
+                          <h4 className="text-sm font-semibold text-slate-700">
+                            Beschrijving van de
+                            inbreuk
+                          </h4>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                          <TekstMetOpmaak
+                            tekst={beschrijving}
+                            segmenten={
+                              actueleBeschrijvingOpmaak
+                            }
+                            className="block leading-7"
+                          />
+                        </div>
+                      </article>
+
+                      <article>
+                        <div className="mb-2 flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-blue-600" />
+
+                          <h4 className="text-sm font-semibold text-slate-700">
+                            Wettelijke verwijzing
+                          </h4>
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                          <p className="whitespace-pre-wrap leading-7 text-slate-800">
+                            {
+                              wettelijkeVerwijzing
+                            }
+                          </p>
+                        </div>
+                      </article>
+
+                      {geselecteerdeInbreuk?.aanvulling && (
+                        <article>
+                          <div className="mb-2 flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-blue-600" />
+
+                            <h4 className="text-sm font-semibold text-slate-700">
+                              Aanvulling
+                            </h4>
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+                            <TekstMetOpmaak
+                              tekst={
+                                geselecteerdeInbreuk.aanvulling
+                              }
+                              segmenten={
+                                geselecteerdeInbreuk.aanvullingOpmaak
+                              }
+                              className="block leading-7"
+                            />
+                          </div>
+                        </article>
+                      )}
+                    </div>
+                  </section>
+
+                  <section
+                    aria-labelledby="inspectievaststelling-titel"
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
+                  >
+                    <div className="mb-6 flex items-start gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          className="h-5 w-5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="m16.862 3.487 3.651 3.651M5.25 18.75l3.82-.764a2.25 2.25 0 0 0 1.105-.605L19.72 7.836a2.582 2.582 0 1 0-3.652-3.652L6.523 13.73a2.25 2.25 0 0 0-.605 1.105L5.25 18.75Z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M14.25 6 18 9.75"
+                          />
+                        </svg>
+                      </div>
+
+                      <div>
+                        <h3
+                          id="inspectievaststelling-titel"
+                          className="text-lg font-bold text-slate-900"
+                        >
+                          Inspectievaststelling
+                        </h3>
+
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Beschrijf hieronder de
+                          concrete situatie die
+                          tijdens de inspectie werd
+                          vastgesteld.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="inCasu"
+                        className="block text-sm font-semibold text-slate-700"
+                      >
+                        In casu
+                      </label>
+
+                      <textarea
+                        id="inCasu"
+                        value={inCasu}
+                        onChange={(event) =>
+                          setInCasu(
+                            event.target.value,
+                          )
+                        }
+                        rows={7}
+                        placeholder="Beschrijf de concrete vaststelling tijdens de inspectie."
+                        required
+                        className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-7 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                      />
+
+                      <p className="mt-2 text-sm text-slate-500">
+                        Vermeld feitelijke,
+                        controleerbare elementen en
+                        de plaats of situatie
+                        waarop de vaststelling
+                        betrekking heeft.
+                      </p>
+                    </div>
+                  </section>
+
+                  <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                    <div>
                     <label
                       htmlFor="fotos"
                       className="block text-sm font-medium text-slate-700"
@@ -1055,7 +1128,8 @@ export default function InspectieUitvoerenClient({
                       worden in deze Word-versie
                       nog niet opgenomen.
                     </p>
-                  </div>
+                    </div>
+                  </section>
 
                   <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
                     <button
