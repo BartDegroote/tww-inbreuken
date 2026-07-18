@@ -1,3 +1,5 @@
+import type { TekstSegment } from "@/bibliotheek";
+
 import {
   AlignmentType,
   BorderStyle,
@@ -9,9 +11,11 @@ import {
 
 export type WordInbreuk = {
   beschrijving: string;
+  beschrijvingOpmaak?: TekstSegment[];
   inCasu: string;
   toelichting: string;
   aanvulling: string;
+  aanvullingOpmaak?: TekstSegment[];
   wettelijkeVerwijzing: string;
 };
 
@@ -38,7 +42,97 @@ function tekstOfStreepje(waarde: string): string {
   return waarde.trim() || "-";
 }
 
-function voegTekstParagrafenToe(
+function geldigeSegmenten(
+  tekst: string,
+  segmenten?: TekstSegment[],
+): TekstSegment[] {
+  if (
+    segmenten &&
+    segmenten.length > 0 &&
+    segmenten.some(
+      (segment) => segment.tekst.length > 0,
+    )
+  ) {
+    return segmenten;
+  }
+
+  return tekst
+    ? [
+        {
+          tekst,
+        },
+      ]
+    : [];
+}
+
+function maakOpgemaakteRuns(
+  tekst: string,
+  segmenten?: TekstSegment[],
+): TextRun[] {
+  const runs: TextRun[] = [];
+
+  for (const segment of geldigeSegmenten(
+    tekst,
+    segmenten,
+  )) {
+    const regels = segment.tekst
+      .replace(/\r\n/g, "\n")
+      .split("\n");
+
+    regels.forEach((regel, index) => {
+      if (index > 0) {
+        runs.push(
+          new TextRun({
+            break: 1,
+          }),
+        );
+      }
+
+      if (regel.length > 0) {
+        runs.push(
+          new TextRun({
+            text: regel,
+            bold: segment.vet === true,
+            color: segment.donkergrijs
+              ? "666666"
+              : "000000",
+            size: 22,
+            font: "Arial",
+          }),
+        );
+      }
+    });
+  }
+
+  return runs;
+}
+
+function voegOpgemaakteParagraafToe(
+  kinderen: Paragraph[],
+  tekst: string,
+  segmenten?: TekstSegment[],
+) {
+  const runs = maakOpgemaakteRuns(
+    tekst,
+    segmenten,
+  );
+
+  if (runs.length === 0) {
+    return;
+  }
+
+  kinderen.push(
+    new Paragraph({
+      spacing: {
+        after: 100,
+        line: 276,
+      },
+      children: runs,
+    }),
+  );
+}
+
+function voegGewoneTekstParagrafenToe(
   kinderen: Paragraph[],
   tekst: string,
   opties?: {
@@ -47,7 +141,13 @@ function voegTekstParagrafenToe(
     vet?: boolean;
   },
 ) {
-  const regels = tekst
+  const opgeschoondeTekst = tekst.trim();
+
+  if (!opgeschoondeTekst) {
+    return;
+  }
+
+  const regels = opgeschoondeTekst
     .replace(/\r\n/g, "\n")
     .split("\n");
 
@@ -113,44 +213,37 @@ function maakInbreukParagrafen(
     }),
   ];
 
-  voegTekstParagrafenToe(
+  voegOpgemaakteParagraafToe(
     kinderen,
-    inbreuk.beschrijving.trim(),
+    inbreuk.beschrijving,
+    inbreuk.beschrijvingOpmaak,
   );
 
-  if (inbreuk.inCasu.trim()) {
-    voegTekstParagrafenToe(
-      kinderen,
-      inbreuk.inCasu.trim(),
-      {
-        prefix: "\u2610 ",
-      },
-    );
-  }
-
-  if (inbreuk.toelichting.trim()) {
-    voegTekstParagrafenToe(
-      kinderen,
-      inbreuk.toelichting.trim(),
-      {
-        prefix: "\u24D8 ",
-      },
-    );
-  }
-
-  if (inbreuk.aanvulling.trim()) {
-    voegTekstParagrafenToe(
-      kinderen,
-      inbreuk.aanvulling.trim(),
-      {
-        vet: true,
-      },
-    );
-  }
-
-  voegTekstParagrafenToe(
+  voegGewoneTekstParagrafenToe(
     kinderen,
-    inbreuk.wettelijkeVerwijzing.trim(),
+    inbreuk.inCasu,
+    {
+      prefix: "☐ ",
+    },
+  );
+
+  voegGewoneTekstParagrafenToe(
+    kinderen,
+    inbreuk.toelichting,
+    {
+      prefix: "ⓘ ",
+    },
+  );
+
+  voegOpgemaakteParagraafToe(
+    kinderen,
+    inbreuk.aanvulling,
+    inbreuk.aanvullingOpmaak,
+  );
+
+  voegGewoneTekstParagrafenToe(
+    kinderen,
+    inbreuk.wettelijkeVerwijzing,
   );
 
   kinderen.push(maakScheidingslijn());
@@ -176,7 +269,8 @@ export async function downloadWordVerslag(
   }`;
 
   const document = new Document({
-    creator: inspectie.inspecteur || "TWW Inbreuken",
+    creator:
+      inspectie.inspecteur || "TWW Inbreuken",
     title: `Inspectieverslag ${inspectie.onderneming}`,
     description:
       "Automatisch gegenereerd inspectieverslag",
@@ -220,7 +314,9 @@ export async function downloadWordVerslag(
                 font: "Arial",
               }),
               new TextRun({
-                text: tekstOfStreepje(inspectie.adres),
+                text: tekstOfStreepje(
+                  inspectie.adres,
+                ),
                 size: 22,
                 font: "Arial",
               }),

@@ -7,7 +7,11 @@ import {
   type FormEvent,
 } from "react";
 
-import type { Standaardinbreuk } from "@/bibliotheek";
+import type {
+  Standaardinbreuk,
+  TekstSegment,
+} from "@/bibliotheek";
+import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 import {
   downloadWordVerslag,
   type WordInbreuk,
@@ -35,9 +39,11 @@ type Inbreuk = {
   id: string;
   standaardinbreukId: string;
   beschrijving: string;
+  beschrijvingOpmaak: TekstSegment[];
   inCasu: string;
   toelichting: string;
   aanvulling: string;
+  aanvullingOpmaak: TekstSegment[];
   wettelijkeVerwijzing: string;
   fotos: File[];
 };
@@ -53,6 +59,30 @@ type InspectieUitvoerenClientProps = {
   titels: TitelOptie[];
   standaardinbreuken: Standaardinbreuk[];
 };
+
+function kopieerSegmenten(
+  segmenten?: TekstSegment[],
+): TekstSegment[] {
+  return (segmenten ?? []).map((segment) => ({
+    tekst: segment.tekst,
+    ...(segment.vet ? { vet: true } : {}),
+    ...(segment.donkergrijs
+      ? { donkergrijs: true }
+      : {}),
+  }));
+}
+
+function platteSegmenten(
+  tekst: string,
+): TekstSegment[] {
+  return tekst
+    ? [
+        {
+          tekst,
+        },
+      ]
+    : [];
+}
 
 export default function InspectieUitvoerenClient({
   onderneming,
@@ -150,6 +180,35 @@ export default function InspectieUitvoerenClient({
       ]),
     );
   }, [titels]);
+
+  const geselecteerdeInbreuk = useMemo(
+    () =>
+      inbreuken.find(
+        (inbreuk) =>
+          inbreuk.id === geselecteerdeId,
+      ) ?? null,
+    [inbreuken, geselecteerdeId],
+  );
+
+  const actueleBeschrijvingOpmaak =
+    useMemo(() => {
+      if (!geselecteerdeInbreuk) {
+        return [];
+      }
+
+      if (
+        beschrijving ===
+        geselecteerdeInbreuk.beschrijving
+      ) {
+        return geselecteerdeInbreuk
+          .beschrijvingOpmaak;
+      }
+
+      return platteSegmenten(beschrijving);
+    }, [
+      beschrijving,
+      geselecteerdeInbreuk,
+    ]);
 
   const zoekresultaten = useMemo(() => {
     const genormaliseerdeZoekterm =
@@ -258,9 +317,15 @@ export default function InspectieUitvoerenClient({
       id: maakTijdelijkId(),
       standaardinbreukId: standaard.id,
       beschrijving: standaard.omschrijving,
+      beschrijvingOpmaak: kopieerSegmenten(
+        standaard.omschrijvingOpmaak,
+      ),
       inCasu: standaard.situering ?? "",
       toelichting: standaard.toelichting ?? "",
       aanvulling: standaard.aanvulling ?? "",
+      aanvullingOpmaak: kopieerSegmenten(
+        standaard.aanvullingOpmaak,
+      ),
       wettelijkeVerwijzing:
         standaard.wettelijkeVerwijzing,
       fotos: [],
@@ -313,17 +378,26 @@ export default function InspectieUitvoerenClient({
       return huidigeInbreuken;
     }
 
-    return huidigeInbreuken.map((inbreuk) =>
-      inbreuk.id === geselecteerdeId
-        ? {
-            ...inbreuk,
-            beschrijving,
-            inCasu,
-            wettelijkeVerwijzing,
-            fotos,
-          }
-        : inbreuk,
-    );
+    return huidigeInbreuken.map((inbreuk) => {
+      if (inbreuk.id !== geselecteerdeId) {
+        return inbreuk;
+      }
+
+      const beschrijvingGewijzigd =
+        beschrijving !== inbreuk.beschrijving;
+
+      return {
+        ...inbreuk,
+        beschrijving,
+        beschrijvingOpmaak:
+          beschrijvingGewijzigd
+            ? platteSegmenten(beschrijving)
+            : inbreuk.beschrijvingOpmaak,
+        inCasu,
+        wettelijkeVerwijzing,
+        fotos,
+      };
+    });
   }
 
   function bewaarWijzigingen(
@@ -385,9 +459,13 @@ export default function InspectieUitvoerenClient({
       const wordInbreuken: WordInbreuk[] =
         actueleInbreuken.map((inbreuk) => ({
           beschrijving: inbreuk.beschrijving,
+          beschrijvingOpmaak:
+            inbreuk.beschrijvingOpmaak,
           inCasu: inbreuk.inCasu,
           toelichting: inbreuk.toelichting,
           aanvulling: inbreuk.aanvulling,
+          aanvullingOpmaak:
+            inbreuk.aanvullingOpmaak,
           wettelijkeVerwijzing:
             inbreuk.wettelijkeVerwijzing,
         }));
@@ -531,9 +609,15 @@ export default function InspectieUitvoerenClient({
                             Inbreuk {index + 1}
                           </span>
 
-                          <span className="mt-1 block line-clamp-2 text-sm text-slate-600">
-                            {inbreuk.beschrijving}
-                          </span>
+                          <TekstMetOpmaak
+                            tekst={
+                              inbreuk.beschrijving
+                            }
+                            segmenten={
+                              inbreuk.beschrijvingOpmaak
+                            }
+                            className="mt-1 block line-clamp-3 text-sm"
+                          />
 
                           {inbreuk.fotos.length >
                             0 && (
@@ -743,11 +827,15 @@ export default function InspectieUitvoerenClient({
                                 : ""}
                             </p>
 
-                            <p className="mt-2 font-medium text-slate-900">
-                              {
+                            <TekstMetOpmaak
+                              tekst={
                                 inbreuk.omschrijving
                               }
-                            </p>
+                              segmenten={
+                                inbreuk.omschrijvingOpmaak
+                              }
+                              className="mt-2 block"
+                            />
 
                             {inbreuk.kernwoorden
                               .length > 0 && (
@@ -814,6 +902,20 @@ export default function InspectieUitvoerenClient({
                       inbreuk
                     </label>
 
+                    <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Opgemaakte weergave
+                      </p>
+
+                      <TekstMetOpmaak
+                        tekst={beschrijving}
+                        segmenten={
+                          actueleBeschrijvingOpmaak
+                        }
+                        className="block"
+                      />
+                    </div>
+
                     <textarea
                       id="beschrijving"
                       value={beschrijving}
@@ -824,8 +926,19 @@ export default function InspectieUitvoerenClient({
                       }
                       rows={7}
                       required
-                      className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                      className="mt-3 w-full resize-y rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
                     />
+
+                    <p className="mt-2 text-sm text-slate-500">
+                      Een tekstvak kan geen
+                      gedeeltelijke vet- of
+                      grijsopmaak tonen. De
+                      opgemaakte weergave staat
+                      daarom hierboven. Zodra je
+                      de tekst handmatig wijzigt,
+                      wordt ze als gewone tekst
+                      opgeslagen.
+                    </p>
                   </div>
 
                   <div>
@@ -873,6 +986,27 @@ export default function InspectieUitvoerenClient({
                     />
                   </div>
 
+                  {geselecteerdeInbreuk?.aanvulling && (
+                    <div>
+                      <p className="block text-sm font-medium text-slate-700">
+                        Aanvulling uit de
+                        bibliotheek
+                      </p>
+
+                      <div className="mt-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <TekstMetOpmaak
+                          tekst={
+                            geselecteerdeInbreuk.aanvulling
+                          }
+                          segmenten={
+                            geselecteerdeInbreuk.aanvullingOpmaak
+                          }
+                          className="block"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label
                       htmlFor="fotos"
@@ -918,9 +1052,8 @@ export default function InspectieUitvoerenClient({
                       Deze foto’s horen
                       uitsluitend bij deze
                       concrete inbreuk. Foto’s
-                      worden in deze eerste
-                      Word-versie nog niet
-                      opgenomen.
+                      worden in deze Word-versie
+                      nog niet opgenomen.
                     </p>
                   </div>
 
