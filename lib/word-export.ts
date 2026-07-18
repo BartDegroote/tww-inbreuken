@@ -9,7 +9,6 @@ import {
   PageNumber,
   Packer,
   Paragraph,
-  TabStopPosition,
   TabStopType,
   TextRun,
 } from "docx";
@@ -41,24 +40,41 @@ export type WordInspectie = {
   inbreuken: WordInbreuk[];
 };
 
-const ARIAL = "Arial";
+const LETTERTYPE = "Verdana";
+
 const DONKERBLAUW = "1F4E78";
 const DONKERGRIJS = "595959";
 const LICHTGRIJS = "D9E2F3";
-const FOTO_HOOGTE_PX = 189;
-const SITUERING_TEKST_INSPrONG = 360;
 
-function veiligeBestandsnaam(waarde: string): string {
+const HOOFDTEKST_GROOTTE = 20; // 10 pt
+const WETTELIJKE_VERWIJZING_GROOTTE = 18; // 9 pt
+
+// ImageRun gebruikt pixels. 5 cm bij 96 dpi is ongeveer 189 px.
+const FOTO_HOOGTE_PX = 189;
+
+// De nummers en opsommingstekens beginnen links van de tekst.
+// Alle vervolgregels beginnen exact op dezelfde positie als de hoofdtekst.
+const TEKST_INSPrONG = 540;
+const HANGENDE_INSPrONG = 360;
+
+function veiligeBestandsnaam(
+  waarde: string,
+): string {
   const opgeschoond = waarde
     .trim()
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
+    .replace(
+      /[<>:"/\\|?*\u0000-\u001F]/g,
+      " ",
+    )
     .replace(/\s+/g, " ")
     .replace(/\.+$/g, "");
 
   return opgeschoond || "inspectie";
 }
 
-function tekstOfStreepje(waarde: string): string {
+function tekstOfStreepje(
+  waarde: string,
+): string {
   return waarde.trim() || "-";
 }
 
@@ -69,7 +85,9 @@ function geldigeSegmenten(
   if (
     segmenten &&
     segmenten.length > 0 &&
-    segmenten.some((segment) => segment.tekst.length > 0)
+    segmenten.some(
+      (segment) => segment.tekst.length > 0,
+    )
   ) {
     return segmenten;
   }
@@ -87,7 +105,10 @@ function maakOpgemaakteRuns(
 ): TextRun[] {
   const runs: TextRun[] = [];
 
-  for (const segment of geldigeSegmenten(tekst, segmenten)) {
+  for (const segment of geldigeSegmenten(
+    tekst,
+    segmenten,
+  )) {
     const regels = segment.tekst
       .replace(/\r\n/g, "\n")
       .split("\n");
@@ -101,21 +122,25 @@ function maakOpgemaakteRuns(
         );
       }
 
-      if (regel.length > 0) {
-        runs.push(
-          new TextRun({
-            text: regel,
-            bold:
-              opties?.standaardVet === true ||
-              segment.vet === true,
-            color: segment.donkergrijs
-              ? "666666"
-              : "000000",
-            size: opties?.grootte ?? 22,
-            font: ARIAL,
-          }),
-        );
+      if (regel.length === 0) {
+        return;
       }
+
+      runs.push(
+        new TextRun({
+          text: regel,
+          bold:
+            opties?.standaardVet === true ||
+            segment.vet === true,
+          color: segment.donkergrijs
+            ? "666666"
+            : "000000",
+          size:
+            opties?.grootte ??
+            HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+      );
     });
   }
 
@@ -132,8 +157,10 @@ function voegGewoneTekstParagrafenToe(
     kleur?: string;
     grootte?: number;
     inspringingLinks?: number;
+    hangendeInspringing?: number;
     afstandVoor?: number;
     afstandNa?: number;
+    regelafstand?: number;
   },
 ) {
   const opgeschoondeTekst = tekst.trim();
@@ -148,14 +175,19 @@ function voegGewoneTekstParagrafenToe(
 
   regels.forEach((regel, index) => {
     const prefix =
-      index === 0 ? opties?.prefix ?? "" : "";
+      index === 0
+        ? opties?.prefix ?? ""
+        : "";
 
     kinderen.push(
       new Paragraph({
         indent:
           opties?.inspringingLinks !== undefined
             ? {
-                left: opties.inspringingLinks,
+                left:
+                  opties.inspringingLinks,
+                hanging:
+                  opties.hangendeInspringing,
               }
             : undefined,
         spacing: {
@@ -163,17 +195,22 @@ function voegGewoneTekstParagrafenToe(
             index === 0
               ? opties?.afstandVoor ?? 0
               : 0,
-          after: opties?.afstandNa ?? 80,
-          line: 276,
+          after:
+            opties?.afstandNa ?? 80,
+          line:
+            opties?.regelafstand ?? 276,
         },
         children: [
           new TextRun({
             text: `${prefix}${regel}`,
             bold: opties?.vet,
             italics: opties?.cursief,
-            color: opties?.kleur ?? "000000",
-            size: opties?.grootte ?? 22,
-            font: ARIAL,
+            color:
+              opties?.kleur ?? "000000",
+            size:
+              opties?.grootte ??
+              HOOFDTEKST_GROOTTE,
+            font: LETTERTYPE,
           }),
         ],
       }),
@@ -218,15 +255,16 @@ function maakGegevensregel(
         bold: true,
         color: DONKERGRIJS,
         size: 20,
-        font: ARIAL,
+        font: LETTERTYPE,
       }),
       new TextRun({
         text: "\t",
+        font: LETTERTYPE,
       }),
       new TextRun({
         text: tekstOfStreepje(waarde),
         size: 20,
-        font: ARIAL,
+        font: LETTERTYPE,
       }),
     ],
   });
@@ -248,10 +286,14 @@ function voegSitueringToe(
 
   kinderen.push(
     new Paragraph({
+      indent: {
+        left: TEKST_INSPrONG,
+        hanging: HANGENDE_INSPrONG,
+      },
       tabStops: [
         {
           type: TabStopType.LEFT,
-          position: SITUERING_TEKST_INSPrONG,
+          position: TEKST_INSPrONG,
         },
       ],
       spacing: {
@@ -262,33 +304,37 @@ function voegSitueringToe(
       children: [
         new TextRun({
           text: "☐",
-          size: 22,
-          font: ARIAL,
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
         }),
         new TextRun({
           text: "\t",
+          font: LETTERTYPE,
         }),
-        ...regels.flatMap((regel, index) => {
-          const runs: TextRun[] = [];
+        ...regels.flatMap(
+          (regel, index) => {
+            const runs: TextRun[] = [];
 
-          if (index > 0) {
+            if (index > 0) {
+              runs.push(
+                new TextRun({
+                  break: 1,
+                }),
+              );
+            }
+
             runs.push(
               new TextRun({
-                break: 1,
+                text: regel,
+                size:
+                  HOOFDTEKST_GROOTTE,
+                font: LETTERTYPE,
               }),
             );
-          }
 
-          runs.push(
-            new TextRun({
-              text: regel,
-              size: 22,
-              font: ARIAL,
-            }),
-          );
-
-          return runs;
-        }),
+            return runs;
+          },
+        ),
       ],
     }),
   );
@@ -303,18 +349,21 @@ function maakFotoParagrafen(
 
   return fotos.map((foto) => {
     const verhouding =
-      foto.hoogte > 0 && foto.breedte > 0
+      foto.hoogte > 0 &&
+      foto.breedte > 0
         ? foto.breedte / foto.hoogte
         : 1;
 
     const berekendeBreedte = Math.max(
       1,
-      Math.round(FOTO_HOOGTE_PX * verhouding),
+      Math.round(
+        FOTO_HOOGTE_PX * verhouding,
+      ),
     );
 
     return new Paragraph({
       indent: {
-        left: SITUERING_TEKST_INSPrONG,
+        left: TEKST_INSPrONG,
       },
       spacing: {
         before: 50,
@@ -343,38 +392,60 @@ function maakInbreukParagrafen(
   inbreuk: WordInbreuk,
   index: number,
 ): Paragraph[] {
-  const beschrijvingsRuns = maakOpgemaakteRuns(
-    inbreuk.beschrijving,
-    inbreuk.beschrijvingOpmaak,
-    {
-      grootte: 24,
-    },
-  );
+  const beschrijvingsRuns =
+    maakOpgemaakteRuns(
+      inbreuk.beschrijving,
+      inbreuk.beschrijvingOpmaak,
+      {
+        grootte:
+          HOOFDTEKST_GROOTTE,
+      },
+    );
 
   const kinderen: Paragraph[] = [
     new Paragraph({
+      indent: {
+        left: TEKST_INSPrONG,
+        hanging: HANGENDE_INSPrONG,
+      },
+      tabStops: [
+        {
+          type: TabStopType.LEFT,
+          position: TEKST_INSPrONG,
+        },
+      ],
       spacing: {
-        before: index === 0 ? 40 : 260,
+        before:
+          index === 0 ? 40 : 0,
         after: 130,
-        line: 300,
+        line: 276,
       },
       keepNext: true,
       children: [
         new TextRun({
-          text: `${index + 1}. `,
-          bold: true,
-          size: 24,
-          font: ARIAL,
+          text: `${index + 1}.`,
+          bold: false,
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+        new TextRun({
+          text: "\t",
+          font: LETTERTYPE,
         }),
         ...beschrijvingsRuns,
       ],
     }),
   ];
 
-  voegSitueringToe(kinderen, inbreuk.inCasu);
+  voegSitueringToe(
+    kinderen,
+    inbreuk.inCasu,
+  );
 
   kinderen.push(
-    ...maakFotoParagrafen(inbreuk.fotos),
+    ...maakFotoParagrafen(
+      inbreuk.fotos,
+    ),
   );
 
   voegGewoneTekstParagrafenToe(
@@ -383,23 +454,31 @@ function maakInbreukParagrafen(
     {
       prefix: "ⓘ ",
       kleur: DONKERGRIJS,
-      grootte: 21,
+      grootte:
+        HOOFDTEKST_GROOTTE,
+      inspringingLinks:
+        TEKST_INSPrONG,
       afstandVoor: 60,
       afstandNa: 100,
     },
   );
 
-  const aanvullingRuns = maakOpgemaakteRuns(
-    inbreuk.aanvulling,
-    inbreuk.aanvullingOpmaak,
-    {
-      grootte: 22,
-    },
-  );
+  const aanvullingRuns =
+    maakOpgemaakteRuns(
+      inbreuk.aanvulling,
+      inbreuk.aanvullingOpmaak,
+      {
+        grootte:
+          HOOFDTEKST_GROOTTE,
+      },
+    );
 
   if (aanvullingRuns.length > 0) {
     kinderen.push(
       new Paragraph({
+        indent: {
+          left: TEKST_INSPrONG,
+        },
         spacing: {
           before: 60,
           after: 110,
@@ -415,11 +494,14 @@ function maakInbreukParagrafen(
     inbreuk.wettelijkeVerwijzing,
     {
       cursief: true,
-      kleur: DONKERGRIJS,
-      grootte: 20,
-      inspringingLinks: 540,
-      afstandVoor: 180,
-      afstandNa: 180,
+      kleur: "000000",
+      grootte:
+        WETTELIJKE_VERWIJZING_GROOTTE,
+      inspringingLinks:
+        TEKST_INSPrONG,
+      afstandVoor: 120,
+      afstandNa: 360,
+      regelafstand: 240,
     },
   );
 
@@ -437,7 +519,8 @@ export async function downloadWordVerslag(
 
   const document = new Document({
     creator:
-      inspectie.inspecteur || "TWW Inbreuken",
+      inspectie.inspecteur ||
+      "TWW Inbreuken",
     title: `${tekstOfStreepje(
       inspectie.flow,
     )} ${tekstOfStreepje(
@@ -461,12 +544,13 @@ export async function downloadWordVerslag(
           default: new Footer({
             children: [
               new Paragraph({
-                alignment: AlignmentType.RIGHT,
+                alignment:
+                  AlignmentType.RIGHT,
                 children: [
                   new TextRun({
                     color: DONKERGRIJS,
                     size: 18,
-                    font: ARIAL,
+                    font: LETTERTYPE,
                     children: [
                       "Pagina ",
                       PageNumber.CURRENT,
@@ -490,7 +574,7 @@ export async function downloadWordVerslag(
                 bold: true,
                 color: DONKERBLAUW,
                 size: 36,
-                font: ARIAL,
+                font: LETTERTYPE,
               }),
             ],
           }),
@@ -505,7 +589,7 @@ export async function downloadWordVerslag(
                 bold: true,
                 color: DONKERGRIJS,
                 size: 24,
-                font: ARIAL,
+                font: LETTERTYPE,
               }),
             ],
           }),
@@ -514,8 +598,14 @@ export async function downloadWordVerslag(
             "Onderneming",
             inspectie.onderneming.toUpperCase(),
           ),
-          maakGegevensregel("Flow", inspectie.flow),
-          maakGegevensregel("Adres", inspectie.adres),
+          maakGegevensregel(
+            "Flow",
+            inspectie.flow,
+          ),
+          maakGegevensregel(
+            "Adres",
+            inspectie.adres,
+          ),
           maakGegevensregel(
             "Inspectiedatum",
             inspectie.inspectiedatum,
@@ -535,17 +625,23 @@ export async function downloadWordVerslag(
     ],
   });
 
-  const blob = await Packer.toBlob(document);
-  const objectUrl = URL.createObjectURL(blob);
-  const link = window.document.createElement("a");
+  const blob =
+    await Packer.toBlob(document);
+
+  const objectUrl =
+    URL.createObjectURL(blob);
+
+  const link =
+    window.document.createElement("a");
 
   const flow = veiligeBestandsnaam(
     inspectie.flow.replace(/\//g, " "),
   );
 
-  const onderneming = veiligeBestandsnaam(
-    inspectie.onderneming.toUpperCase(),
-  );
+  const onderneming =
+    veiligeBestandsnaam(
+      inspectie.onderneming.toUpperCase(),
+    );
 
   const bestandsdelen = [
     flow !== "inspectie" ? flow : "",
@@ -556,7 +652,8 @@ export async function downloadWordVerslag(
 
   link.href = objectUrl;
   link.download = `${
-    bestandsdelen.join(" ") || "Inspectie"
+    bestandsdelen.join(" ") ||
+    "Inspectie"
   } - Inbreuken.docx`;
 
   window.document.body.appendChild(link);
