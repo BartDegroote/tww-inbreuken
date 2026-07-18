@@ -8,6 +8,10 @@ import {
 } from "react";
 
 import type { Standaardinbreuk } from "@/bibliotheek";
+import {
+  downloadWordVerslag,
+  type WordInbreuk,
+} from "@/lib/word-export";
 
 type WetgevingOptie = {
   id: string;
@@ -32,6 +36,8 @@ type Inbreuk = {
   standaardinbreukId: string;
   beschrijving: string;
   inCasu: string;
+  toelichting: string;
+  aanvulling: string;
   wettelijkeVerwijzing: string;
   fotos: File[];
 };
@@ -89,6 +95,12 @@ export default function InspectieUitvoerenClient({
     useState("");
 
   const [zoekterm, setZoekterm] =
+    useState("");
+
+  const [exportBezig, setExportBezig] =
+    useState(false);
+
+  const [exportFout, setExportFout] =
     useState("");
 
   const beschikbareBoeken = useMemo(() => {
@@ -247,6 +259,8 @@ export default function InspectieUitvoerenClient({
       standaardinbreukId: standaard.id,
       beschrijving: standaard.omschrijving,
       inCasu: standaard.situering ?? "",
+      toelichting: standaard.toelichting ?? "",
+      aanvulling: standaard.aanvulling ?? "",
       wettelijkeVerwijzing:
         standaard.wettelijkeVerwijzing,
       fotos: [],
@@ -266,6 +280,7 @@ export default function InspectieUitvoerenClient({
       nieuweInbreuk.wettelijkeVerwijzing,
     );
     setFotos([]);
+    setExportFout("");
   }
 
   function selecteerInbreuk(
@@ -278,6 +293,7 @@ export default function InspectieUitvoerenClient({
       inbreuk.wettelijkeVerwijzing,
     );
     setFotos(inbreuk.fotos);
+    setExportFout("");
   }
 
   function behandelFotos(
@@ -290,6 +306,26 @@ export default function InspectieUitvoerenClient({
     setFotos(Array.from(bestanden));
   }
 
+  function synchroniseerFormulier(
+    huidigeInbreuken: Inbreuk[],
+  ): Inbreuk[] {
+    if (geselecteerdeId === null) {
+      return huidigeInbreuken;
+    }
+
+    return huidigeInbreuken.map((inbreuk) =>
+      inbreuk.id === geselecteerdeId
+        ? {
+            ...inbreuk,
+            beschrijving,
+            inCasu,
+            wettelijkeVerwijzing,
+            fotos,
+          }
+        : inbreuk,
+    );
+  }
+
   function bewaarWijzigingen(
     event: FormEvent<HTMLFormElement>,
   ) {
@@ -300,18 +336,12 @@ export default function InspectieUitvoerenClient({
     }
 
     setInbreuken((huidigeInbreuken) =>
-      huidigeInbreuken.map((inbreuk) =>
-        inbreuk.id === geselecteerdeId
-          ? {
-              ...inbreuk,
-              beschrijving,
-              inCasu,
-              wettelijkeVerwijzing,
-              fotos,
-            }
-          : inbreuk,
+      synchroniseerFormulier(
+        huidigeInbreuken,
       ),
     );
+
+    setExportFout("");
   }
 
   function verwijderInbreuk() {
@@ -335,6 +365,52 @@ export default function InspectieUitvoerenClient({
     );
 
     maakFormulierLeeg();
+    setExportFout("");
+  }
+
+  async function genereerWordVerslag() {
+    if (inbreuken.length === 0 || exportBezig) {
+      return;
+    }
+
+    setExportBezig(true);
+    setExportFout("");
+
+    try {
+      const actueleInbreuken =
+        synchroniseerFormulier(inbreuken);
+
+      setInbreuken(actueleInbreuken);
+
+      const wordInbreuken: WordInbreuk[] =
+        actueleInbreuken.map((inbreuk) => ({
+          beschrijving: inbreuk.beschrijving,
+          inCasu: inbreuk.inCasu,
+          toelichting: inbreuk.toelichting,
+          aanvulling: inbreuk.aanvulling,
+          wettelijkeVerwijzing:
+            inbreuk.wettelijkeVerwijzing,
+        }));
+
+      await downloadWordVerslag({
+        onderneming,
+        adres,
+        inspectiedatum,
+        inspecteur,
+        flow,
+        inbreuken: wordInbreuken,
+      });
+    } catch (fout) {
+      console.error(fout);
+
+      setExportFout(
+        fout instanceof Error
+          ? fout.message
+          : "Het Word-verslag kon niet worden gegenereerd.",
+      );
+    } finally {
+      setExportBezig(false);
+    }
   }
 
   return (
@@ -841,7 +917,10 @@ export default function InspectieUitvoerenClient({
                     <p className="mt-2 text-sm text-slate-500">
                       Deze foto’s horen
                       uitsluitend bij deze
-                      concrete inbreuk.
+                      concrete inbreuk. Foto’s
+                      worden in deze eerste
+                      Word-versie nog niet
+                      opgenomen.
                     </p>
                   </div>
 
@@ -867,13 +946,28 @@ export default function InspectieUitvoerenClient({
           </section>
         </div>
 
-        <footer className="mt-6 flex justify-end">
+        <footer className="mt-6 flex flex-col items-end gap-3">
+          {exportFout && (
+            <p
+              role="alert"
+              className="text-sm font-medium text-red-700"
+            >
+              {exportFout}
+            </p>
+          )}
+
           <button
             type="button"
-            disabled={inbreuken.length === 0}
+            onClick={genereerWordVerslag}
+            disabled={
+              inbreuken.length === 0 ||
+              exportBezig
+            }
             className="rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            Word-verslag genereren
+            {exportBezig
+              ? "Word-verslag wordt gemaakt..."
+              : "Word-verslag genereren"}
           </button>
         </footer>
       </div>
