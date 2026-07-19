@@ -48,7 +48,7 @@ export async function aanmelden(formData: FormData) {
     data: { mislukteAanmeldingen: 0, geblokkeerdTot: null },
   });
   await maakSessie(gebruiker.id);
-  redirect(gebruiker.wachtwoordWijzigingVereist ? "/instellingen?verplicht=1" : "/");
+  redirect("/");
 }
 
 export async function afmelden() {

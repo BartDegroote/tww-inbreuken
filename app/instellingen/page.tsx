@@ -7,7 +7,7 @@ import { wijzigAccount } from "./actions";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ fout?: string; succes?: string; verplicht?: string }>;
+  searchParams: Promise<{ fout?: string; succes?: string }>;
 };
 
 export default async function InstellingenPagina({ searchParams }: Props) {
@@ -24,12 +24,6 @@ export default async function InstellingenPagina({ searchParams }: Props) {
         <div className="mt-6 rounded-xl border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
           <h1 className="text-3xl font-bold text-slate-900">Instellingen</h1>
           <p className="mt-2 text-slate-500">Wijzig je naam en aanmeldgegevens.</p>
-
-          {(melding.verplicht === "1" || gebruiker.wachtwoordWijzigingVereist) && (
-            <p className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800">
-              Vervang het tijdelijke wachtwoord eerst door een uniek wachtwoord van minstens 12 tekens.
-            </p>
-          )}
 
           {melding.fout && (
             <p className="mt-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{melding.fout}</p>
@@ -53,7 +47,7 @@ export default async function InstellingenPagina({ searchParams }: Props) {
             </div>
             <div>
               <label htmlFor="nieuwWachtwoord" className="text-sm font-medium text-slate-700">Nieuw wachtwoord <span className="font-normal text-slate-400">(optioneel)</span></label>
-              <input id="nieuwWachtwoord" name="nieuwWachtwoord" type="password" minLength={12} required={gebruiker.wachtwoordWijzigingVereist} autoComplete="new-password" className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600" />
+              <input id="nieuwWachtwoord" name="nieuwWachtwoord" type="password" minLength={5} autoComplete="new-password" className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600" />
             </div>
             <button className="w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white hover:bg-blue-800">Instellingen opslaan</button>
           </form>

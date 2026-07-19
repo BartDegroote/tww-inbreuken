@@ -35,12 +35,8 @@ export async function wijzigAccount(formData: FormData) {
     redirect("/instellingen?fout=Het%20huidige%20wachtwoord%20is%20niet%20correct.");
   }
 
-  if (nieuwWachtwoord && nieuwWachtwoord.length < 12) {
-    redirect("/instellingen?fout=Het%20nieuwe%20wachtwoord%20moet%20minstens%2012%20tekens%20bevatten.");
-  }
-
-  if (gebruiker.wachtwoordWijzigingVereist && !nieuwWachtwoord) {
-    redirect("/instellingen?fout=Kies%20eerst%20een%20nieuw%20veilig%20wachtwoord.");
+  if (nieuwWachtwoord && nieuwWachtwoord.length < 5) {
+    redirect("/instellingen?fout=Het%20nieuwe%20wachtwoord%20moet%20minstens%205%20tekens%20bevatten.");
   }
 
   const bestaand = await prisma.gebruiker.findFirst({

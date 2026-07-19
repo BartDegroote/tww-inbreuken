@@ -9,7 +9,7 @@ De app verwerkt account- en sessiegegevens, inspecteurgegevens, bedrijfs- en adr
 ## Technische maatregelen in de app
 
 - wachtwoorden worden met `scrypt` en een uniek zout gehasht;
-- het tijdelijke standaardwachtwoord moet na aanmelding worden vervangen door minimaal 12 tekens;
+- wachtwoorden worden gehasht opgeslagen en moeten minimaal 5 tekens bevatten;
 - accounts worden na vijf mislukte pogingen gedurende vijftien minuten geblokkeerd;
 - sessies gebruiken een `HttpOnly`, `SameSite=Lax` cookie en vervallen na twaalf uur;
 - iedere databasebewerking controleert de eigenaar van het dossier;
