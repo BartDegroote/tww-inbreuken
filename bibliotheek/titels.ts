@@ -2,7 +2,6 @@ export type Titel = {
   id: string;
   boekId: string;
   naam: string;
-  onderwerp: string;
 };
 
 export const titels: Titel[] = [
@@ -10,7 +9,6 @@ export const titels: Titel[] = [
     id: "boek-iii-titel-1",
     boekId: "boek-iii",
     naam: "Titel 1",
-    onderwerp: "Basiseisen betreffende arbeidsplaatsen",
   },
 ];
 

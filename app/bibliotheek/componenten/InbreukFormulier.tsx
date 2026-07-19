@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import type {
+  SpecifiekElement,
   Standaardinbreuk,
   TekstSegment,
 } from "@/bibliotheek";
@@ -27,7 +28,6 @@ type BoekOptie = {
 type TitelOptie = {
   id: string;
   naam: string;
-  onderwerp: string;
   boekId: string;
 };
 
@@ -37,12 +37,8 @@ type InbreukFormulierProps = {
   boeken: BoekOptie[];
   titels: TitelOptie[];
 
-  /**
-   * Alle reeds gebruikte kernwoorden uit de bibliotheek.
-   * Deze prop is voorlopig optioneel zodat bestaande aanroepen
-   * van het formulier blijven compileren.
-   */
   kernwoordSuggesties?: string[];
+  onderwerpSuggesties?: string[];
 
   onBewaar: (
     inbreuk: Standaardinbreuk,
@@ -94,7 +90,10 @@ function segmentenNaarHtml(
   opmaakType: OpmaakType,
 ): string {
   if (segmenten.length === 0) {
-    return escapeHtml(tekst).replaceAll("\n", "<br>");
+    return escapeHtml(tekst).replaceAll(
+      "\n",
+      "<br>",
+    );
   }
 
   return segmenten
@@ -159,7 +158,7 @@ function leesSegmentenUitEditor(
       vet: boolean;
       donkergrijs: boolean;
     },
-  ) {
+  ): void {
     if (knoop.nodeType === Node.TEXT_NODE) {
       voegSegmentToe(segmenten, {
         tekst: knoop.textContent ?? "",
@@ -198,7 +197,10 @@ function leesSegmentenUitEditor(
       geerfdeOpmaak.vet ||
       knoop.tagName === "STRONG" ||
       knoop.tagName === "B" ||
-      Number.parseInt(stijl.fontWeight, 10) >= 600;
+      Number.parseInt(
+        stijl.fontWeight,
+        10,
+      ) >= 600;
 
     const kleur = stijl.color
       .replace(/\s/g, "")
@@ -231,7 +233,8 @@ function leesSegmentenUitEditor(
 
     if (
       isBlokelement &&
-      segmenten.length > aantalSegmentenVoor
+      segmenten.length >
+        aantalSegmentenVoor
     ) {
       const laatste =
         segmenten[segmenten.length - 1];
@@ -260,7 +263,9 @@ function leesSegmentenUitEditor(
   const laatsteSegment =
     segmenten[segmenten.length - 1];
 
-  if (laatsteSegment?.tekst.endsWith("\n")) {
+  if (
+    laatsteSegment?.tekst.endsWith("\n")
+  ) {
     laatsteSegment.tekst =
       laatsteSegment.tekst.slice(0, -1);
 
@@ -322,7 +327,7 @@ function BeperkteTeksteditor({
     }
   }, [html]);
 
-  function verstuurWijziging() {
+  function verstuurWijziging(): void {
     const editor = editorRef.current;
 
     if (!editor) {
@@ -336,7 +341,9 @@ function BeperkteTeksteditor({
       );
 
     const nieuweTekst =
-      segmentenNaarTekst(nieuweSegmenten);
+      segmentenNaarTekst(
+        nieuweSegmenten,
+      );
 
     laatsteVerzondenHtml.current =
       editor.innerHTML;
@@ -352,7 +359,7 @@ function BeperkteTeksteditor({
       | "bold"
       | "foreColor"
       | "removeFormat",
-  ) {
+  ): void {
     const editor = editorRef.current;
 
     if (!editor || disabled) {
@@ -382,6 +389,7 @@ function BeperkteTeksteditor({
       <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium text-slate-700">
           {label}
+
           {verplicht && (
             <span className="ml-1 text-red-600">
               *
@@ -416,7 +424,9 @@ function BeperkteTeksteditor({
                 event.preventDefault()
               }
               onClick={() =>
-                pasOpmaakToe("foreColor")
+                pasOpmaakToe(
+                  "foreColor",
+                )
               }
             >
               Donkergrijs
@@ -431,7 +441,9 @@ function BeperkteTeksteditor({
               event.preventDefault()
             }
             onClick={() =>
-              pasOpmaakToe("removeFormat")
+              pasOpmaakToe(
+                "removeFormat",
+              )
             }
           >
             Opmaak wissen
@@ -474,7 +486,6 @@ function BeperkteTeksteditor({
 function TekstMetOpmaak({
   tekst,
   segmenten,
-  opmaakType,
 }: {
   tekst: string;
   segmenten: TekstSegment[];
@@ -514,24 +525,77 @@ function TekstMetOpmaak({
   );
 }
 
-export default function InbreukFormulier({
+function maakTijdelijkElementId(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID ===
+      "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `nieuw-${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+}
+
+function normaliseerSpecifiekeElementen(
+  elementen: SpecifiekElement[],
+): SpecifiekElement[] {
+  return elementen
+    .map((element) => ({
+      ...element,
+      tekst: element.tekst.trim(),
+    }))
+    .filter(
+      (element) =>
+        element.tekst.length > 0,
+    )
+    .map((element, index) => ({
+      ...element,
+      volgorde: index,
+    }));
+}
+
+function initialiseerFormulier(
+  inbreuk: Standaardinbreuk | null,
+): Standaardinbreuk | null {
+  if (!inbreuk) {
+    return null;
+  }
+
+  return {
+    ...inbreuk,
+    onderwerp: inbreuk.onderwerp ?? "",
+    specifiekeElementenIngeschakeld:
+      inbreuk.specifiekeElementenIngeschakeld ??
+      false,
+    specifiekeElementen:
+      inbreuk.specifiekeElementen ?? [],
+  };
+}
+
+function InbreukFormulierInhoud({
   inbreuk,
   wetgevingen,
   boeken,
   titels,
   kernwoordSuggesties = [],
+  onderwerpSuggesties = [],
   onBewaar,
   onVerwijder,
 }: InbreukFormulierProps) {
   const [formulier, setFormulier] =
     useState<Standaardinbreuk | null>(
-      inbreuk,
+      () => initialiseerFormulier(inbreuk),
     );
 
   const [
     kernwoordenTekst,
     setKernwoordenTekst,
-  ] = useState("");
+  ] = useState(() =>
+    inbreuk?.kernwoorden.join(", ") ?? "",
+  );
 
   const [
     toonKernwoordSuggesties,
@@ -549,19 +613,6 @@ export default function InbreukFormulier({
     setFoutmelding,
   ] = useState<string | null>(null);
 
-  useEffect(() => {
-    setFormulier(inbreuk);
-
-    setKernwoordenTekst(
-      inbreuk?.kernwoorden.join(", ") ?? "",
-    );
-
-    setOpgeslagen(false);
-    setFoutmelding(null);
-    setBezig(false);
-    setToonKernwoordSuggesties(false);
-  }, [inbreuk]);
-
   const beschikbareBoeken = useMemo(() => {
     if (!formulier?.wetgevingId) {
       return [];
@@ -574,7 +625,7 @@ export default function InbreukFormulier({
     );
   }, [
     boeken,
-    formulier?.wetgevingId,
+    formulier,
   ]);
 
   const beschikbareTitels = useMemo(() => {
@@ -584,9 +635,51 @@ export default function InbreukFormulier({
 
     return titels.filter(
       (titel) =>
-        titel.boekId === formulier.boekId,
+        titel.boekId ===
+        formulier.boekId,
     );
-  }, [titels, formulier?.boekId]);
+  }, [
+    titels,
+    formulier,
+  ]);
+
+  const beschikbareOnderwerpSuggesties =
+    useMemo(() => {
+      const uniekeOnderwerpen =
+        new Map<string, string>();
+
+      for (const suggestie of onderwerpSuggesties) {
+        const onderwerp = suggestie.trim();
+
+        if (!onderwerp) {
+          continue;
+        }
+
+        const sleutel =
+          onderwerp.toLocaleLowerCase(
+            "nl-BE",
+          );
+
+        if (!uniekeOnderwerpen.has(sleutel)) {
+          uniekeOnderwerpen.set(
+            sleutel,
+            onderwerp,
+          );
+        }
+      }
+
+      return [
+        ...uniekeOnderwerpen.values(),
+      ].sort((eerste, tweede) =>
+        eerste.localeCompare(
+          tweede,
+          "nl-BE",
+          {
+            sensitivity: "base",
+          },
+        ),
+      );
+    }, [onderwerpSuggesties]);
 
   const actiefKernwoord = useMemo(() => {
     const delen =
@@ -654,14 +747,14 @@ export default function InbreukFormulier({
       titel.id === formulier?.titelId,
   );
 
-  function wisStatus() {
+  function wisStatus(): void {
     setOpgeslagen(false);
     setFoutmelding(null);
   }
 
   function wijzigWetgeving(
     wetgevingId: string,
-  ) {
+  ): void {
     setFormulier((huidig) => {
       if (!huidig) {
         return huidig;
@@ -672,13 +765,16 @@ export default function InbreukFormulier({
         wetgevingId,
         boekId: "",
         titelId: "",
+        onderwerp: "",
       };
     });
 
     wisStatus();
   }
 
-  function wijzigBoek(boekId: string) {
+  function wijzigBoek(
+    boekId: string,
+  ): void {
     setFormulier((huidig) => {
       if (!huidig) {
         return huidig;
@@ -688,6 +784,7 @@ export default function InbreukFormulier({
         ...huidig,
         boekId,
         titelId: "",
+        onderwerp: "",
       };
     });
 
@@ -696,7 +793,7 @@ export default function InbreukFormulier({
 
   function wijzigTitel(
     titelId: string,
-  ) {
+  ): void {
     setFormulier((huidig) => {
       if (!huidig) {
         return huidig;
@@ -705,6 +802,27 @@ export default function InbreukFormulier({
       return {
         ...huidig,
         titelId,
+        onderwerp:
+          huidig.titelId === titelId
+            ? huidig.onderwerp
+            : "",
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigOnderwerp(
+    onderwerp: string,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      return {
+        ...huidig,
+        onderwerp,
       };
     });
 
@@ -717,7 +835,7 @@ export default function InbreukFormulier({
       | "toelichting"
       | "wettelijkeVerwijzing",
     waarde: string,
-  ) {
+  ): void {
     setFormulier((huidig) => {
       if (!huidig) {
         return huidig;
@@ -741,7 +859,7 @@ export default function InbreukFormulier({
       | "aanvullingOpmaak",
     tekst: string,
     segmenten: TekstSegment[],
-  ) {
+  ): void {
     setFormulier((huidig) => {
       if (!huidig) {
         return huidig;
@@ -751,6 +869,179 @@ export default function InbreukFormulier({
         ...huidig,
         [tekstVeld]: tekst,
         [opmaakVeld]: segmenten,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigSpecifiekeElementenIngeschakeld(
+    ingeschakeld: boolean,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      const huidigeElementen =
+        huidig.specifiekeElementen ?? [];
+
+      return {
+        ...huidig,
+        specifiekeElementenIngeschakeld:
+          ingeschakeld,
+        specifiekeElementen:
+          ingeschakeld &&
+          huidigeElementen.length === 0
+            ? [
+                {
+                  id: maakTijdelijkElementId(),
+                  tekst: "",
+                  volgorde: 0,
+                },
+              ]
+            : huidigeElementen,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function voegSpecifiekElementToe(): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      const huidigeElementen =
+        huidig.specifiekeElementen ?? [];
+
+      return {
+        ...huidig,
+        specifiekeElementen: [
+          ...huidigeElementen,
+          {
+            id: maakTijdelijkElementId(),
+            tekst: "",
+            volgorde:
+              huidigeElementen.length,
+          },
+        ],
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigSpecifiekElement(
+    elementId: string,
+    tekst: string,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      return {
+        ...huidig,
+        specifiekeElementen:
+          huidig.specifiekeElementen.map(
+            (element) =>
+              element.id === elementId
+                ? {
+                    ...element,
+                    tekst,
+                  }
+                : element,
+          ),
+      };
+    });
+
+    wisStatus();
+  }
+
+  function verwijderSpecifiekElement(
+    elementId: string,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      const nieuweElementen =
+        huidig.specifiekeElementen
+          .filter(
+            (element) =>
+              element.id !== elementId,
+          )
+          .map((element, index) => ({
+            ...element,
+            volgorde: index,
+          }));
+
+      return {
+        ...huidig,
+        specifiekeElementen:
+          nieuweElementen,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function verplaatsSpecifiekElement(
+    elementId: string,
+    richting: "omhoog" | "omlaag",
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      const elementen = [
+        ...huidig.specifiekeElementen,
+      ];
+
+      const huidigeIndex =
+        elementen.findIndex(
+          (element) =>
+            element.id === elementId,
+        );
+
+      if (huidigeIndex < 0) {
+        return huidig;
+      }
+
+      const nieuweIndex =
+        richting === "omhoog"
+          ? huidigeIndex - 1
+          : huidigeIndex + 1;
+
+      if (
+        nieuweIndex < 0 ||
+        nieuweIndex >= elementen.length
+      ) {
+        return huidig;
+      }
+
+      const tijdelijk =
+        elementen[huidigeIndex];
+
+      elementen[huidigeIndex] =
+        elementen[nieuweIndex];
+
+      elementen[nieuweIndex] =
+        tijdelijk;
+
+      return {
+        ...huidig,
+        specifiekeElementen:
+          elementen.map(
+            (element, index) => ({
+              ...element,
+              volgorde: index,
+            }),
+          ),
       };
     });
 
@@ -792,7 +1083,7 @@ export default function InbreukFormulier({
 
   function wijzigKernwoorden(
     waarde: string,
-  ) {
+  ): void {
     setKernwoordenTekst(waarde);
 
     setFormulier((huidig) => {
@@ -815,7 +1106,7 @@ export default function InbreukFormulier({
 
   function kiesKernwoordSuggestie(
     suggestie: string,
-  ) {
+  ): void {
     const delen =
       kernwoordenTekst.split(",");
 
@@ -854,7 +1145,7 @@ export default function InbreukFormulier({
 
   async function bewaarWijzigingen(
     event: FormEvent<HTMLFormElement>,
-  ) {
+  ): Promise<void> {
     event.preventDefault();
 
     if (!formulier || bezig) {
@@ -866,12 +1157,25 @@ export default function InbreukFormulier({
     setFoutmelding(null);
 
     try {
+      const specifiekeElementen =
+        normaliseerSpecifiekeElementen(
+          formulier.specifiekeElementen ??
+            [],
+        );
+
       await onBewaar({
         ...formulier,
+        onderwerp:
+          formulier.onderwerp.trim(),
         kernwoorden:
           normaliseerKernwoorden(
             kernwoordenTekst,
           ),
+        specifiekeElementen:
+          formulier
+            .specifiekeElementenIngeschakeld
+            ? specifiekeElementen
+            : [],
       });
 
       setOpgeslagen(true);
@@ -886,7 +1190,7 @@ export default function InbreukFormulier({
     }
   }
 
-  async function verwijderInbreuk() {
+  async function verwijderInbreuk(): Promise<void> {
     if (
       !formulier ||
       bezig ||
@@ -928,14 +1232,12 @@ export default function InbreukFormulier({
       <div className="flex min-h-72 items-center justify-center p-6">
         <div className="max-w-sm text-center">
           <h2 className="text-lg font-semibold text-slate-900">
-            Geen standaardinbreuk
-            geselecteerd
+            Geen standaardinbreuk geselecteerd
           </h2>
 
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Selecteer een
-            standaardinbreuk in de lijst
-            of maak een nieuwe
+            Selecteer een standaardinbreuk
+            in de lijst of maak een nieuwe
             standaardinbreuk aan.
           </p>
         </div>
@@ -943,23 +1245,34 @@ export default function InbreukFormulier({
     );
   }
 
+  const geldigeSpecifiekeElementen =
+    normaliseerSpecifiekeElementen(
+      formulier.specifiekeElementen ?? [],
+    );
+
+  const specifiekeElementenGeldig =
+    !formulier
+      .specifiekeElementenIngeschakeld ||
+    geldigeSpecifiekeElementen.length > 0;
+
   const formulierGeldig =
     formulier.wetgevingId.trim().length >
       0 &&
     formulier.boekId.trim().length > 0 &&
     formulier.titelId.trim().length > 0 &&
+    formulier.onderwerp.trim().length >
+      0 &&
     formulier.omschrijving.trim().length >
       0 &&
     formulier.wettelijkeVerwijzing
-      .trim().length > 0;
+      .trim().length > 0 &&
+    specifiekeElementenGeldig;
 
   const isNieuweInbreuk =
     formulier.id.trim().length === 0;
 
   return (
-    <form
-      onSubmit={bewaarWijzigingen}
-    >
+    <form onSubmit={bewaarWijzigingen}>
       <div className="border-b border-slate-200 p-5">
         <h2 className="text-lg font-semibold text-slate-900">
           Standaardinbreuk
@@ -982,6 +1295,9 @@ export default function InbreukFormulier({
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
                 Wetgeving
+                <span className="ml-1 text-red-600">
+                  *
+                </span>
               </span>
 
               <select
@@ -1017,6 +1333,9 @@ export default function InbreukFormulier({
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
                 Boek
+                <span className="ml-1 text-red-600">
+                  *
+                </span>
               </span>
 
               <select
@@ -1053,6 +1372,9 @@ export default function InbreukFormulier({
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
                 Titel
+                <span className="ml-1 text-red-600">
+                  *
+                </span>
               </span>
 
               <select
@@ -1091,20 +1413,224 @@ export default function InbreukFormulier({
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
                 Onderwerp
+                <span className="ml-1 text-red-600">
+                  *
+                </span>
               </span>
 
               <input
                 type="text"
                 value={
-                  geselecteerdeTitel
-                    ?.onderwerp ?? ""
+                  formulier.onderwerp
+                }
+                onChange={(event) =>
+                  wijzigOnderwerp(
+                    event.target.value,
+                  )
                 }
                 className={veldStijl}
-                placeholder="Wordt afgeleid uit de titel"
-                disabled
+                placeholder="Bijvoorbeeld: Arbeidsmiddelen"
+                list="onderwerp-suggesties"
+                disabled={
+                  !formulier.titelId ||
+                  bezig
+                }
+                autoComplete="off"
+                required
               />
+
+              <datalist id="onderwerp-suggesties">
+                {beschikbareOnderwerpSuggesties.map(
+                  (onderwerp) => (
+                    <option
+                      key={onderwerp}
+                      value={onderwerp}
+                    />
+                  ),
+                )}
+              </datalist>
+
+              <span className="mt-1.5 block text-xs leading-5 text-slate-500">
+                Je kunt een bestaand onderwerp
+                kiezen of een nieuw onderwerp
+                invoeren.
+              </span>
             </label>
           </div>
+        </section>
+
+        <section className="border-t border-slate-200 pt-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Specifieke elementen
+              </h3>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Voeg afzonderlijke elementen
+                toe die bij deze
+                standaardinbreuk moeten worden
+                gecontroleerd of vermeld.
+              </p>
+            </div>
+
+            <label className="inline-flex cursor-pointer items-center gap-3">
+              <input
+                type="checkbox"
+                checked={
+                  formulier
+                    .specifiekeElementenIngeschakeld
+                }
+                onChange={(event) =>
+                  wijzigSpecifiekeElementenIngeschakeld(
+                    event.target.checked,
+                  )
+                }
+                disabled={bezig}
+                className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+
+              <span className="text-sm font-semibold text-slate-700">
+                Ingeschakeld
+              </span>
+            </label>
+          </div>
+
+          {formulier
+            .specifiekeElementenIngeschakeld && (
+            <div className="mt-4 space-y-3">
+              {formulier.specifiekeElementen
+                .length === 0 ? (
+                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+                  <p className="text-sm text-slate-500">
+                    Er zijn nog geen specifieke
+                    elementen toegevoegd.
+                  </p>
+                </div>
+              ) : (
+                formulier.specifiekeElementen.map(
+                  (element, index) => (
+                    <div
+                      key={element.id}
+                      className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-600 shadow-sm">
+                          {index + 1}
+                        </span>
+
+                        <div className="min-w-0 flex-1">
+                          <label className="block">
+                            <span className="sr-only">
+                              Specifiek element{" "}
+                              {index + 1}
+                            </span>
+
+                            <textarea
+                              value={
+                                element.tekst
+                              }
+                              onChange={(
+                                event,
+                              ) =>
+                                wijzigSpecifiekElement(
+                                  element.id,
+                                  event.target
+                                    .value,
+                                )
+                              }
+                              rows={3}
+                              className={
+                                tekstvakStijl
+                              }
+                              placeholder="Omschrijf het specifieke element..."
+                              disabled={bezig}
+                            />
+                          </label>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              className={
+                                knopStijl
+                              }
+                              disabled={
+                                bezig ||
+                                index === 0
+                              }
+                              onClick={() =>
+                                verplaatsSpecifiekElement(
+                                  element.id,
+                                  "omhoog",
+                                )
+                              }
+                            >
+                              Omhoog
+                            </button>
+
+                            <button
+                              type="button"
+                              className={
+                                knopStijl
+                              }
+                              disabled={
+                                bezig ||
+                                index ===
+                                  formulier
+                                    .specifiekeElementen
+                                    .length -
+                                    1
+                              }
+                              onClick={() =>
+                                verplaatsSpecifiekElement(
+                                  element.id,
+                                  "omlaag",
+                                )
+                              }
+                            >
+                              Omlaag
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={bezig}
+                              onClick={() =>
+                                verwijderSpecifiekElement(
+                                  element.id,
+                                )
+                              }
+                              className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Verwijderen
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                )
+              )}
+
+              <button
+                type="button"
+                onClick={
+                  voegSpecifiekElementToe
+                }
+                disabled={bezig}
+                className="min-h-10 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Specifiek element toevoegen
+              </button>
+
+              {!specifiekeElementenGeldig && (
+                <p className="text-sm font-medium text-red-600">
+                  Voeg minstens één ingevuld
+                  specifiek element toe of
+                  schakel deze functie uit.
+                </p>
+              )}
+            </div>
+          )}
         </section>
 
         <section className="border-t border-slate-200 pt-6">
@@ -1149,8 +1675,7 @@ export default function InbreukFormulier({
 
                 <span className="mt-1.5 block text-xs leading-5 text-slate-500">
                   Scheid verschillende
-                  kernwoorden met een
-                  komma.
+                  kernwoorden met een komma.
                 </span>
               </label>
 
@@ -1217,8 +1742,7 @@ export default function InbreukFormulier({
 
               <textarea
                 value={
-                  formulier.situering ??
-                  ""
+                  formulier.situering ?? ""
                 }
                 onChange={(event) =>
                   wijzigGewoonTekstveld(
@@ -1242,14 +1766,12 @@ export default function InbreukFormulier({
                   i
                 </span>
 
-                Toelichting / Goede
-                praktijk
+                Toelichting / Goede praktijk
               </span>
 
               <textarea
                 value={
-                  formulier.toelichting ??
-                  ""
+                  formulier.toelichting ?? ""
                 }
                 onChange={(event) =>
                   wijzigGewoonTekstveld(
@@ -1274,8 +1796,7 @@ export default function InbreukFormulier({
             <BeperkteTeksteditor
               label="Aanvulling inbreuk"
               tekst={
-                formulier.aanvulling ??
-                ""
+                formulier.aanvulling ?? ""
               }
               segmenten={
                 formulier.aanvullingOpmaak ??
@@ -1308,7 +1829,8 @@ export default function InbreukFormulier({
 
               <textarea
                 value={
-                  formulier.wettelijkeVerwijzing
+                  formulier
+                    .wettelijkeVerwijzing
                 }
                 onChange={(event) =>
                   wijzigGewoonTekstveld(
@@ -1343,19 +1865,46 @@ export default function InbreukFormulier({
                 {geselecteerdBoek?.naam ??
                   "Geen boek geselecteerd"}
                 {" · "}
-                {geselecteerdeTitel
-                  ?.naam ??
+                {geselecteerdeTitel?.naam ??
                   "Geen titel geselecteerd"}
               </p>
 
-              {geselecteerdeTitel?.onderwerp && (
+              {formulier.onderwerp.trim() && (
                 <p className="mt-1 text-sm text-slate-600">
-                  {
-                    geselecteerdeTitel.onderwerp
-                  }
+                  {formulier.onderwerp}
                 </p>
               )}
             </div>
+
+            {formulier
+              .specifiekeElementenIngeschakeld &&
+              geldigeSpecifiekeElementen.length >
+                0 && (
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Specifieke elementen
+                  </p>
+
+                  <ol className="mt-3 space-y-2">
+                    {geldigeSpecifiekeElementen.map(
+                      (element, index) => (
+                        <li
+                          key={element.id}
+                          className="flex gap-3 text-sm leading-6 text-slate-800"
+                        >
+                          <span className="font-semibold text-slate-500">
+                            {index + 1}.
+                          </span>
+
+                          <span className="whitespace-pre-wrap">
+                            {element.tekst}
+                          </span>
+                        </li>
+                      ),
+                    )}
+                  </ol>
+                </div>
+              )}
 
             <div className="space-y-4">
               <p className="text-sm leading-6 text-slate-900">
@@ -1372,8 +1921,8 @@ export default function InbreukFormulier({
                   />
                 ) : (
                   <span className="text-slate-400">
-                    De omschrijving
-                    verschijnt hier.
+                    De omschrijving verschijnt
+                    hier.
                   </span>
                 )}
               </p>
@@ -1394,9 +1943,7 @@ export default function InbreukFormulier({
                   </span>
 
                   <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                    {
-                      formulier.toelichting
-                    }
+                    {formulier.toelichting}
                   </p>
                 </div>
               )}
@@ -1416,10 +1963,12 @@ export default function InbreukFormulier({
                 </p>
               )}
 
-              {formulier.wettelijkeVerwijzing && (
+              {formulier
+                .wettelijkeVerwijzing && (
                 <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-800">
                   {
-                    formulier.wettelijkeVerwijzing
+                    formulier
+                      .wettelijkeVerwijzing
                   }
                 </p>
               )}
@@ -1458,8 +2007,7 @@ export default function InbreukFormulier({
           <button
             type="submit"
             disabled={
-              !formulierGeldig ||
-              bezig
+              !formulierGeldig || bezig
             }
             className="min-h-11 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
@@ -1472,5 +2020,20 @@ export default function InbreukFormulier({
         </div>
       </div>
     </form>
+  );
+}
+
+export default function InbreukFormulier(
+  props: InbreukFormulierProps,
+) {
+  const formulierSleutel = props.inbreuk
+    ? JSON.stringify(props.inbreuk)
+    : "geen-inbreuk";
+
+  return (
+    <InbreukFormulierInhoud
+      key={formulierSleutel}
+      {...props}
+    />
   );
 }

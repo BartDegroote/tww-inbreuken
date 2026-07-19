@@ -8,6 +8,9 @@ export const Boek_III: Standaardinbreuk[] = [
     boekId: "boek-iii",
     titelId: "boek-iii-titel-1",
 
+    onderwerp:
+      "Basiseisen betreffende arbeidsplaatsen",
+
     kernwoorden: [
       "arbeidsplaats",
       "veiligheid",
@@ -20,6 +23,9 @@ export const Boek_III: Standaardinbreuk[] = [
     omschrijvingOpmaak: [],
 
     situering: "",
+
+    specifiekeElementenIngeschakeld: false,
+    specifiekeElementen: [],
 
     toelichting:
       "Controleer steeds of de concrete situatie onder een meer specifieke bepaling valt.",

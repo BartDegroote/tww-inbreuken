@@ -3,8 +3,9 @@ import type {
   TekstSegment,
 } from "@/bibliotheek";
 import { prisma } from "@/lib/prisma";
+import { vereisGebruiker } from "@/lib/auth";
 
-import BibliotheekClient from "@/app/bibliotheek/BibliotheekClient";
+import BibliotheekClient from "./BibliotheekClient";
 
 export const dynamic = "force-dynamic";
 
@@ -41,21 +42,17 @@ function leesOpmaak(
     .filter(isTekstSegment)
     .map((segment) => ({
       tekst: segment.tekst,
-      ...(segment.vet
-        ? {
-            vet: true,
-          }
-        : {}),
+      ...(segment.vet ? { vet: true } : {}),
       ...(segment.donkergrijs
-        ? {
-            donkergrijs: true,
-          }
+        ? { donkergrijs: true }
         : {}),
     }))
     .filter((segment) => segment.tekst.length > 0);
 }
 
 export default async function BibliotheekPagina() {
+  await vereisGebruiker();
+
   const [
     databaseWetgevingen,
     databaseBoeken,
@@ -86,6 +83,13 @@ export default async function BibliotheekPagina() {
     }),
 
     prisma.standaardinbreuk.findMany({
+      include: {
+        specifiekeElementen: {
+          orderBy: {
+            volgorde: "asc",
+          },
+        },
+      },
       orderBy: {
         gewijzigdOp: "desc",
       },
@@ -108,7 +112,6 @@ export default async function BibliotheekPagina() {
   const titels = databaseTitels.map((titel) => ({
     id: titel.id,
     naam: titel.naam,
-    onderwerp: titel.onderwerp,
     boekId: titel.boekId,
   }));
 
@@ -120,6 +123,8 @@ export default async function BibliotheekPagina() {
       boekId: inbreuk.boekId,
       titelId: inbreuk.titelId,
 
+      onderwerp: inbreuk.onderwerp,
+
       kernwoorden: inbreuk.kernwoorden,
 
       omschrijving: inbreuk.omschrijving,
@@ -128,6 +133,17 @@ export default async function BibliotheekPagina() {
       ),
 
       situering: inbreuk.situering ?? "",
+
+      specifiekeElementenIngeschakeld:
+        inbreuk.specifiekeElementenIngeschakeld,
+      specifiekeElementen:
+        inbreuk.specifiekeElementen.map(
+          (element) => ({
+            id: element.id,
+            tekst: element.tekst,
+            volgorde: element.volgorde,
+          }),
+        ),
 
       toelichting: inbreuk.toelichting ?? "",
 

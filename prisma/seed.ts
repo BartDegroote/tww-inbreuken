@@ -69,15 +69,11 @@ async function main() {
     },
     update: {
       naam: "Titel 1",
-      onderwerp:
-        "Basiseisen betreffende arbeidsplaatsen",
       boekId: "boek-iii",
     },
     create: {
       id: "boek-iii-titel-1",
       naam: "Titel 1",
-      onderwerp:
-        "Basiseisen betreffende arbeidsplaatsen",
       boekId: "boek-iii",
     },
   });
@@ -91,6 +87,9 @@ async function main() {
       wetgevingId: wetgeving.id,
       boekId: "boek-iii",
       titelId: titel.id,
+
+      onderwerp:
+        "Basiseisen betreffende arbeidsplaatsen",
 
       kernwoorden: [
         "arbeidsplaats",
@@ -122,6 +121,9 @@ async function main() {
       wetgevingId: wetgeving.id,
       boekId: "boek-iii",
       titelId: titel.id,
+
+      onderwerp:
+        "Basiseisen betreffende arbeidsplaatsen",
 
       kernwoorden: [
         "arbeidsplaats",

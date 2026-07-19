@@ -1,324 +1,566 @@
 "use server";
 
+import { Prisma } from "@/app/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { Prisma } from "@/app/generated/prisma/client";
-import type { Standaardinbreuk } from "@/bibliotheek";
+import type {
+  Standaardinbreuk,
+  TekstSegment,
+} from "@/bibliotheek";
 import { prisma } from "@/lib/prisma";
+import { vereisGebruiker } from "@/lib/auth";
 
-type TekstSegment = NonNullable<
-  Standaardinbreuk["omschrijvingOpmaak"]
->[number];
+const BIBLIOTHEEK_PAD = "/bibliotheek";
 
-type DatabaseInbreuk = {
-  id: string;
-  wetgevingId: string;
-  boekId: string;
-  titelId: string;
+type StandaardinbreukUitDatabase =
+  Prisma.StandaardinbreukGetPayload<{
+    include: {
+      specifiekeElementen: true;
+    };
+  }>;
 
-  omschrijving: string;
-  omschrijvingOpmaak: Prisma.JsonValue | null;
-
-  situering: string | null;
-  toelichting: string | null;
-
-  aanvulling: string | null;
-  aanvullingOpmaak: Prisma.JsonValue | null;
-
-  wettelijkeVerwijzing: string;
-  kernwoorden: string[];
+type GenormaliseerdSpecifiekElement = {
+  tekst: string;
+  volgorde: number;
 };
 
-function valideerInbreuk(
-  inbreuk: Standaardinbreuk,
-): void {
-  if (!inbreuk.wetgevingId.trim()) {
-    throw new Error("Selecteer een wetgeving.");
+/**
+ * Controleert en trimt een verplicht tekstveld.
+ */
+function verplichtTekstveld(
+  waarde: string | null | undefined,
+  veldnaam: string,
+): string {
+  const tekst = waarde?.trim() ?? "";
+
+  if (!tekst) {
+    throw new Error(`${veldnaam} is verplicht.`);
   }
 
-  if (!inbreuk.boekId.trim()) {
-    throw new Error("Selecteer een boek.");
-  }
-
-  if (!inbreuk.titelId.trim()) {
-    throw new Error("Selecteer een titel.");
-  }
-
-  if (!inbreuk.omschrijving.trim()) {
-    throw new Error(
-      "Vul een omschrijving van de inbreuk in.",
-    );
-  }
-
-  if (!inbreuk.wettelijkeVerwijzing.trim()) {
-    throw new Error(
-      "Vul een wettelijke verwijzing in.",
-    );
-  }
+  return tekst;
 }
 
-function isTekstSegment(
-  waarde: unknown,
-): waarde is TekstSegment {
-  if (
-    typeof waarde !== "object" ||
-    waarde === null ||
-    Array.isArray(waarde)
-  ) {
-    return false;
-  }
-
-  const segment = waarde as Record<string, unknown>;
-
-  return (
-    typeof segment.tekst === "string" &&
-    (segment.vet === undefined ||
-      typeof segment.vet === "boolean") &&
-    (segment.donkergrijs === undefined ||
-      typeof segment.donkergrijs === "boolean")
-  );
-}
-
-function leesOpmaak(
-  waarde: Prisma.JsonValue | null,
-): TekstSegment[] {
-  if (!Array.isArray(waarde)) {
-    return [];
-  }
-
-  return waarde
-    .filter(isTekstSegment)
-    .map((segment) => ({
-      tekst: segment.tekst,
-      ...(segment.vet
-        ? {
-            vet: true,
-          }
-        : {}),
-      ...(segment.donkergrijs
-        ? {
-            donkergrijs: true,
-          }
-        : {}),
-    }))
-    .filter((segment) => segment.tekst.length > 0);
-}
-
-function normaliseerOpmaak(
-  opmaak:
-    | Standaardinbreuk["omschrijvingOpmaak"]
-    | Standaardinbreuk["aanvullingOpmaak"],
-) {
-  const segmenten = (opmaak ?? [])
-    .map((segment) => ({
-      tekst: segment.tekst,
-      ...(segment.vet
-        ? {
-            vet: true,
-          }
-        : {}),
-      ...(segment.donkergrijs
-        ? {
-            donkergrijs: true,
-          }
-        : {}),
-    }))
-    .filter((segment) => segment.tekst.length > 0);
-
-  if (segmenten.length === 0) {
-    return Prisma.DbNull;
-  }
-
-  return segmenten;
-}
-
-function normaliseerOptioneleTekst(
-  waarde: string | undefined,
+/**
+ * Zet een leeg optioneel tekstveld om naar null.
+ */
+function optioneelTekstveld(
+  waarde: string | null | undefined,
 ): string | null {
-  const tekst = waarde?.trim();
+  const tekst = waarde?.trim() ?? "";
 
-  return tekst ? tekst : null;
+  return tekst || null;
 }
 
+/**
+ * Verwijdert lege en dubbele kernwoorden.
+ */
 function normaliseerKernwoorden(
-  kernwoorden: string[],
+  kernwoorden: string[] | null | undefined,
 ): string[] {
   const uniekeKernwoorden = new Map<string, string>();
 
-  for (const kernwoord of kernwoorden) {
-    const opgeschoondKernwoord = kernwoord.trim();
+  for (const invoer of kernwoorden ?? []) {
+    const kernwoord = invoer.trim();
 
-    if (!opgeschoondKernwoord) {
+    if (!kernwoord) {
       continue;
     }
 
-    const sleutel =
-      opgeschoondKernwoord.toLocaleLowerCase("nl-BE");
+    const sleutel = kernwoord.toLocaleLowerCase("nl-BE");
 
     if (!uniekeKernwoorden.has(sleutel)) {
-      uniekeKernwoorden.set(
-        sleutel,
-        opgeschoondKernwoord,
-      );
+      uniekeKernwoorden.set(sleutel, kernwoord);
     }
   }
 
   return [...uniekeKernwoorden.values()];
 }
 
-function zetOmNaarClientInbreuk(
-  inbreuk: DatabaseInbreuk,
+/**
+ * Maakt de beperkte tekstopmaak geschikt
+ * voor opslag als Prisma JSON.
+ */
+function normaliseerTekstSegmenten(
+  segmenten: TekstSegment[] | null | undefined,
+): TekstSegment[] {
+  const resultaat: TekstSegment[] = [];
+
+  for (const segment of segmenten ?? []) {
+    if (
+      !segment ||
+      typeof segment.tekst !== "string" ||
+      segment.tekst.length === 0
+    ) {
+      continue;
+    }
+
+    resultaat.push({
+      tekst: segment.tekst,
+      ...(segment.vet ? { vet: true } : {}),
+      ...(segment.donkergrijs
+        ? { donkergrijs: true }
+        : {}),
+    });
+  }
+
+  return resultaat;
+}
+
+/**
+ * Leest veilig TekstSegment[] uit een Prisma JSON-veld.
+ */
+function leesTekstSegmenten(
+  waarde: Prisma.JsonValue | null,
+): TekstSegment[] {
+  if (!Array.isArray(waarde)) {
+    return [];
+  }
+
+  const resultaat: TekstSegment[] = [];
+
+  for (const item of waarde) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      Array.isArray(item)
+    ) {
+      continue;
+    }
+
+    const mogelijkSegment =
+      item as Record<string, unknown>;
+
+    if (
+      typeof mogelijkSegment.tekst !== "string" ||
+      mogelijkSegment.tekst.length === 0
+    ) {
+      continue;
+    }
+
+    resultaat.push({
+      tekst: mogelijkSegment.tekst,
+      ...(mogelijkSegment.vet === true
+        ? { vet: true }
+        : {}),
+      ...(mogelijkSegment.donkergrijs === true
+        ? { donkergrijs: true }
+        : {}),
+    });
+  }
+
+  return resultaat;
+}
+
+/**
+ * Verwijdert lege specifieke elementen
+ * en herberekent hun volgorde.
+ *
+ * Tijdelijke client-ID's worden niet opgeslagen.
+ * Prisma maakt voor ieder element een echte ID aan.
+ */
+function normaliseerSpecifiekeElementen(
+  elementen:
+    | Standaardinbreuk["specifiekeElementen"]
+    | null
+    | undefined,
+): GenormaliseerdSpecifiekElement[] {
+  return [...(elementen ?? [])]
+    .map((element) => ({
+      tekst: element.tekst.trim(),
+      volgorde:
+        typeof element.volgorde === "number"
+          ? element.volgorde
+          : 0,
+    }))
+    .filter(
+      (element) => element.tekst.length > 0,
+    )
+    .sort(
+      (eerste, tweede) =>
+        eerste.volgorde - tweede.volgorde,
+    )
+    .map((element, index) => ({
+      tekst: element.tekst,
+      volgorde: index,
+    }));
+}
+
+/**
+ * Zet een Prisma-record om naar het type
+ * dat de clientcomponenten gebruiken.
+ */
+function mapStandaardinbreuk(
+  inbreuk: StandaardinbreukUitDatabase,
 ): Standaardinbreuk {
   return {
     id: inbreuk.id,
-
     wetgevingId: inbreuk.wetgevingId,
     boekId: inbreuk.boekId,
     titelId: inbreuk.titelId,
 
+    onderwerp: inbreuk.onderwerp,
+
     kernwoorden: inbreuk.kernwoorden,
 
     omschrijving: inbreuk.omschrijving,
-    omschrijvingOpmaak: leesOpmaak(
-      inbreuk.omschrijvingOpmaak,
-    ),
+    omschrijvingOpmaak:
+      leesTekstSegmenten(
+        inbreuk.omschrijvingOpmaak,
+      ),
 
     situering: inbreuk.situering ?? "",
+
+    specifiekeElementenIngeschakeld:
+      inbreuk.specifiekeElementenIngeschakeld,
+
+    specifiekeElementen:
+      [...inbreuk.specifiekeElementen]
+        .sort(
+          (eerste, tweede) =>
+            eerste.volgorde -
+            tweede.volgorde,
+        )
+        .map((element) => ({
+          id: element.id,
+          tekst: element.tekst,
+          volgorde: element.volgorde,
+        })),
 
     toelichting: inbreuk.toelichting ?? "",
 
     aanvulling: inbreuk.aanvulling ?? "",
-    aanvullingOpmaak: leesOpmaak(
-      inbreuk.aanvullingOpmaak,
-    ),
+    aanvullingOpmaak:
+      leesTekstSegmenten(
+        inbreuk.aanvullingOpmaak,
+      ),
 
     wettelijkeVerwijzing:
       inbreuk.wettelijkeVerwijzing,
   };
 }
 
-export async function bewaarStandaardinbreuk(
-  inbreuk: Standaardinbreuk,
-): Promise<Standaardinbreuk> {
-  valideerInbreuk(inbreuk);
-
-  const [wetgeving, boek, titel] = await Promise.all([
-    prisma.wetgeving.findUnique({
-      where: {
-        id: inbreuk.wetgevingId,
+/**
+ * Controleert of Titel, Boek en Wetgeving
+ * werkelijk bij elkaar horen.
+ */
+async function controleerJuridischeIndeling({
+  wetgevingId,
+  boekId,
+  titelId,
+}: {
+  wetgevingId: string;
+  boekId: string;
+  titelId: string;
+}): Promise<void> {
+  const titel = await prisma.titel.findUnique({
+    where: {
+      id: titelId,
+    },
+    select: {
+      boekId: true,
+      boek: {
+        select: {
+          wetgevingId: true,
+        },
       },
-    }),
-
-    prisma.boek.findUnique({
-      where: {
-        id: inbreuk.boekId,
-      },
-    }),
-
-    prisma.titel.findUnique({
-      where: {
-        id: inbreuk.titelId,
-      },
-    }),
-  ]);
-
-  if (!wetgeving) {
-    throw new Error(
-      "De geselecteerde wetgeving bestaat niet.",
-    );
-  }
-
-  if (!boek) {
-    throw new Error(
-      "Het geselecteerde boek bestaat niet.",
-    );
-  }
+    },
+  });
 
   if (!titel) {
     throw new Error(
-      "De geselecteerde titel bestaat niet.",
+      "De geselecteerde titel bestaat niet meer.",
     );
   }
 
-  if (boek.wetgevingId !== wetgeving.id) {
+  if (titel.boekId !== boekId) {
     throw new Error(
-      "Het geselecteerde boek hoort niet bij deze wetgeving.",
+      "De geselecteerde titel behoort niet tot het geselecteerde boek.",
     );
   }
 
-  if (titel.boekId !== boek.id) {
+  if (titel.boek.wetgevingId !== wetgevingId) {
     throw new Error(
-      "De geselecteerde titel hoort niet bij dit boek.",
+      "Het geselecteerde boek behoort niet tot de geselecteerde wetgeving.",
+    );
+  }
+}
+
+/**
+ * Maakt een nieuwe standaardinbreuk aan
+ * of werkt een bestaande standaardinbreuk bij.
+ */
+export async function bewaarStandaardinbreuk(
+  invoer: Standaardinbreuk,
+): Promise<Standaardinbreuk> {
+  await vereisGebruiker();
+
+  const id = invoer.id?.trim() ?? "";
+
+  const wetgevingId = verplichtTekstveld(
+    invoer.wetgevingId,
+    "Wetgeving",
+  );
+
+  const boekId = verplichtTekstveld(
+    invoer.boekId,
+    "Boek",
+  );
+
+  const titelId = verplichtTekstveld(
+    invoer.titelId,
+    "Titel",
+  );
+
+  const onderwerp = verplichtTekstveld(
+    invoer.onderwerp,
+    "Onderwerp",
+  );
+
+  const omschrijving = verplichtTekstveld(
+    invoer.omschrijving,
+    "Omschrijving",
+  );
+
+  const wettelijkeVerwijzing =
+    verplichtTekstveld(
+      invoer.wettelijkeVerwijzing,
+      "Wettelijke verwijzing",
+    );
+
+  const kernwoorden = normaliseerKernwoorden(
+    invoer.kernwoorden,
+  );
+
+  const omschrijvingOpmaak =
+    normaliseerTekstSegmenten(
+      invoer.omschrijvingOpmaak,
+    );
+
+  const aanvullingOpmaak =
+    normaliseerTekstSegmenten(
+      invoer.aanvullingOpmaak,
+    );
+
+  const specifiekeElementenIngeschakeld =
+    Boolean(
+      invoer.specifiekeElementenIngeschakeld,
+    );
+
+  const specifiekeElementen =
+    specifiekeElementenIngeschakeld
+      ? normaliseerSpecifiekeElementen(
+          invoer.specifiekeElementen,
+        )
+      : [];
+
+  if (
+    specifiekeElementenIngeschakeld &&
+    specifiekeElementen.length === 0
+  ) {
+    throw new Error(
+      "Voeg minstens één ingevuld specifiek element toe of schakel specifieke elementen uit.",
     );
   }
 
-  const gegevens = {
-    wetgevingId: wetgeving.id,
-    boekId: boek.id,
-    titelId: titel.id,
+  await controleerJuridischeIndeling({
+    wetgevingId,
+    boekId,
+    titelId,
+  });
 
-    omschrijving: inbreuk.omschrijving.trim(),
-    omschrijvingOpmaak: normaliseerOpmaak(
-      inbreuk.omschrijvingOpmaak,
-    ),
+  const opgeslagenInbreuk =
+    await prisma.$transaction(
+      async (transactie) => {
+        if (id) {
+          const bestaandeInbreuk =
+            await transactie.standaardinbreuk.findUnique({
+              where: {
+                id,
+              },
+              select: {
+                id: true,
+              },
+            });
 
-    situering: normaliseerOptioneleTekst(
-      inbreuk.situering,
-    ),
+          if (!bestaandeInbreuk) {
+            throw new Error(
+              "De standaardinbreuk bestaat niet meer.",
+            );
+          }
 
-    toelichting: normaliseerOptioneleTekst(
-      inbreuk.toelichting,
-    ),
+          /*
+           * De gekoppelde specifieke elementen
+           * worden volledig vervangen.
+           */
+          await transactie.specifiekElement.deleteMany({
+            where: {
+              standaardinbreukId: id,
+            },
+          });
 
-    aanvulling: normaliseerOptioneleTekst(
-      inbreuk.aanvulling,
-    ),
-    aanvullingOpmaak: normaliseerOpmaak(
-      inbreuk.aanvullingOpmaak,
-    ),
+          await transactie.standaardinbreuk.update({
+            where: {
+              id,
+            },
+            data: {
+              wetgevingId,
+              boekId,
+              titelId,
+              onderwerp,
+              kernwoorden,
 
-    wettelijkeVerwijzing:
-      inbreuk.wettelijkeVerwijzing.trim(),
+              omschrijving,
+              omschrijvingOpmaak:
+                omschrijvingOpmaak as Prisma.InputJsonValue,
 
-    kernwoorden: normaliseerKernwoorden(
-      inbreuk.kernwoorden,
-    ),
-  };
+              situering: optioneelTekstveld(
+                invoer.situering,
+              ),
 
-  const opgeslagenInbreuk = inbreuk.id.trim()
-    ? await prisma.standaardinbreuk.update({
-        where: {
-          id: inbreuk.id,
-        },
-        data: gegevens,
-      })
-    : await prisma.standaardinbreuk.create({
-        data: gegevens,
-      });
+              specifiekeElementenIngeschakeld,
 
-  revalidatePath("/bibliotheek");
+              toelichting: optioneelTekstveld(
+                invoer.toelichting,
+              ),
 
-  return zetOmNaarClientInbreuk(
+              aanvulling: optioneelTekstveld(
+                invoer.aanvulling,
+              ),
+
+              aanvullingOpmaak:
+                aanvullingOpmaak as Prisma.InputJsonValue,
+
+              wettelijkeVerwijzing,
+            },
+          });
+
+          if (specifiekeElementen.length > 0) {
+            await transactie.specifiekElement.createMany({
+              data: specifiekeElementen.map(
+                (element) => ({
+                  standaardinbreukId: id,
+                  tekst: element.tekst,
+                  volgorde: element.volgorde,
+                }),
+              ),
+            });
+          }
+
+          return transactie.standaardinbreuk.findUniqueOrThrow({
+            where: {
+              id,
+            },
+            include: {
+              specifiekeElementen: {
+                orderBy: {
+                  volgorde: "asc",
+                },
+              },
+            },
+          });
+        }
+
+        return transactie.standaardinbreuk.create({
+          data: {
+            wetgevingId,
+            boekId,
+            titelId,
+            onderwerp,
+            kernwoorden,
+
+            omschrijving,
+            omschrijvingOpmaak:
+              omschrijvingOpmaak as Prisma.InputJsonValue,
+
+            situering: optioneelTekstveld(
+              invoer.situering,
+            ),
+
+            specifiekeElementenIngeschakeld,
+
+            specifiekeElementen:
+              specifiekeElementen.length > 0
+                ? {
+                    create:
+                      specifiekeElementen.map(
+                        (element) => ({
+                          tekst: element.tekst,
+                          volgorde:
+                            element.volgorde,
+                        }),
+                      ),
+                  }
+                : undefined,
+
+            toelichting: optioneelTekstveld(
+              invoer.toelichting,
+            ),
+
+            aanvulling: optioneelTekstveld(
+              invoer.aanvulling,
+            ),
+
+            aanvullingOpmaak:
+              aanvullingOpmaak as Prisma.InputJsonValue,
+
+            wettelijkeVerwijzing,
+          },
+          include: {
+            specifiekeElementen: {
+              orderBy: {
+                volgorde: "asc",
+              },
+            },
+          },
+        });
+      },
+    );
+
+  revalidatePath(BIBLIOTHEEK_PAD);
+
+  return mapStandaardinbreuk(
     opgeslagenInbreuk,
   );
 }
 
+/**
+ * Verwijdert een standaardinbreuk.
+ *
+ * Door onDelete: Cascade in schema.prisma
+ * worden gekoppelde specifieke elementen
+ * automatisch verwijderd.
+ */
 export async function verwijderStandaardinbreuk(
   inbreukId: string,
 ): Promise<void> {
-  const opgeschoondId = inbreukId.trim();
+  await vereisGebruiker();
 
-  if (!opgeschoondId) {
+  const id = verplichtTekstveld(
+    inbreukId,
+    "Standaardinbreuk",
+  );
+
+  const bestaandeInbreuk =
+    await prisma.standaardinbreuk.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+  if (!bestaandeInbreuk) {
     throw new Error(
-      "Deze inbreuk is nog niet opgeslagen.",
+      "De standaardinbreuk bestaat niet meer.",
     );
   }
 
   await prisma.standaardinbreuk.delete({
     where: {
-      id: opgeschoondId,
+      id,
     },
   });
 
-  revalidatePath("/bibliotheek");
+  revalidatePath(BIBLIOTHEEK_PAD);
 }

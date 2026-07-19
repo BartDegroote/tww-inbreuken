@@ -4,28 +4,40 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { maakInspectie } from "@/app/inspecties/actions";
+
 export default function NieuweInspectie() {
   const router = useRouter();
 
   const [onderneming, setOnderneming] = useState("");
   const [adres, setAdres] = useState("");
   const [inspectiedatum, setInspectiedatum] = useState("");
-  const [inspecteur, setInspecteur] = useState("");
+  const [inspecteur, setInspecteur] = useState("Bart Degroote");
   const [flowJaar, setFlowJaar] = useState("");
   const [flowNummer, setFlowNummer] = useState("");
+  const [bezig, setBezig] = useState(false);
+  const [fout, setFout] = useState("");
 
-  function startInspectie(event: FormEvent<HTMLFormElement>) {
+  async function startInspectie(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setBezig(true);
+    setFout("");
 
-    const parameters = new URLSearchParams({
-      onderneming,
-      adres,
-      inspectiedatum,
-      inspecteur,
-      flow: `02/${flowJaar}/${flowNummer}`,
-    });
+    try {
+      const inspectieId = await maakInspectie({
+        onderneming,
+        adres,
+        inspectiedatum,
+        inspecteur,
+        flow: `02/${flowJaar}/${flowNummer}`,
+      });
 
-    router.push(`/inspecties/uitvoeren?${parameters.toString()}`);
+      router.push(`/inspecties/uitvoeren?id=${inspectieId}`);
+    } catch (error) {
+      console.error(error);
+      setFout("De inspectie kon niet worden aangemaakt.");
+      setBezig(false);
+    }
   }
 
   return (
@@ -170,11 +182,18 @@ export default function NieuweInspectie() {
               </p>
             </div>
 
+            {fout && (
+              <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {fout}
+              </p>
+            )}
+
             <button
               type="submit"
-              className="w-full rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800"
+              disabled={bezig}
+              className="w-full rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
             >
-              Inspectie starten
+              {bezig ? "Inspectie wordt aangemaakt..." : "Inspectie starten"}
             </button>
           </form>
         </div>

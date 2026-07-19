@@ -7,6 +7,11 @@ import {
   type FormEvent,
 } from "react";
 
+import {
+  bewaarInspectie,
+  type OpgeslagenInbreukInput,
+} from "@/app/inspecties/actions";
+
 import type {
   Standaardinbreuk,
   TekstSegment,
@@ -32,11 +37,22 @@ type BoekOptie = {
 type TitelOptie = {
   id: string;
   naam: string;
-  onderwerp: string;
   boekId: string;
 };
 
-type Inbreuk = {
+type SpecifiekElementKeuze = {
+  id: string;
+  tekst: string;
+};
+
+export type InspectieFoto = {
+  id: string;
+  naam: string;
+  url?: string;
+  bestand?: File;
+};
+
+export type Inbreuk = {
   id: string;
   standaardinbreukId: string;
   beschrijving: string;
@@ -46,10 +62,13 @@ type Inbreuk = {
   aanvulling: string;
   aanvullingOpmaak: TekstSegment[];
   wettelijkeVerwijzing: string;
-  fotos: File[];
+  specifiekeElementen: SpecifiekElementKeuze[];
+  geselecteerdeSpecifiekeElementIds: string[];
+  fotos: InspectieFoto[];
 };
 
 type InspectieUitvoerenClientProps = {
+  inspectieId: string;
   onderneming: string;
   adres: string;
   inspectiedatum: string;
@@ -59,6 +78,7 @@ type InspectieUitvoerenClientProps = {
   boeken: BoekOptie[];
   titels: TitelOptie[];
   standaardinbreuken: Standaardinbreuk[];
+  initialInbreuken: Inbreuk[];
 };
 
 function kopieerSegmenten(
@@ -86,8 +106,22 @@ function platteSegmenten(
 }
 
 async function bestandNaarPngFoto(
-  bestand: File,
+  foto: InspectieFoto,
 ): Promise<WordFoto> {
+  let bestand = foto.bestand;
+
+  if (!bestand && foto.url) {
+    const response = await fetch(foto.url);
+    if (!response.ok) {
+      throw new Error(`De foto "${foto.naam}" kon niet worden geladen.`);
+    }
+    bestand = new File([await response.blob()], foto.naam);
+  }
+
+  if (!bestand) {
+    throw new Error(`De foto "${foto.naam}" kon niet worden geladen.`);
+  }
+
   let bitmap: ImageBitmap;
 
   try {
@@ -147,14 +181,61 @@ async function bestandNaarPngFoto(
 }
 
 async function maakWordFotos(
-  bestanden: File[],
+  bestanden: InspectieFoto[],
 ): Promise<WordFoto[]> {
   return Promise.all(
     bestanden.map(bestandNaarPngFoto),
   );
 }
 
+async function maakCompacteUpload(bestand: File): Promise<File> {
+  const bitmap = await createImageBitmap(bestand);
+
+  try {
+    const maximum = 1600;
+    const schaal = Math.min(1, maximum / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * schaal));
+    canvas.height = Math.max(1, Math.round(bitmap.height * schaal));
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      throw new Error("De foto kon niet worden verwerkt.");
+    }
+
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (resultaat) =>
+          resultaat ? resolve(resultaat) : reject(new Error("Fotoverwerking mislukt.")),
+        "image/jpeg",
+        0.82,
+      );
+    });
+
+    return new File([blob], bestand.name.replace(/\.[^.]+$/, ".jpg"), {
+      type: "image/jpeg",
+    });
+  } finally {
+    bitmap.close();
+  }
+}
+
+function maakTijdelijkId(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+}
+
 export default function InspectieUitvoerenClient({
+  inspectieId,
   onderneming,
   adres,
   inspectiedatum,
@@ -164,9 +245,10 @@ export default function InspectieUitvoerenClient({
   boeken,
   titels,
   standaardinbreuken,
+  initialInbreuken,
 }: InspectieUitvoerenClientProps) {
   const [inbreuken, setInbreuken] =
-    useState<Inbreuk[]>([]);
+    useState<Inbreuk[]>(initialInbreuken);
 
   const [geselecteerdeId, setGeselecteerdeId] =
     useState<string | null>(null);
@@ -183,7 +265,14 @@ export default function InspectieUitvoerenClient({
   ] = useState("");
 
   const [fotos, setFotos] =
-    useState<File[]>([]);
+    useState<InspectieFoto[]>([]);
+
+  const [opslagStatus, setOpslagStatus] = useState("");
+
+  const [
+    geselecteerdeSpecifiekeElementIds,
+    setGeselecteerdeSpecifiekeElementIds,
+  ] = useState<string[]>([]);
 
   const [wetgevingFilter, setWetgevingFilter] =
     useState("");
@@ -315,9 +404,12 @@ export default function InspectieUitvoerenClient({
           wetgevingNaam,
           boekNaam,
           titel?.naam ?? "",
-          titel?.onderwerp ?? "",
+          inbreuk.onderwerp,
           inbreuk.omschrijving,
           inbreuk.situering ?? "",
+          ...inbreuk.specifiekeElementen.map(
+            (element) => element.tekst,
+          ),
           inbreuk.toelichting ?? "",
           inbreuk.aanvulling ?? "",
           inbreuk.wettelijkeVerwijzing,
@@ -356,6 +448,7 @@ export default function InspectieUitvoerenClient({
     setBeschrijving("");
     setInCasu("");
     setWettelijkeVerwijzing("");
+    setGeselecteerdeSpecifiekeElementIds([]);
     setFotos([]);
   }
 
@@ -365,19 +458,6 @@ export default function InspectieUitvoerenClient({
     setBoekFilter("");
     setTitelFilter("");
     setZoekterm("");
-  }
-
-  function maakTijdelijkId() {
-    if (
-      typeof crypto !== "undefined" &&
-      typeof crypto.randomUUID === "function"
-    ) {
-      return crypto.randomUUID();
-    }
-
-    return `${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2)}`;
   }
 
   function voegStandaardinbreukToe(
@@ -398,6 +478,16 @@ export default function InspectieUitvoerenClient({
       ),
       wettelijkeVerwijzing:
         standaard.wettelijkeVerwijzing,
+      specifiekeElementen:
+        standaard.specifiekeElementenIngeschakeld
+          ? standaard.specifiekeElementen.map(
+              (element) => ({
+                id: element.id,
+                tekst: element.tekst,
+              }),
+            )
+          : [],
+      geselecteerdeSpecifiekeElementIds: [],
       fotos: [],
     };
 
@@ -414,6 +504,7 @@ export default function InspectieUitvoerenClient({
     setWettelijkeVerwijzing(
       nieuweInbreuk.wettelijkeVerwijzing,
     );
+    setGeselecteerdeSpecifiekeElementIds([]);
     setFotos([]);
     setExportFout("");
   }
@@ -427,6 +518,9 @@ export default function InspectieUitvoerenClient({
     setWettelijkeVerwijzing(
       inbreuk.wettelijkeVerwijzing,
     );
+    setGeselecteerdeSpecifiekeElementIds(
+      inbreuk.geselecteerdeSpecifiekeElementIds,
+    );
     setFotos(inbreuk.fotos);
     setExportFout("");
   }
@@ -438,7 +532,94 @@ export default function InspectieUitvoerenClient({
       return;
     }
 
-    setFotos(Array.from(bestanden));
+    setFotos(
+      Array.from(bestanden).map((bestand) => ({
+        id: maakTijdelijkId(),
+        naam: bestand.name,
+        bestand,
+      })),
+    );
+  }
+
+  async function slaDossierOp(teBewaren = synchroniseerFormulier(inbreuken)) {
+    setOpslagStatus("Opslaan...");
+    setExportFout("");
+
+    try {
+      const invoer: OpgeslagenInbreukInput[] = teBewaren.map((inbreuk) => ({
+        id: inbreuk.id,
+        standaardinbreukId: inbreuk.standaardinbreukId,
+        beschrijving: inbreuk.beschrijving,
+        beschrijvingOpmaak: inbreuk.beschrijvingOpmaak,
+        inCasu: inbreuk.inCasu,
+        toelichting: inbreuk.toelichting,
+        aanvulling: inbreuk.aanvulling,
+        aanvullingOpmaak: inbreuk.aanvullingOpmaak,
+        wettelijkeVerwijzing: inbreuk.wettelijkeVerwijzing,
+        specifiekeElementen: inbreuk.specifiekeElementen,
+        geselecteerdeSpecifiekeElementIds:
+          inbreuk.geselecteerdeSpecifiekeElementIds,
+        bewaardeFotoIds: inbreuk.fotos
+          .filter((foto) => Boolean(foto.url))
+          .map((foto) => foto.id),
+      }));
+
+      await bewaarInspectie(inspectieId, invoer);
+
+      const opgeslagen = await Promise.all(
+        teBewaren.map(async (inbreuk) => {
+          const opgeslagenFotos = await Promise.all(
+            inbreuk.fotos.map(async (foto) => {
+              if (!foto.bestand) {
+                return foto;
+              }
+
+              const formData = new FormData();
+              formData.set("foto", await maakCompacteUpload(foto.bestand));
+              const response = await fetch(
+                `/api/inspecties/${inspectieId}/inbreuken/${inbreuk.id}/fotos`,
+                { method: "POST", body: formData },
+              );
+
+              if (!response.ok) {
+                const resultaat = (await response.json()) as { fout?: string };
+                throw new Error(resultaat.fout ?? "Foto opslaan mislukt.");
+              }
+
+              return (await response.json()) as InspectieFoto;
+            }),
+          );
+
+          return { ...inbreuk, fotos: opgeslagenFotos };
+        }),
+      );
+
+      setInbreuken(opgeslagen);
+      const geselecteerd = opgeslagen.find((item) => item.id === geselecteerdeId);
+      if (geselecteerd) setFotos(geselecteerd.fotos);
+      setOpslagStatus("Opgeslagen");
+      return opgeslagen;
+    } catch (error) {
+      console.error(error);
+      setOpslagStatus("Opslaan mislukt");
+      setExportFout(error instanceof Error ? error.message : "Opslaan mislukt.");
+      return null;
+    }
+  }
+
+  function wijzigSpecifiekElement(
+    elementId: string,
+    geselecteerd: boolean,
+  ) {
+    setGeselecteerdeSpecifiekeElementIds(
+      (huidigeIds) =>
+        geselecteerd
+          ? [...new Set([...huidigeIds, elementId])]
+          : huidigeIds.filter(
+              (id) => id !== elementId,
+            ),
+    );
+    setExportFout("");
   }
 
   function synchroniseerFormulier(
@@ -465,12 +646,13 @@ export default function InspectieUitvoerenClient({
             : inbreuk.beschrijvingOpmaak,
         inCasu,
         wettelijkeVerwijzing,
+        geselecteerdeSpecifiekeElementIds,
         fotos,
       };
     });
   }
 
-  function bewaarWijzigingen(
+  async function bewaarWijzigingen(
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
@@ -479,16 +661,14 @@ export default function InspectieUitvoerenClient({
       return;
     }
 
-    setInbreuken((huidigeInbreuken) =>
-      synchroniseerFormulier(
-        huidigeInbreuken,
-      ),
-    );
+    const actueel = synchroniseerFormulier(inbreuken);
+    setInbreuken(actueel);
+    await slaDossierOp(actueel);
 
     setExportFout("");
   }
 
-  function verwijderInbreuk() {
+  async function verwijderInbreuk() {
     if (geselecteerdeId === null) {
       return;
     }
@@ -501,15 +681,14 @@ export default function InspectieUitvoerenClient({
       return;
     }
 
-    setInbreuken((huidigeInbreuken) =>
-      huidigeInbreuken.filter(
-        (inbreuk) =>
-          inbreuk.id !== geselecteerdeId,
-      ),
+    const resterendeInbreuken = inbreuken.filter(
+      (inbreuk) => inbreuk.id !== geselecteerdeId,
     );
+    setInbreuken(resterendeInbreuken);
 
     maakFormulierLeeg();
     setExportFout("");
+    await slaDossierOp(resterendeInbreuken);
   }
 
   async function genereerWordVerslag() {
@@ -526,15 +705,29 @@ export default function InspectieUitvoerenClient({
 
       setInbreuken(actueleInbreuken);
 
+      const opgeslagenInbreuken = await slaDossierOp(actueleInbreuken);
+
+      if (!opgeslagenInbreuken) {
+        return;
+      }
+
       const wordInbreuken: WordInbreuk[] =
         await Promise.all(
-          actueleInbreuken.map(
+          opgeslagenInbreuken.map(
             async (inbreuk) => ({
               beschrijving:
                 inbreuk.beschrijving,
               beschrijvingOpmaak:
                 inbreuk.beschrijvingOpmaak,
               inCasu: inbreuk.inCasu,
+              specifiekeElementen:
+                inbreuk.specifiekeElementen
+                  .filter((element) =>
+                    inbreuk.geselecteerdeSpecifiekeElementIds.includes(
+                      element.id,
+                    ),
+                  )
+                  .map((element) => element.tekst),
               fotos: await maakWordFotos(
                 inbreuk.fotos,
               ),
@@ -1149,6 +1342,70 @@ export default function InspectieUitvoerenClient({
                         Vermeld feitelijke, controleerbare elementen en de plaats waarop de situering betrekking heeft.
                       </p>
                     </div>
+
+                    {geselecteerdeInbreuk &&
+                      geselecteerdeInbreuk
+                        .specifiekeElementen.length > 0 && (
+                        <div className="mt-6 border-t border-slate-200 pt-6">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <h4 className="text-sm font-bold text-slate-800">
+                                Specifieke elementen
+                              </h4>
+                              <p className="mt-1 text-sm leading-6 text-slate-500">
+                                Duid aan welke vooraf gedefinieerde vaststellingen in deze inbreuk moeten worden opgenomen.
+                              </p>
+                            </div>
+
+                            <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+                              {
+                                geselecteerdeSpecifiekeElementIds.length
+                              }{" "}
+                              geselecteerd
+                            </span>
+                          </div>
+
+                          <div className="mt-4 grid gap-3">
+                            {geselecteerdeInbreuk.specifiekeElementen.map(
+                              (element) => {
+                                const isGeselecteerd =
+                                  geselecteerdeSpecifiekeElementIds.includes(
+                                    element.id,
+                                  );
+
+                                return (
+                                  <label
+                                    key={element.id}
+                                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
+                                      isGeselecteerd
+                                        ? "border-blue-300 bg-blue-50 ring-2 ring-blue-100"
+                                        : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={
+                                        isGeselecteerd
+                                      }
+                                      onChange={(event) =>
+                                        wijzigSpecifiekElement(
+                                          element.id,
+                                          event.target.checked,
+                                        )
+                                      }
+                                      className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                    />
+
+                                    <span className="text-sm font-medium leading-6 text-slate-800">
+                                      {element.tekst}
+                                    </span>
+                                  </label>
+                                );
+                              },
+                            )}
+                          </div>
+                        </div>
+                      )}
                   </section>
 
                   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -1183,9 +1440,9 @@ export default function InspectieUitvoerenClient({
                           {fotos.map(
                             (foto, index) => (
                               <li
-                                key={`${foto.name}-${index}`}
+                                key={`${foto.id}-${index}`}
                               >
-                                {foto.name}
+                                {foto.naam}
                               </li>
                             ),
                           )}
@@ -1237,19 +1494,30 @@ export default function InspectieUitvoerenClient({
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={genereerWordVerslag}
-            disabled={
-              inbreuken.length === 0 ||
-              exportBezig
-            }
-            className="rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {exportBezig
-              ? "Word-verslag wordt gemaakt..."
-              : "Word-verslag genereren"}
-          </button>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            {opslagStatus && (
+              <span className="text-sm font-medium text-slate-500">
+                {opslagStatus}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => void slaDossierOp()}
+              className="rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800"
+            >
+              Inspectie opslaan
+            </button>
+            <button
+              type="button"
+              onClick={genereerWordVerslag}
+              disabled={inbreuken.length === 0 || exportBezig}
+              className="rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+            >
+              {exportBezig
+                ? "Word-verslag wordt gemaakt..."
+                : "Word-verslag genereren"}
+            </button>
+          </div>
         </footer>
       </div>
     </main>

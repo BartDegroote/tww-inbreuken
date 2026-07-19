@@ -27,7 +27,6 @@ export type BoekOptie = {
 export type TitelOptie = {
   id: string;
   naam: string;
-  onderwerp: string;
   boekId: string;
 };
 
@@ -41,18 +40,39 @@ type BibliotheekClientProps = {
 function maakLegeInbreuk(): Standaardinbreuk {
   return {
     id: "",
+
     wetgevingId: "",
     boekId: "",
     titelId: "",
+
+    onderwerp: "",
+
     kernwoorden: [],
+
     omschrijving: "",
     omschrijvingOpmaak: [],
+
     situering: "",
+
+    specifiekeElementenIngeschakeld: false,
+    specifiekeElementen: [],
+
     toelichting: "",
+
     aanvulling: "",
     aanvullingOpmaak: [],
+
     wettelijkeVerwijzing: "",
   };
+}
+
+function vergelijkTekst(
+  eerste: string,
+  tweede: string,
+): number {
+  return eerste.localeCompare(tweede, "nl-BE", {
+    sensitivity: "base",
+  });
 }
 
 export default function BibliotheekClient({
@@ -93,10 +113,8 @@ export default function BibliotheekClient({
   ] = useState("");
 
   const kernwoordSuggesties = useMemo(() => {
-    const uniekeKernwoorden = new Map<
-      string,
-      string
-    >();
+    const uniekeKernwoorden =
+      new Map<string, string>();
 
     for (const inbreuk of inbreuken) {
       for (const kernwoord of inbreuk.kernwoorden) {
@@ -122,23 +140,114 @@ export default function BibliotheekClient({
     }
 
     return [...uniekeKernwoorden.values()].sort(
-      (eerste, tweede) =>
-        eerste.localeCompare(tweede, "nl-BE", {
-          sensitivity: "base",
-        }),
+      vergelijkTekst,
     );
   }, [inbreuken]);
+
+  const beschikbareOnderwerpen = useMemo(() => {
+    const uniekeOnderwerpen =
+      new Map<string, string>();
+
+    for (const inbreuk of inbreuken) {
+      const voldoetAanWetgeving =
+        !filterWetgevingId ||
+        inbreuk.wetgevingId ===
+          filterWetgevingId;
+
+      const voldoetAanBoek =
+        !filterBoekId ||
+        inbreuk.boekId === filterBoekId;
+
+      const voldoetAanTitel =
+        !filterTitelId ||
+        inbreuk.titelId === filterTitelId;
+
+      if (
+        !voldoetAanWetgeving ||
+        !voldoetAanBoek ||
+        !voldoetAanTitel
+      ) {
+        continue;
+      }
+
+      const onderwerp = inbreuk.onderwerp.trim();
+
+      if (!onderwerp) {
+        continue;
+      }
+
+      const sleutel =
+        onderwerp.toLocaleLowerCase("nl-BE");
+
+      if (!uniekeOnderwerpen.has(sleutel)) {
+        uniekeOnderwerpen.set(
+          sleutel,
+          onderwerp,
+        );
+      }
+    }
+
+    return [...uniekeOnderwerpen.values()].sort(
+      vergelijkTekst,
+    );
+  }, [
+    inbreuken,
+    filterWetgevingId,
+    filterBoekId,
+    filterTitelId,
+  ]);
+
+  const onderwerpSuggesties = useMemo(() => {
+    const titelId =
+      geselecteerdeInbreuk?.titelId ?? "";
+
+    if (!titelId) {
+      return [];
+    }
+
+    const uniekeOnderwerpen =
+      new Map<string, string>();
+
+    for (const inbreuk of inbreuken) {
+      if (inbreuk.titelId !== titelId) {
+        continue;
+      }
+
+      const onderwerp = inbreuk.onderwerp.trim();
+
+      if (!onderwerp) {
+        continue;
+      }
+
+      const sleutel =
+        onderwerp.toLocaleLowerCase("nl-BE");
+
+      if (!uniekeOnderwerpen.has(sleutel)) {
+        uniekeOnderwerpen.set(
+          sleutel,
+          onderwerp,
+        );
+      }
+    }
+
+    return [...uniekeOnderwerpen.values()].sort(
+      vergelijkTekst,
+    );
+  }, [
+    inbreuken,
+    geselecteerdeInbreuk?.titelId,
+  ]);
 
   const gefilterdeInbreuken = useMemo(() => {
     const zoekterm = filterKernwoord
       .trim()
       .toLocaleLowerCase("nl-BE");
 
-    return inbreuken.filter((inbreuk) => {
-      const titel = startTitels.find(
-        (item) => item.id === inbreuk.titelId,
-      );
+    const onderwerpFilter = filterOnderwerp
+      .trim()
+      .toLocaleLowerCase("nl-BE");
 
+    return inbreuken.filter((inbreuk) => {
       const voldoetAanWetgeving =
         !filterWetgevingId ||
         inbreuk.wetgevingId ===
@@ -153,8 +262,17 @@ export default function BibliotheekClient({
         inbreuk.titelId === filterTitelId;
 
       const voldoetAanOnderwerp =
-        !filterOnderwerp ||
-        titel?.onderwerp === filterOnderwerp;
+        !onderwerpFilter ||
+        inbreuk.onderwerp
+          .trim()
+          .toLocaleLowerCase("nl-BE") ===
+          onderwerpFilter;
+
+      const specifiekeElementenTekst =
+        inbreuk.specifiekeElementen
+          .map((element) => element.tekst)
+          .join(" ")
+          .toLocaleLowerCase("nl-BE");
 
       const voldoetAanZoekterm =
         !zoekterm ||
@@ -163,12 +281,18 @@ export default function BibliotheekClient({
             .toLocaleLowerCase("nl-BE")
             .includes(zoekterm),
         ) ||
+        inbreuk.onderwerp
+          .toLocaleLowerCase("nl-BE")
+          .includes(zoekterm) ||
         inbreuk.omschrijving
           .toLocaleLowerCase("nl-BE")
           .includes(zoekterm) ||
         (inbreuk.situering ?? "")
           .toLocaleLowerCase("nl-BE")
           .includes(zoekterm) ||
+        specifiekeElementenTekst.includes(
+          zoekterm,
+        ) ||
         (inbreuk.toelichting ?? "")
           .toLocaleLowerCase("nl-BE")
           .includes(zoekterm) ||
@@ -176,9 +300,6 @@ export default function BibliotheekClient({
           .toLocaleLowerCase("nl-BE")
           .includes(zoekterm) ||
         inbreuk.wettelijkeVerwijzing
-          .toLocaleLowerCase("nl-BE")
-          .includes(zoekterm) ||
-        (titel?.onderwerp ?? "")
           .toLocaleLowerCase("nl-BE")
           .includes(zoekterm);
 
@@ -192,7 +313,6 @@ export default function BibliotheekClient({
     });
   }, [
     inbreuken,
-    startTitels,
     filterWetgevingId,
     filterBoekId,
     filterTitelId,
@@ -230,8 +350,7 @@ export default function BibliotheekClient({
       if (bestaatAl) {
         return huidigeInbreuken.map(
           (inbreuk) =>
-            inbreuk.id ===
-            opgeslagenInbreuk.id
+            inbreuk.id === opgeslagenInbreuk.id
               ? opgeslagenInbreuk
               : inbreuk,
         );
@@ -291,6 +410,7 @@ export default function BibliotheekClient({
     titelId: string,
   ): void {
     setFilterTitelId(titelId);
+    setFilterOnderwerp("");
   }
 
   function wisFilters(): void {
@@ -314,6 +434,12 @@ export default function BibliotheekClient({
         </div>
 
         <BibliotheekToolbar
+          wetgevingen={startWetgevingen}
+          boeken={startBoeken}
+          titels={startTitels}
+          beschikbareOnderwerpen={
+            beschikbareOnderwerpen
+          }
           filterWetgevingId={
             filterWetgevingId
           }
@@ -348,6 +474,11 @@ export default function BibliotheekClient({
                 geselecteerdeInbreuk?.id ??
                 null
               }
+              wetgevingen={
+                startWetgevingen
+              }
+              boeken={startBoeken}
+              titels={startTitels}
               onSelecteer={selecteerInbreuk}
             />
           </section>
@@ -364,6 +495,9 @@ export default function BibliotheekClient({
               titels={startTitels}
               kernwoordSuggesties={
                 kernwoordSuggesties
+              }
+              onderwerpSuggesties={
+                onderwerpSuggesties
               }
               onBewaar={bewaarInbreuk}
               onVerwijder={

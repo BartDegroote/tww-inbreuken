@@ -3,8 +3,10 @@ import type {
   TekstSegment,
 } from "@/bibliotheek";
 import { prisma } from "@/lib/prisma";
+import { vereisGebruiker } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
 
-import InspectieUitvoerenClient from "./InspectieUitvoerenClient";
+import InspectieUitvoerenClient, { type Inbreuk } from "./InspectieUitvoerenClient";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +73,29 @@ export default async function InspectieUitvoerenPagina({
   searchParams,
 }: InspectieUitvoerenPaginaProps) {
   const parameters = await searchParams;
+  const gebruiker = await vereisGebruiker();
+  const inspectieId = leesZoekParameter(parameters.id);
+
+  if (!inspectieId) {
+    redirect("/inspecties/nieuw");
+  }
+
+  const inspectie = await prisma.inspectie.findFirst({
+    where: { id: inspectieId, gebruikerId: gebruiker.id, status: { not: "VERWIJDERD" } },
+    include: {
+      inbreuken: {
+        orderBy: { volgorde: "asc" },
+        include: {
+          fotos: {
+            orderBy: { aangemaaktOp: "asc" },
+            select: { id: true, naam: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!inspectie) notFound();
 
   const [
     databaseWetgevingen,
@@ -102,6 +127,13 @@ export default async function InspectieUitvoerenPagina({
     }),
 
     prisma.standaardinbreuk.findMany({
+      include: {
+        specifiekeElementen: {
+          orderBy: {
+            volgorde: "asc",
+          },
+        },
+      },
       orderBy: {
         gewijzigdOp: "desc",
       },
@@ -124,7 +156,6 @@ export default async function InspectieUitvoerenPagina({
   const titels = databaseTitels.map((titel) => ({
     id: titel.id,
     naam: titel.naam,
-    onderwerp: titel.onderwerp,
     boekId: titel.boekId,
   }));
 
@@ -134,6 +165,9 @@ export default async function InspectieUitvoerenPagina({
       wetgevingId: inbreuk.wetgevingId,
       boekId: inbreuk.boekId,
       titelId: inbreuk.titelId,
+
+      onderwerp: inbreuk.onderwerp,
+
       kernwoorden: inbreuk.kernwoorden,
 
       omschrijving: inbreuk.omschrijving,
@@ -142,6 +176,18 @@ export default async function InspectieUitvoerenPagina({
       ),
 
       situering: inbreuk.situering ?? "",
+
+      specifiekeElementenIngeschakeld:
+        inbreuk.specifiekeElementenIngeschakeld,
+      specifiekeElementen:
+        inbreuk.specifiekeElementen.map(
+          (element) => ({
+            id: element.id,
+            tekst: element.tekst,
+            volgorde: element.volgorde,
+          }),
+        ),
+
       toelichting: inbreuk.toelichting ?? "",
 
       aanvulling: inbreuk.aanvulling ?? "",
@@ -153,23 +199,52 @@ export default async function InspectieUitvoerenPagina({
         inbreuk.wettelijkeVerwijzing,
     }));
 
+  const initialInbreuken: Inbreuk[] = inspectie.inbreuken.map((inbreuk) => {
+    const specifiekeElementen = Array.isArray(inbreuk.specifiekeElementen)
+      ? inbreuk.specifiekeElementen.filter(
+          (element): element is { id: string; tekst: string } =>
+            typeof element === "object" &&
+            element !== null &&
+            !Array.isArray(element) &&
+            typeof (element as { id?: unknown }).id === "string" &&
+            typeof (element as { tekst?: unknown }).tekst === "string",
+        )
+      : [];
+
+    return {
+      id: inbreuk.id,
+      standaardinbreukId: inbreuk.standaardinbreukId ?? "",
+      beschrijving: inbreuk.beschrijving,
+      beschrijvingOpmaak: leesOpmaak(inbreuk.beschrijvingOpmaak),
+      inCasu: inbreuk.inCasu,
+      toelichting: inbreuk.toelichting,
+      aanvulling: inbreuk.aanvulling,
+      aanvullingOpmaak: leesOpmaak(inbreuk.aanvullingOpmaak),
+      wettelijkeVerwijzing: inbreuk.wettelijkeVerwijzing,
+      specifiekeElementen,
+      geselecteerdeSpecifiekeElementIds:
+        inbreuk.geselecteerdeSpecifiekeElementIds,
+      fotos: inbreuk.fotos.map((foto) => ({
+        id: foto.id,
+        naam: foto.naam,
+        url: `/api/fotos/${foto.id}`,
+      })),
+    };
+  });
+
   return (
     <InspectieUitvoerenClient
-      onderneming={leesZoekParameter(
-        parameters.onderneming,
-      )}
-      adres={leesZoekParameter(parameters.adres)}
-      inspectiedatum={leesZoekParameter(
-        parameters.inspectiedatum,
-      )}
-      inspecteur={leesZoekParameter(
-        parameters.inspecteur,
-      )}
-      flow={leesZoekParameter(parameters.flow)}
+      inspectieId={inspectie.id}
+      onderneming={inspectie.onderneming}
+      adres={inspectie.adres}
+      inspectiedatum={inspectie.inspectiedatum}
+      inspecteur={inspectie.inspecteur}
+      flow={inspectie.flow}
       wetgevingen={wetgevingen}
       boeken={boeken}
       titels={titels}
       standaardinbreuken={standaardinbreuken}
+      initialInbreuken={initialInbreuken}
     />
   );
 }

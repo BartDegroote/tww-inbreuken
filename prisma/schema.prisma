@@ -7,6 +7,91 @@ datasource db {
   provider = "postgresql"
 }
 
+enum InspectieStatus {
+  CONCEPT
+  AFGEROND
+  VERWIJDERD
+}
+
+model Gebruiker {
+  id                         String      @id @default(cuid())
+  gebruikersnaam             String      @unique
+  naam                       String
+  wachtwoordHash             String
+  wachtwoordWijzigingVereist Boolean     @default(false)
+  mislukteAanmeldingen       Int         @default(0)
+  geblokkeerdTot             DateTime?
+  sessies                    Sessie[]
+  inspecties                 Inspectie[]
+  aangemaaktOp               DateTime    @default(now())
+  gewijzigdOp                DateTime    @updatedAt
+}
+
+model Sessie {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
+  vervaltOp    DateTime
+  gebruikerId  String
+  gebruiker    Gebruiker @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
+  aangemaaktOp DateTime  @default(now())
+
+  @@index([gebruikerId])
+  @@index([vervaltOp])
+}
+
+model Inspectie {
+  id             String             @id @default(cuid())
+  onderneming    String
+  adres          String
+  inspectiedatum String
+  inspecteur     String
+  flow           String
+  status         InspectieStatus    @default(CONCEPT)
+  verwijderdOp   DateTime?
+  gebruikerId    String
+  gebruiker      Gebruiker          @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
+  inbreuken      InspectieInbreuk[]
+  aangemaaktOp   DateTime           @default(now())
+  gewijzigdOp    DateTime           @updatedAt
+
+  @@index([gebruikerId, status])
+  @@index([gebruikerId, gewijzigdOp])
+}
+
+model InspectieInbreuk {
+  id                                String          @id
+  inspectieId                       String
+  inspectie                         Inspectie       @relation(fields: [inspectieId], references: [id], onDelete: Cascade)
+  standaardinbreukId                String?
+  volgorde                          Int
+  beschrijving                      String
+  beschrijvingOpmaak                Json?
+  inCasu                            String
+  toelichting                       String
+  aanvulling                        String
+  aanvullingOpmaak                  Json?
+  wettelijkeVerwijzing              String
+  specifiekeElementen               Json?
+  geselecteerdeSpecifiekeElementIds String[]
+  fotos                             InspectieFoto[]
+  aangemaaktOp                      DateTime        @default(now())
+  gewijzigdOp                       DateTime        @updatedAt
+
+  @@index([inspectieId, volgorde])
+}
+
+model InspectieFoto {
+  id                 String           @id @default(cuid())
+  naam               String
+  mimeType           String
+  data               Bytes
+  inspectieInbreukId String
+  inspectieInbreuk   InspectieInbreuk @relation(fields: [inspectieInbreukId], references: [id], onDelete: Cascade)
+  aangemaaktOp       DateTime         @default(now())
+
+  @@index([inspectieInbreukId])
+}
+
 model Wetgeving {
   id     String @id
   naam   String
@@ -26,9 +111,8 @@ model Boek {
 }
 
 model Titel {
-  id        String @id
-  naam      String
-  onderwerp String
+  id   String @id
+  naam String
 
   boekId String
   boek   Boek   @relation(fields: [boekId], references: [id])
@@ -47,6 +131,11 @@ model Standaardinbreuk {
 
   titel Titel @relation(fields: [titelId], references: [id])
 
+  // Vrij onderwerp per inbreuk.
+  // Eerder gebruikte onderwerpen binnen dezelfde titel
+  // kunnen later als suggesties worden aangeboden.
+  onderwerp String
+
   // 1. Omschrijving van de inbreuk
   // De fysieke databasekolom blijft "beschrijving".
   omschrijving       String @map("beschrijving")
@@ -55,15 +144,19 @@ model Standaardinbreuk {
   // 2. Situering van de inbreuk
   situering String?
 
-  // 3. Toelichting / Goede praktijk
+  // 3. Specifieke elementen
+  specifiekeElementenIngeschakeld Boolean            @default(false)
+  specifiekeElementen             SpecifiekElement[]
+
+  // 4. Toelichting / goede praktijk
   // De fysieke databasekolom blijft "extraInfo".
   toelichting String? @map("extraInfo")
 
-  // 4. Aanvulling inbreuk
+  // 5. Aanvulling inbreuk
   aanvulling       String?
   aanvullingOpmaak Json?
 
-  // 5. Wettelijke verwijzing
+  // 6. Wettelijke verwijzing
   wettelijkeVerwijzing String
 
   kernwoorden String[]
@@ -74,4 +167,21 @@ model Standaardinbreuk {
   @@index([wetgevingId])
   @@index([boekId])
   @@index([titelId])
+  @@index([titelId, onderwerp])
+}
+
+model SpecifiekElement {
+  id String @id @default(cuid())
+
+  tekst    String
+  volgorde Int    @default(0)
+
+  standaardinbreukId String
+  standaardinbreuk   Standaardinbreuk @relation(fields: [standaardinbreukId], references: [id], onDelete: Cascade)
+
+  aangemaaktOp DateTime @default(now())
+  gewijzigdOp  DateTime @updatedAt
+
+  @@index([standaardinbreukId])
+  @@index([standaardinbreukId, volgorde])
 }

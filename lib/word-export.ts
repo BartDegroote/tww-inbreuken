@@ -24,6 +24,7 @@ export type WordInbreuk = {
   beschrijving: string;
   beschrijvingOpmaak?: TekstSegment[];
   inCasu: string;
+  specifiekeElementen?: string[];
   fotos?: WordFoto[];
   toelichting: string;
   aanvulling: string;
@@ -56,6 +57,17 @@ const FOTO_HOOGTE_PX = 189;
 // Alle vervolgregels beginnen exact op dezelfde positie als de hoofdtekst.
 const TEKST_INSPrONG = 540;
 const HANGENDE_INSPrONG = 360;
+
+// De vaststelling krijgt een extra niveau:
+// het vierkante teken begint waar de gewone inbreuktekst begint,
+// en de tekst van de vaststelling begint na het teken.
+const SITUERING_TEKST_INSPrONG =
+  TEKST_INSPrONG + HANGENDE_INSPrONG;
+
+// Specifieke elementen staan één tabniveau verder dan de vaststelling.
+// Het kleine vierkant begint waar de tekst van de vaststelling begint.
+const SPECIFIEK_ELEMENT_TEKST_INSPrONG =
+  SITUERING_TEKST_INSPrONG + HANGENDE_INSPrONG;
 
 function veiligeBestandsnaam(
   waarde: string,
@@ -273,46 +285,55 @@ function maakGegevensregel(
 function voegSitueringToe(
   kinderen: Paragraph[],
   tekst: string,
+  specifiekeElementen: string[] = [],
 ) {
   const opgeschoondeTekst = tekst.trim();
+  const opgeschoondeElementen = specifiekeElementen
+    .map((element) => element.trim())
+    .filter(Boolean);
 
-  if (!opgeschoondeTekst) {
+  if (!opgeschoondeTekst && opgeschoondeElementen.length === 0) {
     return;
   }
 
-  const regels = opgeschoondeTekst
-    .replace(/\r\n/g, "\n")
-    .split("\n");
+  const voegOnderdeelToe = (
+    onderdeel: string,
+    teken: string,
+    tekstInspringing: number,
+    afstandVoor: number,
+  ) => {
+    const regels = onderdeel
+      .replace(/\r\n/g, "\n")
+      .split("\n");
 
-  kinderen.push(
-    new Paragraph({
-      indent: {
-        left: TEKST_INSPrONG,
-        hanging: HANGENDE_INSPrONG,
-      },
-      tabStops: [
-        {
-          type: TabStopType.LEFT,
-          position: TEKST_INSPrONG,
+    kinderen.push(
+      new Paragraph({
+        indent: {
+          left: tekstInspringing,
+          hanging: HANGENDE_INSPrONG,
         },
-      ],
-      spacing: {
-        before: 80,
-        after: 90,
-        line: 276,
-      },
-      children: [
-        new TextRun({
-          text: "☐",
-          size: HOOFDTEKST_GROOTTE,
-          font: LETTERTYPE,
-        }),
-        new TextRun({
-          text: "\t",
-          font: LETTERTYPE,
-        }),
-        ...regels.flatMap(
-          (regel, index) => {
+        tabStops: [
+          {
+            type: TabStopType.LEFT,
+            position: tekstInspringing,
+          },
+        ],
+        spacing: {
+          before: afstandVoor,
+          after: 90,
+          line: 276,
+        },
+        children: [
+          new TextRun({
+            text: teken,
+            size: HOOFDTEKST_GROOTTE,
+            font: LETTERTYPE,
+          }),
+          new TextRun({
+            text: "\t",
+            font: LETTERTYPE,
+          }),
+          ...regels.flatMap((regel, index) => {
             const runs: TextRun[] = [];
 
             if (index > 0) {
@@ -326,18 +347,35 @@ function voegSitueringToe(
             runs.push(
               new TextRun({
                 text: regel,
-                size:
-                  HOOFDTEKST_GROOTTE,
+                size: HOOFDTEKST_GROOTTE,
                 font: LETTERTYPE,
               }),
             );
 
             return runs;
-          },
-        ),
-      ],
-    }),
-  );
+          }),
+        ],
+      }),
+    );
+  };
+
+  if (opgeschoondeTekst) {
+    voegOnderdeelToe(
+      opgeschoondeTekst,
+      "☐",
+      SITUERING_TEKST_INSPrONG,
+      80,
+    );
+  }
+
+  opgeschoondeElementen.forEach((element, index) => {
+    voegOnderdeelToe(
+      element,
+      "▪",
+      SPECIFIEK_ELEMENT_TEKST_INSPrONG,
+      !opgeschoondeTekst && index === 0 ? 80 : 0,
+    );
+  });
 }
 
 function maakFotoParagrafen(
@@ -440,6 +478,7 @@ function maakInbreukParagrafen(
   voegSitueringToe(
     kinderen,
     inbreuk.inCasu,
+    inbreuk.specifiekeElementen,
   );
 
   kinderen.push(
@@ -508,16 +547,14 @@ function maakInbreukParagrafen(
   return kinderen;
 }
 
-export async function downloadWordVerslag(
-  inspectie: WordInspectie,
-): Promise<void> {
+export function maakWordDocument(inspectie: WordInspectie): Document {
   if (inspectie.inbreuken.length === 0) {
     throw new Error(
       "Er zijn geen inbreuken om te exporteren.",
     );
   }
 
-  const document = new Document({
+  return new Document({
     creator:
       inspectie.inspecteur ||
       "TWW Inbreuken",
@@ -624,6 +661,12 @@ export async function downloadWordVerslag(
       },
     ],
   });
+}
+
+export async function downloadWordVerslag(
+  inspectie: WordInspectie,
+): Promise<void> {
+  const document = maakWordDocument(inspectie);
 
   const blob =
     await Packer.toBlob(document);

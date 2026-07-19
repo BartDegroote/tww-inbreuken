@@ -1,12 +1,28 @@
 "use client";
 
-import {
-  boeken,
-  titels,
-  wetgevingen,
-} from "@/bibliotheek";
+type WetgevingOptie = {
+  id: string;
+  naam: string;
+};
+
+type BoekOptie = {
+  id: string;
+  naam: string;
+  wetgevingId: string;
+};
+
+type TitelOptie = {
+  id: string;
+  naam: string;
+  boekId: string;
+};
 
 type BibliotheekToolbarProps = {
+  wetgevingen: WetgevingOptie[];
+  boeken: BoekOptie[];
+  titels: TitelOptie[];
+  beschikbareOnderwerpen: string[];
+
   filterWetgevingId: string;
   filterBoekId: string;
   filterTitelId: string;
@@ -24,9 +40,13 @@ type BibliotheekToolbarProps = {
 };
 
 const veldStijl =
-  "min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100";
+  "min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
 
 export default function BibliotheekToolbar({
+  wetgevingen,
+  boeken,
+  titels,
+  beschikbareOnderwerpen,
   filterWetgevingId,
   filterBoekId,
   filterTitelId,
@@ -42,12 +62,16 @@ export default function BibliotheekToolbar({
 }: BibliotheekToolbarProps) {
   const beschikbareBoeken = filterWetgevingId
     ? boeken.filter(
-        (boek) => boek.wetgevingId === filterWetgevingId,
+        (boek) =>
+          boek.wetgevingId === filterWetgevingId,
       )
     : boeken;
 
   const beschikbareTitels = filterBoekId
-    ? titels.filter((titel) => titel.boekId === filterBoekId)
+    ? titels.filter(
+        (titel) =>
+          titel.boekId === filterBoekId,
+      )
     : filterWetgevingId
       ? titels.filter((titel) =>
           beschikbareBoeken.some(
@@ -56,37 +80,28 @@ export default function BibliotheekToolbar({
         )
       : titels;
 
-  const beschikbareOnderwerpen = Array.from(
-    new Set(
-      beschikbareTitels
-        .map((titel) => titel.onderwerp)
-        .filter((onderwerp) => onderwerp.trim().length > 0),
-    ),
-  ).sort((a, b) => a.localeCompare(b, "nl"));
-
-  function wijzigWetgeving(wetgevingId: string) {
+  function wijzigWetgeving(
+    wetgevingId: string,
+  ): void {
     onWijzigWetgeving(wetgevingId);
     onWijzigBoek("");
     onWijzigTitel("");
     onWijzigOnderwerp("");
   }
 
-  function wijzigBoek(boekId: string) {
+  function wijzigBoek(
+    boekId: string,
+  ): void {
     onWijzigBoek(boekId);
     onWijzigTitel("");
     onWijzigOnderwerp("");
   }
 
-  function wijzigTitel(titelId: string) {
+  function wijzigTitel(
+    titelId: string,
+  ): void {
     onWijzigTitel(titelId);
-
-    const geselecteerdeTitel = titels.find(
-      (titel) => titel.id === titelId,
-    );
-
-    onWijzigOnderwerp(
-      geselecteerdeTitel?.onderwerp ?? "",
-    );
+    onWijzigOnderwerp("");
   }
 
   const filtersActief =
@@ -106,8 +121,9 @@ export default function BibliotheekToolbar({
             </h1>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              Filter de bibliotheek volgens de juridische
-              structuur of voeg een nieuwe standaardinbreuk toe.
+              Filter de bibliotheek volgens de
+              juridische structuur of voeg een
+              nieuwe standaardinbreuk toe.
             </p>
           </div>
 
@@ -130,20 +146,26 @@ export default function BibliotheekToolbar({
           <select
             value={filterWetgevingId}
             onChange={(event) =>
-              wijzigWetgeving(event.target.value)
+              wijzigWetgeving(
+                event.target.value,
+              )
             }
             className={veldStijl}
           >
-            <option value="">Alle wetgevingen</option>
+            <option value="">
+              Alle wetgevingen
+            </option>
 
-            {wetgevingen.map((wetgeving) => (
-              <option
-                key={wetgeving.id}
-                value={wetgeving.id}
-              >
-                {wetgeving.naam}
-              </option>
-            ))}
+            {wetgevingen.map(
+              (wetgeving) => (
+                <option
+                  key={wetgeving.id}
+                  value={wetgeving.id}
+                >
+                  {wetgeving.naam}
+                </option>
+              ),
+            )}
           </select>
         </label>
 
@@ -158,15 +180,24 @@ export default function BibliotheekToolbar({
               wijzigBoek(event.target.value)
             }
             className={veldStijl}
-            disabled={beschikbareBoeken.length === 0}
+            disabled={
+              beschikbareBoeken.length === 0
+            }
           >
-            <option value="">Alle boeken</option>
+            <option value="">
+              Alle boeken
+            </option>
 
-            {beschikbareBoeken.map((boek) => (
-              <option key={boek.id} value={boek.id}>
-                {boek.naam}
-              </option>
-            ))}
+            {beschikbareBoeken.map(
+              (boek) => (
+                <option
+                  key={boek.id}
+                  value={boek.id}
+                >
+                  {boek.naam}
+                </option>
+              ),
+            )}
           </select>
         </label>
 
@@ -181,15 +212,24 @@ export default function BibliotheekToolbar({
               wijzigTitel(event.target.value)
             }
             className={veldStijl}
-            disabled={beschikbareTitels.length === 0}
+            disabled={
+              beschikbareTitels.length === 0
+            }
           >
-            <option value="">Alle titels</option>
+            <option value="">
+              Alle titels
+            </option>
 
-            {beschikbareTitels.map((titel) => (
-              <option key={titel.id} value={titel.id}>
-                {titel.naam}
-              </option>
-            ))}
+            {beschikbareTitels.map(
+              (titel) => (
+                <option
+                  key={titel.id}
+                  value={titel.id}
+                >
+                  {titel.naam}
+                </option>
+              ),
+            )}
           </select>
         </label>
 
@@ -201,18 +241,30 @@ export default function BibliotheekToolbar({
           <select
             value={filterOnderwerp}
             onChange={(event) =>
-              onWijzigOnderwerp(event.target.value)
+              onWijzigOnderwerp(
+                event.target.value,
+              )
             }
             className={veldStijl}
-            disabled={beschikbareOnderwerpen.length === 0}
+            disabled={
+              beschikbareOnderwerpen.length ===
+              0
+            }
           >
-            <option value="">Alle onderwerpen</option>
+            <option value="">
+              Alle onderwerpen
+            </option>
 
-            {beschikbareOnderwerpen.map((onderwerp) => (
-              <option key={onderwerp} value={onderwerp}>
-                {onderwerp}
-              </option>
-            ))}
+            {beschikbareOnderwerpen.map(
+              (onderwerp) => (
+                <option
+                  key={onderwerp}
+                  value={onderwerp}
+                >
+                  {onderwerp}
+                </option>
+              ),
+            )}
           </select>
         </label>
 
@@ -225,7 +277,9 @@ export default function BibliotheekToolbar({
             type="search"
             value={filterKernwoord}
             onChange={(event) =>
-              onWijzigKernwoord(event.target.value)
+              onWijzigKernwoord(
+                event.target.value,
+              )
             }
             placeholder="Zoeken..."
             className={veldStijl}

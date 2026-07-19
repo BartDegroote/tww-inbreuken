@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:load": "tsx scripts/load-test.ts",
+    "test:library-load": "tsx scripts/library-load-test.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
