@@ -41,6 +41,8 @@ function maakLegeInbreuk(): Standaardinbreuk {
   return {
     id: "",
 
+    geverifieerd: false,
+
     wetgevingId: "",
     boekId: "",
     titelId: "",

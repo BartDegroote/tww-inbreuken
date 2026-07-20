@@ -113,8 +113,12 @@ export default function InbreukenLijst({
                     }
                     className={`w-full rounded-lg border p-4 text-left transition ${
                       isGeselecteerd
-                        ? "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
-                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                        ? inbreuk.geverifieerd
+                          ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600"
+                          : "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
+                        : inbreuk.geverifieerd
+                          ? "border-emerald-300 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100"
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
                     <span className="block text-xs font-semibold uppercase leading-5 tracking-wide text-slate-500">

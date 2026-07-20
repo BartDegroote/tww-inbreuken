@@ -168,6 +168,7 @@ export default async function InspectieUitvoerenPagina({
   const standaardinbreuken: Standaardinbreuk[] =
     databaseInbreuken.map((inbreuk) => ({
       id: inbreuk.id,
+      geverifieerd: inbreuk.geverifieerd,
       wetgevingId: inbreuk.wetgevingId,
       boekId: inbreuk.boekId,
       titelId: inbreuk.titelId,

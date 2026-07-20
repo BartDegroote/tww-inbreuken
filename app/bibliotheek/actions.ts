@@ -194,6 +194,7 @@ function mapStandaardinbreuk(
 ): Standaardinbreuk {
   return {
     id: inbreuk.id,
+    geverifieerd: inbreuk.geverifieerd,
     wetgevingId: inbreuk.wetgevingId,
     boekId: inbreuk.boekId,
     titelId: inbreuk.titelId,
@@ -346,6 +347,10 @@ export async function bewaarStandaardinbreuk(
       invoer.specifiekeElementenIngeschakeld,
     );
 
+  const geverifieerd = Boolean(
+    invoer.geverifieerd,
+  );
+
   const specifiekeElementen =
     specifiekeElementenIngeschakeld
       ? normaliseerSpecifiekeElementen(
@@ -403,6 +408,7 @@ export async function bewaarStandaardinbreuk(
               id,
             },
             data: {
+              geverifieerd,
               wetgevingId,
               boekId,
               titelId,
@@ -462,6 +468,7 @@ export async function bewaarStandaardinbreuk(
 
         return transactie.standaardinbreuk.create({
           data: {
+            geverifieerd,
             wetgevingId,
             boekId,
             titelId,

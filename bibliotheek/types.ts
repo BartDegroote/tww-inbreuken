@@ -13,6 +13,8 @@ export type SpecifiekElement = {
 export type Standaardinbreuk = {
   id: string;
 
+  geverifieerd: boolean;
+
   wetgevingId: string;
   boekId: string;
   titelId: string;

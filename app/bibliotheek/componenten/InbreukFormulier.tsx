@@ -574,6 +574,7 @@ function initialiseerFormulier(
 
   return {
     ...inbreuk,
+    geverifieerd: inbreuk.geverifieerd ?? false,
     onderwerp: inbreuk.onderwerp ?? "",
     specifiekeElementenIngeschakeld:
       inbreuk.specifiekeElementenIngeschakeld ??
@@ -872,6 +873,23 @@ function InbreukFormulierInhoud({
       return {
         ...huidig,
         onderwerp,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigGeverifieerd(
+    geverifieerd: boolean,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      return {
+        ...huidig,
+        geverifieerd,
       };
     });
 
@@ -1336,9 +1354,27 @@ function InbreukFormulierInhoud({
 
       <div className="space-y-6 p-5">
         <section>
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Juridische indeling
-          </h3>
+          <div className="flex items-center justify-between gap-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Juridische indeling
+            </h3>
+
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                checked={formulier.geverifieerd}
+                onChange={(event) =>
+                  wijzigGeverifieerd(
+                    event.target.checked,
+                  )
+                }
+                disabled={bezig}
+                className="h-5 w-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+              />
+
+              Geverifieerd?
+            </label>
+          </div>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <label className="block">

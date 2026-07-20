@@ -125,6 +125,8 @@ export default async function BibliotheekPagina() {
     databaseInbreuken.map((inbreuk) => ({
       id: inbreuk.id,
 
+      geverifieerd: inbreuk.geverifieerd,
+
       wetgevingId: inbreuk.wetgevingId,
       boekId: inbreuk.boekId,
       titelId: inbreuk.titelId,

@@ -125,6 +125,8 @@ model Titel {
 model Standaardinbreuk {
   id String @id @default(cuid())
 
+  geverifieerd Boolean @default(false)
+
   wetgevingId String
   boekId      String
   titelId     String

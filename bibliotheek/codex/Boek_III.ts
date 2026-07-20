@@ -4,6 +4,8 @@ export const Boek_III: Standaardinbreuk[] = [
   {
     id: "codex-boek-iii-titel-1-001",
 
+    geverifieerd: false,
+
     wetgevingId: "codex-welzijn",
     boekId: "boek-iii",
     titelId: "boek-iii-titel-1",
