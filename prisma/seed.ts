@@ -2,6 +2,8 @@ import "dotenv/config";
 
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../app/generated/prisma/client";
+import { boeken } from "../bibliotheek/boeken";
+import { titels } from "../bibliotheek/titels";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -33,19 +35,6 @@ async function main() {
     },
   });
 
-  const boeken = [
-    { id: "boek-i", naam: "Boek I" },
-    { id: "boek-ii", naam: "Boek II" },
-    { id: "boek-iii", naam: "Boek III" },
-    { id: "boek-iv", naam: "Boek IV" },
-    { id: "boek-v", naam: "Boek V" },
-    { id: "boek-vi", naam: "Boek VI" },
-    { id: "boek-vii", naam: "Boek VII" },
-    { id: "boek-viii", naam: "Boek VIII" },
-    { id: "boek-ix", naam: "Boek IX" },
-    { id: "boek-x", naam: "Boek X" },
-  ];
-
   for (const boek of boeken) {
     await prisma.boek.upsert({
       where: {
@@ -63,19 +52,19 @@ async function main() {
     });
   }
 
-  const titel = await prisma.titel.upsert({
-    where: {
-      id: "boek-iii-titel-1",
-    },
-    update: {
-      naam: "Titel 1",
-      boekId: "boek-iii",
-    },
-    create: {
-      id: "boek-iii-titel-1",
-      naam: "Titel 1",
-      boekId: "boek-iii",
-    },
+  for (const titel of titels) {
+    await prisma.titel.upsert({
+      where: { id: titel.id },
+      update: {
+        naam: titel.naam,
+        boekId: titel.boekId,
+      },
+      create: titel,
+    });
+  }
+
+  const basiseisenTitel = await prisma.titel.findUniqueOrThrow({
+    where: { id: "boek-iii-titel-1" },
   });
 
   await prisma.standaardinbreuk.upsert({
@@ -86,7 +75,7 @@ async function main() {
     update: {
       wetgevingId: wetgeving.id,
       boekId: "boek-iii",
-      titelId: titel.id,
+      titelId: basiseisenTitel.id,
 
       onderwerp:
         "Basiseisen betreffende arbeidsplaatsen",
@@ -120,7 +109,7 @@ async function main() {
 
       wetgevingId: wetgeving.id,
       boekId: "boek-iii",
-      titelId: titel.id,
+      titelId: basiseisenTitel.id,
 
       onderwerp:
         "Basiseisen betreffende arbeidsplaatsen",

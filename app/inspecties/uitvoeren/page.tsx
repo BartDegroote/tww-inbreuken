@@ -2,6 +2,8 @@ import type {
   Standaardinbreuk,
   TekstSegment,
 } from "@/bibliotheek";
+import { vergelijkBoekIds } from "@/bibliotheek/boeken";
+import { vergelijkTitelIds } from "@/bibliotheek/titels";
 import { prisma } from "@/lib/prisma";
 import { vereisGebruiker } from "@/lib/auth";
 import { notFound, redirect } from "next/navigation";
@@ -147,17 +149,21 @@ export default async function InspectieUitvoerenPagina({
     }),
   );
 
-  const boeken = databaseBoeken.map((boek) => ({
-    id: boek.id,
-    naam: boek.naam,
-    wetgevingId: boek.wetgevingId,
-  }));
+  const boeken = databaseBoeken
+    .map((boek) => ({
+      id: boek.id,
+      naam: boek.naam,
+      wetgevingId: boek.wetgevingId,
+    }))
+    .sort((a, b) => vergelijkBoekIds(a.id, b.id));
 
-  const titels = databaseTitels.map((titel) => ({
-    id: titel.id,
-    naam: titel.naam,
-    boekId: titel.boekId,
-  }));
+  const titels = databaseTitels
+    .map((titel) => ({
+      id: titel.id,
+      naam: titel.naam,
+      boekId: titel.boekId,
+    }))
+    .sort(vergelijkTitelIds);
 
   const standaardinbreuken: Standaardinbreuk[] =
     databaseInbreuken.map((inbreuk) => ({
