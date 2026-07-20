@@ -235,6 +235,28 @@ function maakTijdelijkId(): string {
     .slice(2)}`;
 }
 
+function maakCompacteWettelijkeVerwijzing(
+  wetgevingNaam: string,
+  wettelijkeVerwijzing: string,
+): string {
+  const korteWetgevingNaam =
+    wetgevingNaam
+      .trim()
+      .toLocaleLowerCase("nl-BE")
+      .startsWith("codex")
+      ? "Codex"
+      : wetgevingNaam.trim();
+
+  const artikel =
+    wettelijkeVerwijzing.match(
+      /\bart(?:ikel)?\.?\s*((?:[IVXLCDM]+|\d+)(?:\.\d+)+(?:-\d+(?:\.\d+)*)?)/i,
+    )?.[1];
+
+  return artikel
+    ? `${korteWetgevingNaam} art. ${artikel}`
+    : korteWetgevingNaam;
+}
+
 export default function InspectieUitvoerenClient({
   inspectieId,
   onderneming,
@@ -1110,17 +1132,31 @@ export default function InspectieUitvoerenClient({
                             inbreuk.titelId,
                           );
 
+                        const compacteWettelijkeVerwijzing =
+                          maakCompacteWettelijkeVerwijzing(
+                            wetgevingNaam,
+                            inbreuk.wettelijkeVerwijzing,
+                          );
+
                         return (
                           <div
                             key={inbreuk.id}
                             className="rounded-lg border border-slate-200 p-4"
                           >
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                              {wetgevingNaam} ·{" "}
-                              {boekNaam}
-                              {titel
-                                ? ` · ${titel.naam}`
-                                : ""}
+                            <p className="flex min-w-0 items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+                              <span className="min-w-0 flex-1 truncate">
+                                {wetgevingNaam} ·{" "}
+                                {boekNaam}
+                                {titel
+                                  ? ` · ${titel.naam}`
+                                  : ""}
+                              </span>
+
+                              <span className="shrink-0 font-semibold normal-case tracking-normal text-slate-700">
+                                {
+                                  compacteWettelijkeVerwijzing
+                                }
+                              </span>
                             </p>
 
                             <TekstMetOpmaak
