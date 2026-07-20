@@ -1460,180 +1460,6 @@ function InbreukFormulierInhoud({
         </section>
 
         <section className="border-t border-slate-200 pt-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Specifieke elementen
-              </h3>
-
-              <p className="mt-1 text-sm leading-6 text-slate-500">
-                Voeg afzonderlijke elementen
-                toe die bij deze
-                standaardinbreuk moeten worden
-                gecontroleerd of vermeld.
-              </p>
-            </div>
-
-            <label className="inline-flex cursor-pointer items-center gap-3">
-              <input
-                type="checkbox"
-                checked={
-                  formulier
-                    .specifiekeElementenIngeschakeld
-                }
-                onChange={(event) =>
-                  wijzigSpecifiekeElementenIngeschakeld(
-                    event.target.checked,
-                  )
-                }
-                disabled={bezig}
-                className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-              />
-
-              <span className="text-sm font-semibold text-slate-700">
-                Ingeschakeld
-              </span>
-            </label>
-          </div>
-
-          {formulier
-            .specifiekeElementenIngeschakeld && (
-            <div className="mt-4 space-y-3">
-              {formulier.specifiekeElementen
-                .length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
-                  <p className="text-sm text-slate-500">
-                    Er zijn nog geen specifieke
-                    elementen toegevoegd.
-                  </p>
-                </div>
-              ) : (
-                formulier.specifiekeElementen.map(
-                  (element, index) => (
-                    <div
-                      key={element.id}
-                      className="rounded-lg border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <div className="flex items-start gap-3">
-                        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-600 shadow-sm">
-                          {index + 1}
-                        </span>
-
-                        <div className="min-w-0 flex-1">
-                          <label className="block">
-                            <span className="sr-only">
-                              Specifiek element{" "}
-                              {index + 1}
-                            </span>
-
-                            <textarea
-                              value={
-                                element.tekst
-                              }
-                              onChange={(
-                                event,
-                              ) =>
-                                wijzigSpecifiekElement(
-                                  element.id,
-                                  event.target
-                                    .value,
-                                )
-                              }
-                              rows={3}
-                              className={
-                                tekstvakStijl
-                              }
-                              placeholder="Omschrijf het specifieke element..."
-                              disabled={bezig}
-                            />
-                          </label>
-
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            <button
-                              type="button"
-                              className={
-                                knopStijl
-                              }
-                              disabled={
-                                bezig ||
-                                index === 0
-                              }
-                              onClick={() =>
-                                verplaatsSpecifiekElement(
-                                  element.id,
-                                  "omhoog",
-                                )
-                              }
-                            >
-                              Omhoog
-                            </button>
-
-                            <button
-                              type="button"
-                              className={
-                                knopStijl
-                              }
-                              disabled={
-                                bezig ||
-                                index ===
-                                  formulier
-                                    .specifiekeElementen
-                                    .length -
-                                    1
-                              }
-                              onClick={() =>
-                                verplaatsSpecifiekElement(
-                                  element.id,
-                                  "omlaag",
-                                )
-                              }
-                            >
-                              Omlaag
-                            </button>
-
-                            <button
-                              type="button"
-                              disabled={bezig}
-                              onClick={() =>
-                                verwijderSpecifiekElement(
-                                  element.id,
-                                )
-                              }
-                              className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Verwijderen
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ),
-                )
-              )}
-
-              <button
-                type="button"
-                onClick={
-                  voegSpecifiekElementToe
-                }
-                disabled={bezig}
-                className="min-h-10 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Specifiek element toevoegen
-              </button>
-
-              {!specifiekeElementenGeldig && (
-                <p className="text-sm font-medium text-red-600">
-                  Voeg minstens één ingevuld
-                  specifiek element toe of
-                  schakel deze functie uit.
-                </p>
-              )}
-            </div>
-          )}
-        </section>
-
-        <section className="border-t border-slate-200 pt-6">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Inhoud
           </h3>
@@ -1734,6 +1560,164 @@ function InbreukFormulierInhoud({
                 )
               }
             />
+
+            <section className="border-t border-slate-200 pt-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Specifieke elementen
+                  </h4>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Voeg afzonderlijke elementen
+                    toe die bij deze
+                    standaardinbreuk moeten worden
+                    gecontroleerd of vermeld.
+                  </p>
+                </div>
+
+                <label className="inline-flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={
+                      formulier
+                        .specifiekeElementenIngeschakeld
+                    }
+                    onChange={(event) =>
+                      wijzigSpecifiekeElementenIngeschakeld(
+                        event.target.checked,
+                      )
+                    }
+                    disabled={bezig}
+                    className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+
+                  <span className="text-sm font-semibold text-slate-700">
+                    Ingeschakeld
+                  </span>
+                </label>
+              </div>
+
+              {formulier
+                .specifiekeElementenIngeschakeld && (
+                <div className="mt-4 space-y-3">
+                  {formulier.specifiekeElementen
+                    .length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+                      <p className="text-sm text-slate-500">
+                        Er zijn nog geen specifieke
+                        elementen toegevoegd.
+                      </p>
+                    </div>
+                  ) : (
+                    formulier.specifiekeElementen.map(
+                      (element, index) => (
+                        <div
+                          key={element.id}
+                          className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-slate-600 shadow-sm">
+                              {index + 1}
+                            </span>
+
+                            <div className="min-w-0 flex-1">
+                              <label className="block">
+                                <span className="sr-only">
+                                  Specifiek element{" "}
+                                  {index + 1}
+                                </span>
+
+                                <textarea
+                                  value={element.tekst}
+                                  onChange={(event) =>
+                                    wijzigSpecifiekElement(
+                                      element.id,
+                                      event.target.value,
+                                    )
+                                  }
+                                  rows={3}
+                                  className={tekstvakStijl}
+                                  placeholder="Omschrijf het specifieke element..."
+                                  disabled={bezig}
+                                />
+                              </label>
+
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  className={knopStijl}
+                                  disabled={bezig || index === 0}
+                                  onClick={() =>
+                                    verplaatsSpecifiekElement(
+                                      element.id,
+                                      "omhoog",
+                                    )
+                                  }
+                                >
+                                  Omhoog
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className={knopStijl}
+                                  disabled={
+                                    bezig ||
+                                    index ===
+                                      formulier
+                                        .specifiekeElementen
+                                        .length -
+                                        1
+                                  }
+                                  onClick={() =>
+                                    verplaatsSpecifiekElement(
+                                      element.id,
+                                      "omlaag",
+                                    )
+                                  }
+                                >
+                                  Omlaag
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={bezig}
+                                  onClick={() =>
+                                    verwijderSpecifiekElement(
+                                      element.id,
+                                    )
+                                  }
+                                  className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm transition hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  Verwijderen
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ),
+                    )
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={voegSpecifiekElementToe}
+                    disabled={bezig}
+                    className="min-h-10 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Specifiek element toevoegen
+                  </button>
+
+                  {!specifiekeElementenGeldig && (
+                    <p className="text-sm font-medium text-red-600">
+                      Voeg minstens één ingevuld
+                      specifiek element toe of
+                      schakel deze functie uit.
+                    </p>
+                  )}
+                </div>
+              )}
+            </section>
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
