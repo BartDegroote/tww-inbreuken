@@ -197,47 +197,6 @@ export default function BibliotheekClient({
     filterTitelId,
   ]);
 
-  const onderwerpSuggesties = useMemo(() => {
-    const titelId =
-      geselecteerdeInbreuk?.titelId ?? "";
-
-    if (!titelId) {
-      return [];
-    }
-
-    const uniekeOnderwerpen =
-      new Map<string, string>();
-
-    for (const inbreuk of inbreuken) {
-      if (inbreuk.titelId !== titelId) {
-        continue;
-      }
-
-      const onderwerp = inbreuk.onderwerp.trim();
-
-      if (!onderwerp) {
-        continue;
-      }
-
-      const sleutel =
-        onderwerp.toLocaleLowerCase("nl-BE");
-
-      if (!uniekeOnderwerpen.has(sleutel)) {
-        uniekeOnderwerpen.set(
-          sleutel,
-          onderwerp,
-        );
-      }
-    }
-
-    return [...uniekeOnderwerpen.values()].sort(
-      vergelijkTekst,
-    );
-  }, [
-    inbreuken,
-    geselecteerdeInbreuk?.titelId,
-  ]);
-
   const gefilterdeInbreuken = useMemo(() => {
     const zoekterm = filterKernwoord
       .trim()
@@ -497,7 +456,7 @@ export default function BibliotheekClient({
                 kernwoordSuggesties
               }
               onderwerpSuggesties={
-                onderwerpSuggesties
+                inbreuken
               }
               onBewaar={bewaarInbreuk}
               onVerwijder={

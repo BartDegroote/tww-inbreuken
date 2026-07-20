@@ -38,7 +38,15 @@ type InbreukFormulierProps = {
   titels: TitelOptie[];
 
   kernwoordSuggesties?: string[];
-  onderwerpSuggesties?: string[];
+  onderwerpSuggesties?: Array<
+    Pick<
+      Standaardinbreuk,
+      | "wetgevingId"
+      | "boekId"
+      | "titelId"
+      | "onderwerp"
+    >
+  >;
 
   onBewaar: (
     inbreuk: Standaardinbreuk,
@@ -645,11 +653,28 @@ function InbreukFormulierInhoud({
 
   const beschikbareOnderwerpSuggesties =
     useMemo(() => {
+      if (
+        !formulier?.wetgevingId ||
+        !formulier.boekId ||
+        !formulier.titelId
+      ) {
+        return [];
+      }
+
       const uniekeOnderwerpen =
         new Map<string, string>();
 
-      for (const suggestie of onderwerpSuggesties) {
-        const onderwerp = suggestie.trim();
+      for (const bron of onderwerpSuggesties) {
+        if (
+          bron.wetgevingId !==
+            formulier.wetgevingId ||
+          bron.boekId !== formulier.boekId ||
+          bron.titelId !== formulier.titelId
+        ) {
+          continue;
+        }
+
+        const onderwerp = bron.onderwerp.trim();
 
         if (!onderwerp) {
           continue;
@@ -679,7 +704,31 @@ function InbreukFormulierInhoud({
           },
         ),
       );
-    }, [onderwerpSuggesties]);
+    }, [formulier, onderwerpSuggesties]);
+
+  const zichtbareOnderwerpSuggesties =
+    useMemo(() => {
+      const invoer =
+        formulier?.onderwerp
+          .trim()
+          .toLocaleLowerCase("nl-BE") ?? "";
+
+      return beschikbareOnderwerpSuggesties
+        .filter((onderwerp) => {
+          const genormaliseerd =
+            onderwerp.toLocaleLowerCase("nl-BE");
+
+          return (
+            genormaliseerd !== invoer &&
+            (!invoer ||
+              genormaliseerd.includes(invoer))
+          );
+        })
+        .slice(0, 6);
+    }, [
+      beschikbareOnderwerpSuggesties,
+      formulier,
+    ]);
 
   const actiefKernwoord = useMemo(() => {
     const delen =
@@ -1410,15 +1459,19 @@ function InbreukFormulierInhoud({
               </select>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
+            <div className="block">
+              <label
+                htmlFor="inbreuk-onderwerp"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
+              >
                 Onderwerp
                 <span className="ml-1 text-red-600">
                   *
                 </span>
-              </span>
+              </label>
 
               <input
+                id="inbreuk-onderwerp"
                 type="text"
                 value={
                   formulier.onderwerp
@@ -1455,7 +1508,32 @@ function InbreukFormulierInhoud({
                 kiezen of een nieuw onderwerp
                 invoeren.
               </span>
-            </label>
+
+              {zichtbareOnderwerpSuggesties.length >
+                0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-1 text-xs text-slate-500">
+                    Suggesties:
+                  </span>
+
+                  {zichtbareOnderwerpSuggesties.map(
+                    (onderwerp) => (
+                      <button
+                        key={onderwerp}
+                        type="button"
+                        onClick={() =>
+                          wijzigOnderwerp(onderwerp)
+                        }
+                        className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800 transition hover:border-blue-300 hover:bg-blue-100"
+                        disabled={bezig}
+                      >
+                        {onderwerp}
+                      </button>
+                    ),
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
