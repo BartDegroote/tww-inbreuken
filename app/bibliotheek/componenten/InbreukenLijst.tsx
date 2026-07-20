@@ -117,103 +117,25 @@ export default function InbreukenLijst({
                         : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
-                    <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <span className="block text-xs font-semibold uppercase leading-5 tracking-wide text-slate-500">
                       {wetgevingNaam}
-                    </span>
-
-                    <span className="mt-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {" · "}
                       {boekNaam}
                       {" · "}
                       {titelNaam}
                     </span>
 
-                    {inbreuk.onderwerp.trim() && (
-                      <span className="mt-2 block text-sm font-semibold text-slate-800">
-                        {inbreuk.onderwerp}
-                      </span>
-                    )}
-
-                    <span className="mt-2 block whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                      {inbreuk.omschrijving}
-                    </span>
-
-                    {inbreuk
-                      .specifiekeElementenIngeschakeld &&
-                      inbreuk
-                        .specifiekeElementen
-                        .length > 0 && (
-                        <span className="mt-3 block rounded-lg bg-slate-50 p-3">
-                          <span className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Specifieke elementen
-                          </span>
-
-                          <span className="mt-2 block">
-                            {inbreuk.specifiekeElementen
-                              .slice(0, 3)
-                              .map(
-                                (
-                                  element,
-                                  index,
-                                ) => (
-                                  <span
-                                    key={
-                                      element.id ||
-                                      `${inbreuk.id}-${index}`
-                                    }
-                                    className="mt-1 block text-sm leading-5 text-slate-600"
-                                  >
-                                    •{" "}
-                                    {
-                                      element.tekst
-                                    }
-                                  </span>
-                                ),
-                              )}
-
-                            {inbreuk
-                              .specifiekeElementen
-                              .length > 3 && (
-                              <span className="mt-1 block text-xs font-medium text-slate-500">
-                                +
-                                {inbreuk
-                                  .specifiekeElementen
-                                  .length - 3}{" "}
-                                extra
-                              </span>
-                            )}
-                          </span>
+                    <span className="mt-2 block">
+                      {inbreuk.onderwerp.trim() && (
+                        <span className="block text-sm font-semibold text-slate-800">
+                          {inbreuk.onderwerp}
                         </span>
                       )}
 
-                    {inbreuk.kernwoorden.length >
-                      0 && (
-                      <span className="mt-3 flex flex-wrap gap-1.5">
-                        {inbreuk.kernwoorden
-                          .slice(0, 4)
-                          .map(
-                            (kernwoord) => (
-                              <span
-                                key={
-                                  kernwoord
-                                }
-                                className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600"
-                              >
-                                {kernwoord}
-                              </span>
-                            ),
-                          )}
-
-                        {inbreuk.kernwoorden
-                          .length > 4 && (
-                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
-                            +
-                            {inbreuk
-                              .kernwoorden
-                              .length - 4}
-                          </span>
-                        )}
+                      <span className="mt-1 block whitespace-pre-wrap text-sm leading-5 text-slate-600">
+                        {inbreuk.omschrijving}
                       </span>
-                    )}
+                    </span>
                   </button>
                 </li>
               );
