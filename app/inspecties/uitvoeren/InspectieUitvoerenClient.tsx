@@ -22,6 +22,7 @@ import {
   type WordFoto,
   type WordInbreuk,
 } from "@/lib/word-export";
+import { sorteerInbreukenJuridisch } from "@/lib/juridische-sortering";
 
 type WetgevingOptie = {
   id: string;
@@ -247,8 +248,18 @@ export default function InspectieUitvoerenClient({
   standaardinbreuken,
   initialInbreuken,
 }: InspectieUitvoerenClientProps) {
+  function sorteerInbreuken(teSorteren: Inbreuk[]): Inbreuk[] {
+    return sorteerInbreukenJuridisch(
+      teSorteren,
+      standaardinbreuken,
+      wetgevingen,
+    );
+  }
+
   const [inbreuken, setInbreuken] =
-    useState<Inbreuk[]>(initialInbreuken);
+    useState<Inbreuk[]>(() =>
+      sorteerInbreuken(initialInbreuken),
+    );
 
   const [geselecteerdeId, setGeselecteerdeId] =
     useState<string | null>(null);
@@ -491,10 +502,12 @@ export default function InspectieUitvoerenClient({
       fotos: [],
     };
 
-    setInbreuken((huidigeInbreuken) => [
-      ...huidigeInbreuken,
-      nieuweInbreuk,
-    ]);
+    setInbreuken((huidigeInbreuken) =>
+      sorteerInbreuken([
+        ...huidigeInbreuken,
+        nieuweInbreuk,
+      ]),
+    );
 
     setGeselecteerdeId(nieuweInbreuk.id);
     setBeschrijving(
@@ -546,28 +559,36 @@ export default function InspectieUitvoerenClient({
     setExportFout("");
 
     try {
-      const invoer: OpgeslagenInbreukInput[] = teBewaren.map((inbreuk) => ({
-        id: inbreuk.id,
-        standaardinbreukId: inbreuk.standaardinbreukId,
-        beschrijving: inbreuk.beschrijving,
-        beschrijvingOpmaak: inbreuk.beschrijvingOpmaak,
-        inCasu: inbreuk.inCasu,
-        toelichting: inbreuk.toelichting,
-        aanvulling: inbreuk.aanvulling,
-        aanvullingOpmaak: inbreuk.aanvullingOpmaak,
-        wettelijkeVerwijzing: inbreuk.wettelijkeVerwijzing,
-        specifiekeElementen: inbreuk.specifiekeElementen,
-        geselecteerdeSpecifiekeElementIds:
-          inbreuk.geselecteerdeSpecifiekeElementIds,
-        bewaardeFotoIds: inbreuk.fotos
-          .filter((foto) => Boolean(foto.url))
-          .map((foto) => foto.id),
-      }));
+      const gesorteerdeInbreuken =
+        sorteerInbreuken(teBewaren);
+      const invoer: OpgeslagenInbreukInput[] =
+        gesorteerdeInbreuken.map((inbreuk) => ({
+          id: inbreuk.id,
+          standaardinbreukId:
+            inbreuk.standaardinbreukId,
+          beschrijving: inbreuk.beschrijving,
+          beschrijvingOpmaak:
+            inbreuk.beschrijvingOpmaak,
+          inCasu: inbreuk.inCasu,
+          toelichting: inbreuk.toelichting,
+          aanvulling: inbreuk.aanvulling,
+          aanvullingOpmaak:
+            inbreuk.aanvullingOpmaak,
+          wettelijkeVerwijzing:
+            inbreuk.wettelijkeVerwijzing,
+          specifiekeElementen:
+            inbreuk.specifiekeElementen,
+          geselecteerdeSpecifiekeElementIds:
+            inbreuk.geselecteerdeSpecifiekeElementIds,
+          bewaardeFotoIds: inbreuk.fotos
+            .filter((foto) => Boolean(foto.url))
+            .map((foto) => foto.id),
+        }));
 
       await bewaarInspectie(inspectieId, invoer);
 
       const opgeslagen = await Promise.all(
-        teBewaren.map(async (inbreuk) => {
+        gesorteerdeInbreuken.map(async (inbreuk) => {
           const opgeslagenFotos = await Promise.all(
             inbreuk.fotos.map(async (foto) => {
               if (!foto.bestand) {
@@ -626,30 +647,32 @@ export default function InspectieUitvoerenClient({
     huidigeInbreuken: Inbreuk[],
   ): Inbreuk[] {
     if (geselecteerdeId === null) {
-      return huidigeInbreuken;
+      return sorteerInbreuken(huidigeInbreuken);
     }
 
-    return huidigeInbreuken.map((inbreuk) => {
-      if (inbreuk.id !== geselecteerdeId) {
-        return inbreuk;
-      }
+    return sorteerInbreuken(
+      huidigeInbreuken.map((inbreuk) => {
+        if (inbreuk.id !== geselecteerdeId) {
+          return inbreuk;
+        }
 
-      const beschrijvingGewijzigd =
-        beschrijving !== inbreuk.beschrijving;
+        const beschrijvingGewijzigd =
+          beschrijving !== inbreuk.beschrijving;
 
-      return {
-        ...inbreuk,
-        beschrijving,
-        beschrijvingOpmaak:
-          beschrijvingGewijzigd
-            ? platteSegmenten(beschrijving)
-            : inbreuk.beschrijvingOpmaak,
-        inCasu,
-        wettelijkeVerwijzing,
-        geselecteerdeSpecifiekeElementIds,
-        fotos,
-      };
-    });
+        return {
+          ...inbreuk,
+          beschrijving,
+          beschrijvingOpmaak:
+            beschrijvingGewijzigd
+              ? platteSegmenten(beschrijving)
+              : inbreuk.beschrijvingOpmaak,
+          inCasu,
+          wettelijkeVerwijzing,
+          geselecteerdeSpecifiekeElementIds,
+          fotos,
+        };
+      }),
+    );
   }
 
   async function bewaarWijzigingen(
