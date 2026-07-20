@@ -7,17 +7,11 @@ import type {
   Standaardinbreuk,
   TekstSegment,
 } from "@/bibliotheek";
+import { mapStandaardinbreuk } from "@/lib/bibliotheek-data";
 import { prisma } from "@/lib/prisma";
 import { vereisGebruiker } from "@/lib/auth";
 
 const BIBLIOTHEEK_PAD = "/bibliotheek";
-
-type StandaardinbreukUitDatabase =
-  Prisma.StandaardinbreukGetPayload<{
-    include: {
-      specifiekeElementen: true;
-    };
-  }>;
 
 type GenormaliseerdSpecifiekElement = {
   tekst: string;
@@ -107,51 +101,6 @@ function normaliseerTekstSegmenten(
 }
 
 /**
- * Leest veilig TekstSegment[] uit een Prisma JSON-veld.
- */
-function leesTekstSegmenten(
-  waarde: Prisma.JsonValue | null,
-): TekstSegment[] {
-  if (!Array.isArray(waarde)) {
-    return [];
-  }
-
-  const resultaat: TekstSegment[] = [];
-
-  for (const item of waarde) {
-    if (
-      !item ||
-      typeof item !== "object" ||
-      Array.isArray(item)
-    ) {
-      continue;
-    }
-
-    const mogelijkSegment =
-      item as Record<string, unknown>;
-
-    if (
-      typeof mogelijkSegment.tekst !== "string" ||
-      mogelijkSegment.tekst.length === 0
-    ) {
-      continue;
-    }
-
-    resultaat.push({
-      tekst: mogelijkSegment.tekst,
-      ...(mogelijkSegment.vet === true
-        ? { vet: true }
-        : {}),
-      ...(mogelijkSegment.donkergrijs === true
-        ? { donkergrijs: true }
-        : {}),
-    });
-  }
-
-  return resultaat;
-}
-
-/**
  * Verwijdert lege specifieke elementen
  * en herberekent hun volgorde.
  *
@@ -183,61 +132,6 @@ function normaliseerSpecifiekeElementen(
       tekst: element.tekst,
       volgorde: index,
     }));
-}
-
-/**
- * Zet een Prisma-record om naar het type
- * dat de clientcomponenten gebruiken.
- */
-function mapStandaardinbreuk(
-  inbreuk: StandaardinbreukUitDatabase,
-): Standaardinbreuk {
-  return {
-    id: inbreuk.id,
-    geverifieerd: inbreuk.geverifieerd,
-    wetgevingId: inbreuk.wetgevingId,
-    boekId: inbreuk.boekId,
-    titelId: inbreuk.titelId,
-
-    onderwerp: inbreuk.onderwerp,
-
-    kernwoorden: inbreuk.kernwoorden,
-
-    omschrijving: inbreuk.omschrijving,
-    omschrijvingOpmaak:
-      leesTekstSegmenten(
-        inbreuk.omschrijvingOpmaak,
-      ),
-
-    situering: inbreuk.situering ?? "",
-
-    specifiekeElementenIngeschakeld:
-      inbreuk.specifiekeElementenIngeschakeld,
-
-    specifiekeElementen:
-      [...inbreuk.specifiekeElementen]
-        .sort(
-          (eerste, tweede) =>
-            eerste.volgorde -
-            tweede.volgorde,
-        )
-        .map((element) => ({
-          id: element.id,
-          tekst: element.tekst,
-          volgorde: element.volgorde,
-        })),
-
-    toelichting: inbreuk.toelichting ?? "",
-
-    aanvulling: inbreuk.aanvulling ?? "",
-    aanvullingOpmaak:
-      leesTekstSegmenten(
-        inbreuk.aanvullingOpmaak,
-      ),
-
-    wettelijkeVerwijzing:
-      inbreuk.wettelijkeVerwijzing,
-  };
 }
 
 /**

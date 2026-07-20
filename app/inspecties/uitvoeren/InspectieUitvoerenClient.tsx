@@ -373,6 +373,38 @@ export default function InspectieUitvoerenClient({
     );
   }, [titels]);
 
+  const zoektekstPerInbreukId = useMemo(() => {
+    return new Map(
+      standaardinbreuken.map((inbreuk) => [
+        inbreuk.id,
+        [
+          wetgevingNaamPerId.get(
+            inbreuk.wetgevingId,
+          ) ?? "",
+          boekNaamPerId.get(inbreuk.boekId) ?? "",
+          titelPerId.get(inbreuk.titelId)?.naam ?? "",
+          inbreuk.onderwerp,
+          inbreuk.omschrijving,
+          inbreuk.situering ?? "",
+          ...inbreuk.specifiekeElementen.map(
+            (element) => element.tekst,
+          ),
+          inbreuk.toelichting ?? "",
+          inbreuk.aanvulling ?? "",
+          inbreuk.wettelijkeVerwijzing,
+          ...inbreuk.kernwoorden,
+        ]
+          .join(" ")
+          .toLowerCase(),
+      ]),
+    );
+  }, [
+    standaardinbreuken,
+    wetgevingNaamPerId,
+    boekNaamPerId,
+    titelPerId,
+  ]);
+
   const geselecteerdeInbreuk = useMemo(
     () =>
       inbreuken.find(
@@ -420,36 +452,10 @@ export default function InspectieUitvoerenClient({
           titelFilter === "" ||
           inbreuk.titelId === titelFilter;
 
-        const wetgevingNaam =
-          wetgevingNaamPerId.get(
-            inbreuk.wetgevingId,
+        const zoekbareTekst =
+          zoektekstPerInbreukId.get(
+            inbreuk.id,
           ) ?? "";
-
-        const boekNaam =
-          boekNaamPerId.get(
-            inbreuk.boekId,
-          ) ?? "";
-
-        const titel =
-          titelPerId.get(inbreuk.titelId);
-
-        const zoekbareTekst = [
-          wetgevingNaam,
-          boekNaam,
-          titel?.naam ?? "",
-          inbreuk.onderwerp,
-          inbreuk.omschrijving,
-          inbreuk.situering ?? "",
-          ...inbreuk.specifiekeElementen.map(
-            (element) => element.tekst,
-          ),
-          inbreuk.toelichting ?? "",
-          inbreuk.aanvulling ?? "",
-          inbreuk.wettelijkeVerwijzing,
-          ...inbreuk.kernwoorden,
-        ]
-          .join(" ")
-          .toLowerCase();
 
         const juisteZoekterm =
           genormaliseerdeZoekterm === "" ||
@@ -471,9 +477,7 @@ export default function InspectieUitvoerenClient({
     boekFilter,
     titelFilter,
     zoekterm,
-    wetgevingNaamPerId,
-    boekNaamPerId,
-    titelPerId,
+    zoektekstPerInbreukId,
   ]);
 
   function maakFormulierLeeg() {

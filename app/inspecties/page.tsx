@@ -19,7 +19,13 @@ export default async function InspectiesPagina({ searchParams }: Props) {
       gebruikerId: gebruiker.id,
       status: toonPrullenmand ? "VERWIJDERD" : { not: "VERWIJDERD" },
     },
-    include: { _count: { select: { inbreuken: true } } },
+    select: {
+      id: true,
+      flow: true,
+      onderneming: true,
+      inspectiedatum: true,
+      _count: { select: { inbreuken: true } },
+    },
     orderBy: { gewijzigdOp: "desc" },
   });
 

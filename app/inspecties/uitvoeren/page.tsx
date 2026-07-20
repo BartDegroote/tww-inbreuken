@@ -1,11 +1,7 @@
-import type {
-  Standaardinbreuk,
-  TekstSegment,
-} from "@/bibliotheek";
-import { vergelijkBoekIds } from "@/bibliotheek/boeken";
-import { vergelijkTitelIds } from "@/bibliotheek/titels";
+import { leesTekstSegmenten } from "@/bibliotheek/tekstsegmenten";
 import { prisma } from "@/lib/prisma";
 import { vereisGebruiker } from "@/lib/auth";
+import { haalBibliotheekGegevensOp } from "@/lib/bibliotheek-data";
 import { notFound, redirect } from "next/navigation";
 
 import InspectieUitvoerenClient, { type Inbreuk } from "./InspectieUitvoerenClient";
@@ -19,47 +15,6 @@ type ZoekParameters = Promise<
 type InspectieUitvoerenPaginaProps = {
   searchParams: ZoekParameters;
 };
-
-function isTekstSegment(
-  waarde: unknown,
-): waarde is TekstSegment {
-  if (
-    typeof waarde !== "object" ||
-    waarde === null ||
-    Array.isArray(waarde)
-  ) {
-    return false;
-  }
-
-  const segment = waarde as Record<string, unknown>;
-
-  return (
-    typeof segment.tekst === "string" &&
-    (segment.vet === undefined ||
-      typeof segment.vet === "boolean") &&
-    (segment.donkergrijs === undefined ||
-      typeof segment.donkergrijs === "boolean")
-  );
-}
-
-function leesOpmaak(
-  waarde: unknown,
-): TekstSegment[] {
-  if (!Array.isArray(waarde)) {
-    return [];
-  }
-
-  return waarde
-    .filter(isTekstSegment)
-    .map((segment) => ({
-      tekst: segment.tekst,
-      ...(segment.vet ? { vet: true } : {}),
-      ...(segment.donkergrijs
-        ? { donkergrijs: true }
-        : {}),
-    }))
-    .filter((segment) => segment.tekst.length > 0);
-}
 
 function leesZoekParameter(
   waarde: string | string[] | undefined,
@@ -82,129 +37,53 @@ export default async function InspectieUitvoerenPagina({
     redirect("/inspecties/nieuw");
   }
 
-  const inspectie = await prisma.inspectie.findFirst({
-    where: { id: inspectieId, gebruikerId: gebruiker.id, status: { not: "VERWIJDERD" } },
-    include: {
-      inbreuken: {
-        orderBy: { volgorde: "asc" },
-        include: {
-          fotos: {
-            orderBy: { aangemaaktOp: "asc" },
-            select: { id: true, naam: true },
+  const [inspectie, bibliotheek] = await Promise.all([
+    prisma.inspectie.findFirst({
+      where: {
+        id: inspectieId,
+        gebruikerId: gebruiker.id,
+        status: { not: "VERWIJDERD" },
+      },
+      select: {
+        id: true,
+        onderneming: true,
+        adres: true,
+        inspectiedatum: true,
+        inspecteur: true,
+        flow: true,
+        inbreuken: {
+          orderBy: { volgorde: "asc" },
+          select: {
+            id: true,
+            standaardinbreukId: true,
+            beschrijving: true,
+            beschrijvingOpmaak: true,
+            inCasu: true,
+            toelichting: true,
+            aanvulling: true,
+            aanvullingOpmaak: true,
+            wettelijkeVerwijzing: true,
+            specifiekeElementen: true,
+            geselecteerdeSpecifiekeElementIds: true,
+            fotos: {
+              orderBy: { aangemaaktOp: "asc" },
+              select: { id: true, naam: true },
+            },
           },
         },
       },
-    },
-  });
+    }),
+    haalBibliotheekGegevensOp(),
+  ]);
 
   if (!inspectie) notFound();
 
-  const [
-    databaseWetgevingen,
-    databaseBoeken,
-    databaseTitels,
-    databaseInbreuken,
-  ] = await Promise.all([
-    prisma.wetgeving.findMany({
-      orderBy: {
-        naam: "asc",
-      },
-    }),
-
-    prisma.boek.findMany({
-      orderBy: {
-        naam: "asc",
-      },
-    }),
-
-    prisma.titel.findMany({
-      orderBy: [
-        {
-          boekId: "asc",
-        },
-        {
-          naam: "asc",
-        },
-      ],
-    }),
-
-    prisma.standaardinbreuk.findMany({
-      include: {
-        specifiekeElementen: {
-          orderBy: {
-            volgorde: "asc",
-          },
-        },
-      },
-      orderBy: {
-        gewijzigdOp: "desc",
-      },
-    }),
-  ]);
-
-  const wetgevingen = databaseWetgevingen.map(
-    (wetgeving) => ({
-      id: wetgeving.id,
-      naam: wetgeving.naam,
-    }),
-  );
-
-  const boeken = databaseBoeken
-    .map((boek) => ({
-      id: boek.id,
-      naam: boek.naam,
-      wetgevingId: boek.wetgevingId,
-    }))
-    .sort((a, b) => vergelijkBoekIds(a.id, b.id));
-
-  const titels = databaseTitels
-    .map((titel) => ({
-      id: titel.id,
-      naam: titel.naam,
-      boekId: titel.boekId,
-    }))
-    .sort(vergelijkTitelIds);
-
-  const standaardinbreuken: Standaardinbreuk[] =
-    databaseInbreuken.map((inbreuk) => ({
-      id: inbreuk.id,
-      geverifieerd: inbreuk.geverifieerd,
-      wetgevingId: inbreuk.wetgevingId,
-      boekId: inbreuk.boekId,
-      titelId: inbreuk.titelId,
-
-      onderwerp: inbreuk.onderwerp,
-
-      kernwoorden: inbreuk.kernwoorden,
-
-      omschrijving: inbreuk.omschrijving,
-      omschrijvingOpmaak: leesOpmaak(
-        inbreuk.omschrijvingOpmaak,
-      ),
-
-      situering: inbreuk.situering ?? "",
-
-      specifiekeElementenIngeschakeld:
-        inbreuk.specifiekeElementenIngeschakeld,
-      specifiekeElementen:
-        inbreuk.specifiekeElementen.map(
-          (element) => ({
-            id: element.id,
-            tekst: element.tekst,
-            volgorde: element.volgorde,
-          }),
-        ),
-
-      toelichting: inbreuk.toelichting ?? "",
-
-      aanvulling: inbreuk.aanvulling ?? "",
-      aanvullingOpmaak: leesOpmaak(
-        inbreuk.aanvullingOpmaak,
-      ),
-
-      wettelijkeVerwijzing:
-        inbreuk.wettelijkeVerwijzing,
-    }));
+  const {
+    wetgevingen,
+    boeken,
+    titels,
+    inbreuken: standaardinbreuken,
+  } = bibliotheek;
 
   const initialInbreuken: Inbreuk[] = inspectie.inbreuken.map((inbreuk) => {
     const specifiekeElementen = Array.isArray(inbreuk.specifiekeElementen)
@@ -222,11 +101,11 @@ export default async function InspectieUitvoerenPagina({
       id: inbreuk.id,
       standaardinbreukId: inbreuk.standaardinbreukId ?? "",
       beschrijving: inbreuk.beschrijving,
-      beschrijvingOpmaak: leesOpmaak(inbreuk.beschrijvingOpmaak),
+      beschrijvingOpmaak: leesTekstSegmenten(inbreuk.beschrijvingOpmaak),
       inCasu: inbreuk.inCasu,
       toelichting: inbreuk.toelichting,
       aanvulling: inbreuk.aanvulling,
-      aanvullingOpmaak: leesOpmaak(inbreuk.aanvullingOpmaak),
+      aanvullingOpmaak: leesTekstSegmenten(inbreuk.aanvullingOpmaak),
       wettelijkeVerwijzing: inbreuk.wettelijkeVerwijzing,
       specifiekeElementen,
       geselecteerdeSpecifiekeElementIds:

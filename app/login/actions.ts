@@ -19,6 +19,12 @@ export async function aanmelden(formData: FormData) {
   const wachtwoord = tekst(formData, "wachtwoord");
   const gebruiker = await prisma.gebruiker.findFirst({
     where: { gebruikersnaam: { equals: gebruikersnaam, mode: "insensitive" } },
+    select: {
+      id: true,
+      wachtwoordHash: true,
+      mislukteAanmeldingen: true,
+      geblokkeerdTot: true,
+    },
   });
 
   if (gebruiker?.geblokkeerdTot && gebruiker.geblokkeerdTot > new Date()) {

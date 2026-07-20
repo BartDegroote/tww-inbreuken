@@ -20,6 +20,11 @@ export async function GET(_request: Request, context: RouteContext) {
         inspectie: { gebruikerId: gebruiker.id },
       },
     },
+    select: {
+      naam: true,
+      mimeType: true,
+      data: true,
+    },
   });
 
   if (!foto) {

@@ -146,6 +146,17 @@ export default function BibliotheekClient({
     );
   }, [inbreuken]);
 
+  const onderwerpSuggestieBronnen = useMemo(
+    () =>
+      inbreuken.map((inbreuk) => ({
+        wetgevingId: inbreuk.wetgevingId,
+        boekId: inbreuk.boekId,
+        titelId: inbreuk.titelId,
+        onderwerp: inbreuk.onderwerp,
+      })),
+    [inbreuken],
+  );
+
   const beschikbareOnderwerpen = useMemo(() => {
     const uniekeOnderwerpen =
       new Map<string, string>();
@@ -199,6 +210,41 @@ export default function BibliotheekClient({
     filterTitelId,
   ]);
 
+  const zoekindexPerInbreukId = useMemo(() => {
+    return new Map(
+      inbreuken.map((inbreuk) => [
+        inbreuk.id,
+        {
+          onderwerp: inbreuk.onderwerp
+            .toLocaleLowerCase("nl-BE"),
+          onderwerpExact: inbreuk.onderwerp
+            .trim()
+            .toLocaleLowerCase("nl-BE"),
+          kernwoorden: inbreuk.kernwoorden.map(
+            (kernwoord) =>
+              kernwoord.toLocaleLowerCase("nl-BE"),
+          ),
+          omschrijving: inbreuk.omschrijving
+            .toLocaleLowerCase("nl-BE"),
+          situering: (inbreuk.situering ?? "")
+            .toLocaleLowerCase("nl-BE"),
+          specifiekeElementen:
+            inbreuk.specifiekeElementen
+              .map((element) => element.tekst)
+              .join(" ")
+              .toLocaleLowerCase("nl-BE"),
+          toelichting: (inbreuk.toelichting ?? "")
+            .toLocaleLowerCase("nl-BE"),
+          aanvulling: (inbreuk.aanvulling ?? "")
+            .toLocaleLowerCase("nl-BE"),
+          wettelijkeVerwijzing:
+            inbreuk.wettelijkeVerwijzing
+              .toLocaleLowerCase("nl-BE"),
+        },
+      ]),
+    );
+  }, [inbreuken]);
+
   const gefilterdeInbreuken = useMemo(() => {
     const zoekterm = filterKernwoord
       .trim()
@@ -209,6 +255,13 @@ export default function BibliotheekClient({
       .toLocaleLowerCase("nl-BE");
 
     return inbreuken.filter((inbreuk) => {
+      const zoekindex =
+        zoekindexPerInbreukId.get(inbreuk.id);
+
+      if (!zoekindex) {
+        return false;
+      }
+
       const voldoetAanWetgeving =
         !filterWetgevingId ||
         inbreuk.wetgevingId ===
@@ -224,45 +277,24 @@ export default function BibliotheekClient({
 
       const voldoetAanOnderwerp =
         !onderwerpFilter ||
-        inbreuk.onderwerp
-          .trim()
-          .toLocaleLowerCase("nl-BE") ===
-          onderwerpFilter;
-
-      const specifiekeElementenTekst =
-        inbreuk.specifiekeElementen
-          .map((element) => element.tekst)
-          .join(" ")
-          .toLocaleLowerCase("nl-BE");
+        zoekindex.onderwerpExact === onderwerpFilter;
 
       const voldoetAanZoekterm =
         !zoekterm ||
-        inbreuk.kernwoorden.some((kernwoord) =>
-          kernwoord
-            .toLocaleLowerCase("nl-BE")
-            .includes(zoekterm),
+        zoekindex.kernwoorden.some((kernwoord) =>
+          kernwoord.includes(zoekterm),
         ) ||
-        inbreuk.onderwerp
-          .toLocaleLowerCase("nl-BE")
-          .includes(zoekterm) ||
-        inbreuk.omschrijving
-          .toLocaleLowerCase("nl-BE")
-          .includes(zoekterm) ||
-        (inbreuk.situering ?? "")
-          .toLocaleLowerCase("nl-BE")
-          .includes(zoekterm) ||
-        specifiekeElementenTekst.includes(
+        zoekindex.onderwerp.includes(zoekterm) ||
+        zoekindex.omschrijving.includes(zoekterm) ||
+        zoekindex.situering.includes(zoekterm) ||
+        zoekindex.specifiekeElementen.includes(
           zoekterm,
         ) ||
-        (inbreuk.toelichting ?? "")
-          .toLocaleLowerCase("nl-BE")
-          .includes(zoekterm) ||
-        (inbreuk.aanvulling ?? "")
-          .toLocaleLowerCase("nl-BE")
-          .includes(zoekterm) ||
-        inbreuk.wettelijkeVerwijzing
-          .toLocaleLowerCase("nl-BE")
-          .includes(zoekterm);
+        zoekindex.toelichting.includes(zoekterm) ||
+        zoekindex.aanvulling.includes(zoekterm) ||
+        zoekindex.wettelijkeVerwijzing.includes(
+          zoekterm,
+        );
 
       return (
         voldoetAanWetgeving &&
@@ -279,6 +311,7 @@ export default function BibliotheekClient({
     filterTitelId,
     filterOnderwerp,
     filterKernwoord,
+    zoekindexPerInbreukId,
   ]);
 
   function selecteerInbreuk(
@@ -458,7 +491,7 @@ export default function BibliotheekClient({
                 kernwoordSuggesties
               }
               onderwerpSuggesties={
-                inbreuken
+                onderwerpSuggestieBronnen
               }
               onBewaar={bewaarInbreuk}
               onVerwijder={

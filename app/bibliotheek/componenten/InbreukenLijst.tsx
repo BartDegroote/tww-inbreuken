@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+
 import type {
   BoekOptie,
   TitelOptie,
@@ -29,14 +31,45 @@ export default function InbreukenLijst({
   titels,
   onSelecteer,
 }: InbreukenLijstProps) {
+  const wetgevingNaamPerId = useMemo(
+    () =>
+      new Map(
+        wetgevingen.map((wetgeving) => [
+          wetgeving.id,
+          wetgeving.naam,
+        ]),
+      ),
+    [wetgevingen],
+  );
+
+  const boekNaamPerId = useMemo(
+    () =>
+      new Map(
+        boeken.map((boek) => [
+          boek.id,
+          boek.naam,
+        ]),
+      ),
+    [boeken],
+  );
+
+  const titelNaamPerId = useMemo(
+    () =>
+      new Map(
+        titels.map((titel) => [
+          titel.id,
+          titel.naam,
+        ]),
+      ),
+    [titels],
+  );
+
   function zoekWetgevingNaam(
     wetgevingId: string,
   ): string {
     return (
-      wetgevingen.find(
-        (wetgeving) =>
-          wetgeving.id === wetgevingId,
-      )?.naam ?? "Onbekende wetgeving"
+      wetgevingNaamPerId.get(wetgevingId) ??
+      "Onbekende wetgeving"
     );
   }
 
@@ -44,9 +77,8 @@ export default function InbreukenLijst({
     boekId: string,
   ): string {
     return (
-      boeken.find(
-        (boek) => boek.id === boekId,
-      )?.naam ?? "Onbekend boek"
+      boekNaamPerId.get(boekId) ??
+      "Onbekend boek"
     );
   }
 
@@ -54,9 +86,8 @@ export default function InbreukenLijst({
     titelId: string,
   ): string {
     return (
-      titels.find(
-        (titel) => titel.id === titelId,
-      )?.naam ?? "Onbekende titel"
+      titelNaamPerId.get(titelId) ??
+      "Onbekende titel"
     );
   }
 
@@ -114,10 +145,10 @@ export default function InbreukenLijst({
                     className={`w-full rounded-lg border p-4 text-left transition ${
                       isGeselecteerd
                         ? inbreuk.geverifieerd
-                          ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600"
+                          ? "border-emerald-600 bg-emerald-100 ring-1 ring-emerald-600"
                           : "border-blue-600 bg-blue-50 ring-1 ring-blue-600"
                         : inbreuk.geverifieerd
-                          ? "border-emerald-300 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100"
+                          ? "border-emerald-400 bg-emerald-100 hover:border-emerald-500 hover:bg-emerald-200"
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >

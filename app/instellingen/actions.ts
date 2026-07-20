@@ -18,7 +18,13 @@ function waarde(formData: FormData, veld: string) {
 
 export async function wijzigAccount(formData: FormData) {
   const aangemeld = await vereisGebruiker();
-  const gebruiker = await prisma.gebruiker.findUnique({ where: { id: aangemeld.id } });
+  const gebruiker = await prisma.gebruiker.findUnique({
+    where: { id: aangemeld.id },
+    select: {
+      id: true,
+      wachtwoordHash: true,
+    },
+  });
 
   if (!gebruiker) redirect("/login");
 

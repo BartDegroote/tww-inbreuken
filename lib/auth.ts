@@ -59,13 +59,22 @@ export async function maakSessie(gebruikerId: string): Promise<void> {
     Date.now() + SESSIE_UREN * 60 * 60 * 1000,
   );
 
-  await prisma.sessie.create({
-    data: {
-      tokenHash: hashToken(token),
-      vervaltOp,
-      gebruikerId,
-    },
-  });
+  await prisma.$transaction([
+    prisma.sessie.deleteMany({
+      where: {
+        vervaltOp: {
+          lte: new Date(),
+        },
+      },
+    }),
+    prisma.sessie.create({
+      data: {
+        tokenHash: hashToken(token),
+        vervaltOp,
+        gebruikerId,
+      },
+    }),
+  ]);
 
   const cookieStore = await cookies();
   cookieStore.set(SESSIE_COOKIE, token, {
@@ -87,15 +96,20 @@ export async function huidigeGebruiker(): Promise<AangemeldeGebruiker | null> {
 
   const sessie = await prisma.sessie.findUnique({
     where: { tokenHash: hashToken(token) },
-    include: { gebruiker: true },
+    select: {
+      vervaltOp: true,
+      gebruiker: {
+        select: {
+          id: true,
+          gebruikersnaam: true,
+          naam: true,
+          wachtwoordWijzigingVereist: true,
+        },
+      },
+    },
   });
 
   if (!sessie || sessie.vervaltOp <= new Date()) {
-    if (sessie) {
-      await prisma.sessie.delete({ where: { id: sessie.id } });
-    }
-
-    cookieStore.delete(SESSIE_COOKIE);
     return null;
   }
 

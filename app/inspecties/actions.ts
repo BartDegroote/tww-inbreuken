@@ -54,6 +54,9 @@ export async function maakInspectie(input: {
       flow,
       gebruikerId: gebruiker.id,
     },
+    select: {
+      id: true,
+    },
   });
 
   revalidatePath("/inspecties");
@@ -122,13 +125,21 @@ export async function bewaarInspectie(
         create: { id: inbreuk.id, inspectieId, ...data },
         update: data,
       });
+    }
 
+    if (inbreuken.length > 0) {
       await transactie.inspectieFoto.deleteMany({
         where: {
-          inspectieInbreukId: inbreuk.id,
-          ...(inbreuk.bewaardeFotoIds.length > 0
-            ? { id: { notIn: inbreuk.bewaardeFotoIds } }
-            : {}),
+          OR: inbreuken.map((inbreuk) => ({
+            inspectieInbreukId: inbreuk.id,
+            ...(inbreuk.bewaardeFotoIds.length > 0
+              ? {
+                  id: {
+                    notIn: inbreuk.bewaardeFotoIds,
+                  },
+                }
+              : {}),
+          })),
         },
       });
     }
