@@ -49,6 +49,8 @@ const LICHTGRIJS = "D9E2F3";
 
 const HOOFDTEKST_GROOTTE = 20; // 10 pt
 const WETTELIJKE_VERWIJZING_GROOTTE = 18; // 9 pt
+const ENKELE_REGELAFSTAND = 240;
+const AFSTAND_NA_WETTELIJKE_VERWIJZING = 360;
 
 // ImageRun gebruikt pixels. 5 cm bij 96 dpi is ongeveer 189 px.
 const FOTO_HOOGTE_PX = 189;
@@ -208,9 +210,10 @@ function voegGewoneTekstParagrafenToe(
               ? opties?.afstandVoor ?? 0
               : 0,
           after:
-            opties?.afstandNa ?? 80,
+            opties?.afstandNa ?? 0,
           line:
-            opties?.regelafstand ?? 276,
+            opties?.regelafstand ??
+            ENKELE_REGELAFSTAND,
         },
         children: [
           new TextRun({
@@ -320,8 +323,8 @@ function voegSitueringToe(
         ],
         spacing: {
           before: afstandVoor,
-          after: 90,
-          line: 276,
+          after: 0,
+          line: ENKELE_REGELAFSTAND,
         },
         children: [
           new TextRun({
@@ -364,16 +367,16 @@ function voegSitueringToe(
       opgeschoondeTekst,
       "☐",
       SITUERING_TEKST_INSPrONG,
-      80,
+      0,
     );
   }
 
-  opgeschoondeElementen.forEach((element, index) => {
+  opgeschoondeElementen.forEach((element) => {
     voegOnderdeelToe(
       element,
       "▪",
       SPECIFIEK_ELEMENT_TEKST_INSPrONG,
-      !opgeschoondeTekst && index === 0 ? 80 : 0,
+      0,
     );
   });
 }
@@ -455,8 +458,8 @@ function maakInbreukParagrafen(
       spacing: {
         before:
           index === 0 ? 40 : 0,
-        after: 130,
-        line: 276,
+        after: 0,
+        line: ENKELE_REGELAFSTAND,
       },
       keepNext: true,
       children: [
@@ -497,8 +500,8 @@ function maakInbreukParagrafen(
         HOOFDTEKST_GROOTTE,
       inspringingLinks:
         TEKST_INSPrONG,
-      afstandVoor: 60,
-      afstandNa: 100,
+      afstandVoor: 0,
+      afstandNa: 0,
     },
   );
 
@@ -519,9 +522,9 @@ function maakInbreukParagrafen(
           left: TEKST_INSPrONG,
         },
         spacing: {
-          before: 60,
-          after: 110,
-          line: 276,
+          before: 0,
+          after: 0,
+          line: ENKELE_REGELAFSTAND,
         },
         children: aanvullingRuns,
       }),
@@ -538,9 +541,11 @@ function maakInbreukParagrafen(
         WETTELIJKE_VERWIJZING_GROOTTE,
       inspringingLinks:
         TEKST_INSPrONG,
-      afstandVoor: 120,
-      afstandNa: 360,
-      regelafstand: 240,
+      afstandVoor: 0,
+      afstandNa:
+        AFSTAND_NA_WETTELIJKE_VERWIJZING,
+      regelafstand:
+        ENKELE_REGELAFSTAND,
     },
   );
 
