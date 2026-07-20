@@ -816,9 +816,9 @@ export default function InspectieUitvoerenClient({
   return (
     <main className="min-h-screen bg-slate-100">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <header className="rounded-xl bg-white p-6 shadow-sm">
+        <header className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
+            <div className="min-w-0">
               <Link
                 href="/"
                 className="text-sm font-medium text-blue-700 hover:underline"
@@ -826,7 +826,7 @@ export default function InspectieUitvoerenClient({
                 ← Terug naar dashboard
               </Link>
 
-              <h1 className="mt-3 text-3xl font-bold text-slate-900">
+              <h1 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">
                 Inspectie uitvoeren
               </h1>
 
@@ -853,7 +853,7 @@ export default function InspectieUitvoerenClient({
                 Onderneming
               </dt>
 
-              <dd className="font-medium text-slate-900">
+              <dd className="break-words font-medium text-slate-900">
                 {onderneming || "Niet ingevuld"}
               </dd>
             </div>
@@ -863,7 +863,7 @@ export default function InspectieUitvoerenClient({
                 Adres
               </dt>
 
-              <dd className="font-medium text-slate-900">
+              <dd className="break-words font-medium text-slate-900">
                 {adres || "Niet ingevuld"}
               </dd>
             </div>
@@ -873,7 +873,7 @@ export default function InspectieUitvoerenClient({
                 Inspectiedatum
               </dt>
 
-              <dd className="font-medium text-slate-900">
+              <dd className="break-words font-medium text-slate-900">
                 {inspectiedatum || "Niet ingevuld"}
               </dd>
             </div>
@@ -883,15 +883,15 @@ export default function InspectieUitvoerenClient({
                 Inspecteur
               </dt>
 
-              <dd className="font-medium text-slate-900">
+              <dd className="break-words font-medium text-slate-900">
                 {inspecteur || "Niet ingevuld"}
               </dd>
             </div>
           </dl>
         </header>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[320px_1fr]">
-          <aside className="rounded-xl bg-white p-5 shadow-sm">
+        <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-5">
             <button
               type="button"
               onClick={startNieuweInbreuk}
@@ -911,10 +911,13 @@ export default function InspectieUitvoerenClient({
                   toegevoegd.
                 </p>
               ) : (
-                <ol className="mt-3 space-y-2">
+                <ol className="mt-3 flex snap-x gap-2 overflow-x-auto pb-2 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0">
                   {inbreuken.map(
                     (inbreuk, index) => (
-                      <li key={inbreuk.id}>
+                      <li
+                        key={inbreuk.id}
+                        className="w-[min(18rem,82vw)] shrink-0 snap-start lg:w-auto"
+                      >
                         <button
                           type="button"
                           onClick={() =>
@@ -961,9 +964,9 @@ export default function InspectieUitvoerenClient({
             </div>
           </aside>
 
-          <section className="space-y-6">
-            <div className="rounded-xl bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-2xl font-bold text-slate-900">
+          <section className="min-w-0 space-y-6">
+            <div className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-8">
+              <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
                 Standaardinbreuk zoeken
               </h2>
 
@@ -1147,8 +1150,8 @@ export default function InspectieUitvoerenClient({
                             key={inbreuk.id}
                             className="rounded-lg border border-slate-200 p-4"
                           >
-                            <p className="flex min-w-0 items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                              <span className="min-w-0 flex-1 truncate">
+                            <p className="flex min-w-0 flex-col items-start gap-1 text-xs font-medium uppercase tracking-wide text-slate-500 sm:flex-row sm:items-center sm:gap-3">
+                              <span className="min-w-0 max-w-full truncate sm:flex-1">
                                 {wetgevingNaam} ·{" "}
                                 {boekNaam}
                                 {titel
@@ -1190,7 +1193,7 @@ export default function InspectieUitvoerenClient({
                                   inbreuk,
                                 )
                               }
-                              className="mt-4 rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white hover:bg-blue-800"
+                              className="mt-4 w-full rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 sm:w-auto sm:py-2"
                             >
                               + Toevoegen aan
                               inspectie
@@ -1204,8 +1207,8 @@ export default function InspectieUitvoerenClient({
               </div>
             </div>
 
-            <div className="rounded-xl bg-white p-6 shadow-sm sm:p-8">
-              <h2 className="text-2xl font-bold text-slate-900">
+            <div className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-8">
+              <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
                 {geselecteerdeId === null
                   ? "Selecteer eerst een standaardinbreuk"
                   : "Inbreuk bewerken"}
@@ -1490,7 +1493,7 @@ export default function InspectieUitvoerenClient({
                           event.target.files,
                         )
                       }
-                      className="mt-2 block w-full rounded-lg border border-slate-300 p-3 text-sm text-slate-700"
+                      className="mt-2 block min-w-0 max-w-full rounded-lg border border-slate-300 p-3 text-sm text-slate-700"
                     />
 
                     {fotos.length > 0 && (
@@ -1504,6 +1507,7 @@ export default function InspectieUitvoerenClient({
                             (foto, index) => (
                               <li
                                 key={`${foto.id}-${index}`}
+                                className="break-all"
                               >
                                 {foto.naam}
                               </li>
@@ -1528,7 +1532,7 @@ export default function InspectieUitvoerenClient({
                   <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
                     <button
                       type="submit"
-                      className="rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800"
+                      className="w-full rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800 sm:w-auto"
                     >
                       Wijzigingen bewaren
                     </button>
@@ -1536,7 +1540,7 @@ export default function InspectieUitvoerenClient({
                     <button
                       type="button"
                       onClick={verwijderInbreuk}
-                      className="rounded-lg border border-red-300 px-6 py-3 font-semibold text-red-700 hover:bg-red-50"
+                      className="w-full rounded-lg border border-red-300 px-6 py-3 font-semibold text-red-700 hover:bg-red-50 sm:w-auto"
                     >
                       Inbreuk verwijderen
                     </button>
@@ -1547,7 +1551,7 @@ export default function InspectieUitvoerenClient({
           </section>
         </div>
 
-        <footer className="mt-6 flex flex-col items-end gap-3">
+        <footer className="mt-6 flex flex-col items-stretch gap-3 sm:items-end">
           {exportFout && (
             <p
               role="alert"
@@ -1557,7 +1561,7 @@ export default function InspectieUitvoerenClient({
             </p>
           )}
 
-          <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             {opslagStatus && (
               <span className="text-sm font-medium text-slate-500">
                 {opslagStatus}
@@ -1566,7 +1570,7 @@ export default function InspectieUitvoerenClient({
             <button
               type="button"
               onClick={() => void slaDossierOp()}
-              className="rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800"
+              className="w-full rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800 sm:w-auto"
             >
               Inspectie opslaan
             </button>
@@ -1574,7 +1578,7 @@ export default function InspectieUitvoerenClient({
               type="button"
               onClick={genereerWordVerslag}
               disabled={inbreuken.length === 0 || exportBezig}
-              className="rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="w-full rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
             >
               {exportBezig
                 ? "Word-verslag wordt gemaakt..."
