@@ -1561,28 +1561,6 @@ function InbreukFormulierInhoud({
               }
             />
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Situering van de inbreuk
-              </span>
-
-              <textarea
-                value={
-                  formulier.situering ?? ""
-                }
-                onChange={(event) =>
-                  wijzigGewoonTekstveld(
-                    "situering",
-                    event.target.value,
-                  )
-                }
-                rows={4}
-                className={tekstvakStijl}
-                placeholder="Duid aan waar, aan welke installatie of aan welke werkpost de inbreuk werd vastgesteld..."
-                disabled={bezig}
-              />
-            </label>
-
             <section className="border-t border-slate-200 pt-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -1740,6 +1718,28 @@ function InbreukFormulierInhoud({
                 </div>
               )}
             </section>
+
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                Situering van de inbreuk
+              </span>
+
+              <textarea
+                value={
+                  formulier.situering ?? ""
+                }
+                onChange={(event) =>
+                  wijzigGewoonTekstveld(
+                    "situering",
+                    event.target.value,
+                  )
+                }
+                rows={4}
+                className={tekstvakStijl}
+                placeholder="Duid aan waar, aan welke installatie of aan welke werkpost de inbreuk werd vastgesteld..."
+                disabled={bezig}
+              />
+            </label>
 
             <label className="block">
               <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-600">
