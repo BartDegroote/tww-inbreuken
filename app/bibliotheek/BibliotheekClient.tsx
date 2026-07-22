@@ -460,7 +460,7 @@ export default function BibliotheekClient({
         />
 
         <div className="grid items-start gap-5 xl:grid-cols-[minmax(22rem,0.9fr)_minmax(32rem,1.4fr)]">
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:overscroll-contain">
             <InbreukenLijst
               inbreuken={
                 gefilterdeInbreuken
@@ -478,7 +478,7 @@ export default function BibliotheekClient({
             />
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:overscroll-contain">
             <InbreukFormulier
               inbreuk={
                 geselecteerdeInbreuk
