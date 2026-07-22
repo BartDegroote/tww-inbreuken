@@ -516,10 +516,10 @@ function TekstMetOpmaak({
             className={[
               "whitespace-pre-wrap",
               segment.vet
-                ? "font-semibold"
+                ? "font-bold"
                 : "",
               segment.donkergrijs
-                ? "text-slate-600"
+                ? "text-[#666666]"
                 : "",
             ]
               .filter(Boolean)
@@ -784,23 +784,6 @@ function InbreukFormulierInhoud({
     formulier?.kernwoorden,
     kernwoordSuggesties,
   ]);
-
-  const geselecteerdeWetgeving =
-    wetgevingen.find(
-      (wetgeving) =>
-        wetgeving.id ===
-        formulier?.wetgevingId,
-    );
-
-  const geselecteerdBoek = boeken.find(
-    (boek) =>
-      boek.id === formulier?.boekId,
-  );
-
-  const geselecteerdeTitel = titels.find(
-    (titel) =>
-      titel.id === formulier?.titelId,
-  );
 
   function wisStatus(): void {
     setOpgeslagen(false);
@@ -2038,110 +2021,99 @@ function InbreukFormulierInhoud({
         </section>
 
         <section className="border-t border-slate-200 pt-6">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Voorbeeldweergave
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Voorbeeld Word-export
+            </h3>
 
-          <div className="mt-4 space-y-5">
-            <div className="rounded-lg bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                {geselecteerdeWetgeving
-                  ?.naam ??
-                  "Geen wetgeving geselecteerd"}
-              </p>
+            <span className="text-xs text-slate-400">
+              Verdana · enkele regelafstand
+            </span>
+          </div>
 
-              <p className="mt-2 text-sm font-semibold text-slate-800">
-                {geselecteerdBoek?.naam ??
-                  "Geen boek geselecteerd"}
-                {" · "}
-                {geselecteerdeTitel?.naam ??
-                  "Geen titel geselecteerd"}
-              </p>
+          <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-6">
+            <div
+              className="mx-auto min-h-72 max-w-3xl bg-white px-5 py-7 text-[10pt] leading-[1.2] text-black shadow-sm sm:px-10 sm:py-9"
+              style={{
+                fontFamily:
+                  "Verdana, Geneva, sans-serif",
+              }}
+            >
+              <div className="grid grid-cols-[24px_minmax(0,1fr)] pl-3">
+                <span>1.</span>
 
-              {formulier.onderwerp.trim() && (
-                <p className="mt-1 text-sm text-slate-600">
-                  {formulier.onderwerp}
+                <p>
+                  {formulier.omschrijving ? (
+                    <TekstMetOpmaak
+                      tekst={
+                        formulier.omschrijving
+                      }
+                      segmenten={
+                        formulier.omschrijvingOpmaak ??
+                        []
+                      }
+                      opmaakType="donkergrijs"
+                    />
+                  ) : (
+                    <span className="text-slate-400">
+                      De omschrijving verschijnt hier.
+                    </span>
+                  )}
                 </p>
-              )}
-            </div>
+              </div>
 
-            {formulier
-              .specifiekeElementenIngeschakeld &&
-              geldigeSpecifiekeElementen.length >
-                0 && (
-                <div className="rounded-lg border border-slate-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Specifieke elementen
-                  </p>
+              {!formulier.specifiekeElementenAlsSituering &&
+                formulier.situering?.trim() && (
+                  <div className="ml-9 grid grid-cols-[24px_minmax(0,1fr)]">
+                    <span>☐</span>
+                    <p className="whitespace-pre-wrap">
+                      {formulier.situering}
+                    </p>
+                  </div>
+                )}
 
-                  <ol className="mt-3 space-y-2">
+              {formulier.specifiekeElementenIngeschakeld &&
+                geldigeSpecifiekeElementen.length > 0 && (
+                  <div
+                    className={
+                      formulier.specifiekeElementenAlsSituering
+                        ? "ml-9"
+                        : "ml-[60px]"
+                    }
+                  >
                     {geldigeSpecifiekeElementen.map(
                       (element) => (
-                        <li
+                        <div
                           key={element.id}
-                          className="flex gap-3 text-sm leading-6 text-slate-800"
+                          className="grid grid-cols-[24px_minmax(0,1fr)]"
                         >
-                          <span className="font-semibold text-slate-700">
+                          <span>
                             {formulier.specifiekeElementenAlsSituering
                               ? "☐"
                               : "▪"}
                           </span>
 
-                          <span className="whitespace-pre-wrap">
+                          <p className="whitespace-pre-wrap">
                             {element.tekst}
-                          </span>
-                        </li>
+                          </p>
+                        </div>
                       ),
                     )}
-                  </ol>
-                </div>
-              )}
-
-            <div className="space-y-4">
-              <p className="text-sm leading-6 text-slate-900">
-                {formulier.omschrijving ? (
-                  <TekstMetOpmaak
-                    tekst={
-                      formulier.omschrijving
-                    }
-                    segmenten={
-                      formulier.omschrijvingOpmaak ??
-                      []
-                    }
-                    opmaakType="donkergrijs"
-                  />
-                ) : (
-                  <span className="text-slate-400">
-                    De omschrijving verschijnt
-                    hier.
-                  </span>
-                )}
-              </p>
-
-              {!formulier.specifiekeElementenAlsSituering &&
-                formulier.situering?.trim() && (
-                <p className="whitespace-pre-wrap text-sm leading-6 text-slate-900">
-                  {formulier.situering}
-                </p>
+                  </div>
                 )}
 
               {formulier.toelichting?.trim() && (
-                <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-600">
-                  <span
-                    aria-hidden="true"
-                    className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-500 text-xs font-bold text-slate-600"
-                  >
-                    i
-                  </span>
+                <div className="ml-9 flex items-start gap-2 text-[#595959]">
+                  <span aria-hidden="true">ⓘ</span>
 
-                  <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  <p className="whitespace-pre-wrap">
                     {formulier.toelichting}
                   </p>
                 </div>
               )}
 
               {formulier.aanvulling?.trim() && (
-                <p className="text-sm leading-6 text-slate-900">
+                <p className="ml-9">
                   <TekstMetOpmaak
                     tekst={
                       formulier.aanvulling
@@ -2155,13 +2127,9 @@ function InbreukFormulierInhoud({
                 </p>
               )}
 
-              {formulier
-                .wettelijkeVerwijzing && (
-                <p className="whitespace-pre-wrap text-sm font-medium leading-6 text-slate-800">
-                  {
-                    formulier
-                      .wettelijkeVerwijzing
-                  }
+              {formulier.wettelijkeVerwijzing && (
+                <p className="ml-9 whitespace-pre-wrap pt-0 text-[9pt] italic">
+                  {formulier.wettelijkeVerwijzing}
                 </p>
               )}
             </div>
