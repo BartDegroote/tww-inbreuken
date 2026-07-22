@@ -478,7 +478,7 @@ export default function BibliotheekClient({
             />
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6">
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <InbreukFormulier
               inbreuk={
                 geselecteerdeInbreuk
