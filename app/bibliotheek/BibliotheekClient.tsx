@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useMemo,
   useRef,
@@ -8,6 +7,7 @@ import {
 } from "react";
 
 import type { Standaardinbreuk } from "@/bibliotheek";
+import AppBalk from "@/app/componenten/AppBalk";
 
 import {
   bewaarStandaardinbreuk,
@@ -443,16 +443,9 @@ export default function BibliotheekClient({
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
+    <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-screen-2xl space-y-5 p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          >
-            ← Terug naar hoofdmenu
-          </Link>
-        </div>
+        <AppBalk terugLabel="Hoofdmenu" />
 
         <BibliotheekToolbar
           wetgevingen={startWetgevingen}
@@ -486,7 +479,7 @@ export default function BibliotheekClient({
         />
 
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.4fr)]">
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain">
+          <section className="overflow-hidden rounded-2xl border border-white bg-white/95 shadow-[0_12px_38px_rgba(15,23,42,0.07)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain">
             <InbreukenLijst
               inbreuken={
                 gefilterdeInbreuken
@@ -506,7 +499,7 @@ export default function BibliotheekClient({
 
           <section
             ref={formulierRef}
-            className="scroll-mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
+            className="scroll-mt-4 overflow-hidden rounded-2xl border border-white bg-white/95 shadow-[0_12px_38px_rgba(15,23,42,0.07)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
           >
             <InbreukFormulier
               inbreuk={

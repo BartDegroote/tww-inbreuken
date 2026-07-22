@@ -1,14 +1,14 @@
-import Link from "next/link";
+import AppBalk from "@/app/componenten/AppBalk";
 
 export const metadata = { title: "Privacy · WebApp TWW" };
 
 export default function PrivacyPagina() {
   return (
-    <main className="min-h-screen bg-slate-100">
+    <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-3xl px-5 py-10 sm:px-8">
-        <Link href="/" className="text-sm font-medium text-blue-700 hover:underline">← Terug</Link>
-        <article className="mt-6 rounded-xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-          <h1 className="text-3xl font-bold text-slate-900">Privacy en gegevensbescherming</h1>
+        <AppBalk terugLabel="Hoofdmenu" />
+        <article className="mt-5 rounded-2xl border border-white bg-white/95 p-7 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-9">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Privacy en gegevensbescherming</h1>
           <p className="mt-5 leading-7 text-slate-600">
             WebApp TWW is een interne inspectietoepassing. De organisatie die de inspectie uitvoert is de verwerkingsverantwoordelijke. Bart Degroote beheert de toepassing; privacyverzoeken verlopen via de gebruikelijke contactkanalen van de verantwoordelijke organisatie.
           </p>

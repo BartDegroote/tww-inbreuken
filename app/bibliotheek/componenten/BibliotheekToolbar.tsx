@@ -40,7 +40,7 @@ type BibliotheekToolbarProps = {
 };
 
 const veldStijl =
-  "min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
+  "min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
 
 export default function BibliotheekToolbar({
   wetgevingen,
@@ -112,11 +112,11 @@ export default function BibliotheekToolbar({
     filterKernwoord.trim().length > 0;
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+    <section className="rounded-2xl border border-white bg-white/95 shadow-[0_12px_38px_rgba(15,23,42,0.07)]">
       <div className="border-b border-slate-200 p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-slate-900">
+            <h1 className="text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
               Bibliotheek standaardinbreuken
             </h1>
 
@@ -130,7 +130,7 @@ export default function BibliotheekToolbar({
           <button
             type="button"
             onClick={onNieuweInbreuk}
-            className="min-h-11 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="min-h-11 rounded-xl bg-gradient-to-r from-blue-700 to-blue-800 px-5 py-2.5 text-sm font-bold text-white shadow-[0_8px_20px_rgba(29,78,216,0.18)] transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
           >
             Nieuwe standaardinbreuk
           </button>

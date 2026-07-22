@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import AppBalk from "@/app/componenten/AppBalk";
 import { vereisGebruiker } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ruimVervallenPrullenmandOp } from "@/lib/retentie";
@@ -9,6 +10,14 @@ import InspectieActies from "./InspectieActies";
 export const dynamic = "force-dynamic";
 
 type Props = { searchParams: Promise<{ prullenmand?: string }> };
+
+function formatteerDatum(datum: string): string {
+  const delen = datum.split("-");
+
+  return delen.length === 3
+    ? `${delen[2]}/${delen[1]}/${delen[0]}`
+    : datum;
+}
 
 export default async function InspectiesPagina({ searchParams }: Props) {
   const gebruiker = await vereisGebruiker();
@@ -30,14 +39,13 @@ export default async function InspectiesPagina({ searchParams }: Props) {
   });
 
   return (
-    <main className="min-h-screen bg-slate-100">
+    <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
+        <AppBalk terugLabel="Hoofdmenu" />
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <Link href="/" className="text-sm font-medium text-blue-700 hover:underline">
-              ← Terug naar beginscherm
-            </Link>
-            <h1 className="mt-4 text-3xl font-bold text-slate-900">
+            <h1 className="mt-8 text-3xl font-extrabold tracking-tight text-slate-950">
               {toonPrullenmand ? "Prullenmand" : "Opgeslagen inspecties"}
             </h1>
           </div>
@@ -63,13 +71,13 @@ export default async function InspectiesPagina({ searchParams }: Props) {
         ) : (
           <div className="mt-8 space-y-4">
             {inspecties.map((inspectie) => (
-              <article key={inspectie.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <article key={inspectie.id} className="rounded-2xl border border-white bg-white/95 p-5 shadow-[0_10px_35px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:border-blue-100 hover:shadow-[0_16px_40px_rgba(15,23,42,0.09)] sm:p-6">
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-blue-700">{inspectie.flow}</p>
                     <h2 className="mt-1 text-xl font-bold text-slate-900">{inspectie.onderneming}</h2>
                     <p className="mt-2 text-sm text-slate-500">
-                      {inspectie.inspectiedatum} · {inspectie._count.inbreuken} inbreuk{inspectie._count.inbreuken === 1 ? "" : "en"}
+                      {formatteerDatum(inspectie.inspectiedatum)} · {inspectie._count.inbreuken} inbreuk{inspectie._count.inbreuken === 1 ? "" : "en"}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

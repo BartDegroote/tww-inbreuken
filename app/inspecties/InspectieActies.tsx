@@ -39,7 +39,7 @@ export default function InspectieActies({
         <button
           disabled={bezig}
           onClick={() => voerUit(() => herstelInspectie(inspectieId))}
-          className="rounded-lg border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+          className="rounded-xl border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"
         >
           Herstellen
         </button>
@@ -50,7 +50,7 @@ export default function InspectieActies({
               voerUit(() => verwijderInspectieDefinitief(inspectieId));
             }
           }}
-          className="rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+          className="rounded-xl border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
         >
           Definitief verwijderen
         </button>
@@ -68,7 +68,7 @@ export default function InspectieActies({
             voerUit(() => verplaatsNaarPrullenmand(inspectieId));
           }
         }}
-        className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+        className="rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50"
       >
         Verwijderen
       </button>

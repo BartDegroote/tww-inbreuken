@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import AppBalk from "@/app/componenten/AppBalk";
 import { maakInspectie } from "@/app/inspecties/actions";
 
 export default function NieuweInspectie() {
@@ -41,17 +41,12 @@ export default function NieuweInspectie() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
+    <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-        <Link
-          href="/"
-          className="text-sm font-medium text-blue-700 hover:underline"
-        >
-          ← Terug naar dashboard
-        </Link>
+        <AppBalk terugLabel="Hoofdmenu" />
 
-        <div className="mt-6 rounded-xl bg-white p-5 shadow-sm sm:p-8">
-          <h1 className="text-3xl font-bold text-slate-900">
+        <div className="mt-5 rounded-2xl border border-white bg-white/95 p-5 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-8">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
             Nieuwe inspectie
           </h1>
 
@@ -74,7 +69,7 @@ export default function NieuweInspectie() {
                 value={onderneming}
                 onChange={(event) => setOnderneming(event.target.value)}
                 required
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
@@ -91,7 +86,7 @@ export default function NieuweInspectie() {
                 type="text"
                 value={adres}
                 onChange={(event) => setAdres(event.target.value)}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
@@ -109,7 +104,7 @@ export default function NieuweInspectie() {
                 value={inspectiedatum}
                 onChange={(event) => setInspectiedatum(event.target.value)}
                 required
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
@@ -127,7 +122,7 @@ export default function NieuweInspectie() {
                 value={inspecteur}
                 onChange={(event) => setInspecteur(event.target.value)}
                 required
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
               />
             </div>
 
@@ -137,7 +132,7 @@ export default function NieuweInspectie() {
               </label>
 
               <div className="mt-2 flex items-center gap-2">
-                <div className="rounded-lg border border-slate-300 bg-slate-100 px-4 py-3 text-slate-700">
+                <div className="flex min-h-12 items-center rounded-xl border border-slate-300 bg-slate-100 px-4 py-3 font-semibold text-slate-700">
                   02
                 </div>
 
@@ -156,7 +151,7 @@ export default function NieuweInspectie() {
                     setFlowJaar(event.target.value.replace(/\D/g, ""))
                   }
                   required
-                  className="w-28 rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                  className="min-h-12 w-24 rounded-xl border border-slate-300 px-3 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 sm:w-28 sm:px-4"
                 />
 
                 <span className="text-slate-500">/</span>
@@ -173,7 +168,7 @@ export default function NieuweInspectie() {
                     setFlowNummer(event.target.value.replace(/\D/g, ""))
                   }
                   required
-                  className="min-w-0 flex-1 rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+                  className="min-h-12 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100 sm:px-4"
                 />
               </div>
 
@@ -191,7 +186,7 @@ export default function NieuweInspectie() {
             <button
               type="submit"
               disabled={bezig}
-              className="w-full rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+              className="min-h-12 w-full rounded-xl bg-gradient-to-r from-blue-700 to-blue-800 px-6 py-3 font-bold text-white shadow-[0_10px_25px_rgba(29,78,216,0.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:bg-slate-400 disabled:shadow-none"
             >
               {bezig ? "Inspectie wordt aangemaakt..." : "Inspectie starten"}
             </button>

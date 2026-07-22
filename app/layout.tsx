@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./tww-styles.css";
 
@@ -16,6 +16,14 @@ export const metadata: Metadata = {
   title: "WebApp TWW",
   description:
     "Inspecties, standaardinbreuken en professionele Word-verslaggeving.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  colorScheme: "light",
+  themeColor: "#f1f5f9",
 };
 
 export default function RootLayout({

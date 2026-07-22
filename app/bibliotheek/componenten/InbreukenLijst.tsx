@@ -143,7 +143,7 @@ export default function InbreukenLijst({
                     onClick={() =>
                       onSelecteer(inbreuk)
                     }
-                    className={`w-full rounded-lg border p-4 text-left transition ${
+                    className={`w-full rounded-xl border p-4 text-left shadow-sm transition ${
                       isGeselecteerd
                         ? inbreuk.geverifieerd
                           ? "border-emerald-600 bg-emerald-100 ring-1 ring-emerald-600"

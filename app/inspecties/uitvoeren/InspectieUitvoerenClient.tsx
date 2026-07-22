@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import {
   useMemo,
   useRef,
@@ -13,6 +12,7 @@ import {
   type OngevalsgegevensInput,
   type OpgeslagenInbreukInput,
 } from "@/app/inspecties/actions";
+import AppBalk from "@/app/componenten/AppBalk";
 
 import type {
   Standaardinbreuk,
@@ -940,19 +940,14 @@ export default function InspectieUitvoerenClient({
   }
 
   return (
-    <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-7xl px-4 pb-32 pt-6 sm:px-6 sm:pb-6">
-        <header className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
+    <main className="tww-canvas min-h-screen">
+      <div className="mx-auto max-w-7xl px-4 pb-32 pt-4 sm:px-6 sm:pt-6 lg:pb-6">
+        <AppBalk terugHref="/inspecties" terugLabel="Inspecties" />
+
+        <header className="mt-5 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <Link
-                href="/"
-                className="text-sm font-medium text-blue-700 hover:underline"
-              >
-                ← Terug naar dashboard
-              </Link>
-
-              <h1 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">
+              <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
                 Inspectie uitvoeren
               </h1>
 
@@ -963,7 +958,7 @@ export default function InspectieUitvoerenClient({
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[29rem]">
-              <div className="rounded-xl bg-blue-50 px-5 py-4">
+              <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-5 py-4">
                 <p className="text-sm text-blue-700">
                   Flow
                 </p>
@@ -1215,19 +1210,25 @@ export default function InspectieUitvoerenClient({
         </header>
 
         <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain">
+          <aside className="min-w-0 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_12px_38px_rgba(15,23,42,0.07)] sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain">
             <button
               type="button"
               onClick={startNieuweInbreuk}
               className="w-full rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800"
             >
-              + Nieuwe inbreuk
+              + Lege inbreuk toevoegen
             </button>
 
             <div className="mt-6">
               <h2 className="font-semibold text-slate-900">
                 Inbreuken ({inbreuken.length})
               </h2>
+
+              {inbreuken.length > 1 && (
+                <p className="mt-1 text-xs text-slate-500 lg:hidden">
+                  Veeg horizontaal om alle inbreuken te bekijken.
+                </p>
+              )}
 
               {inbreuken.length === 0 ? (
                 <p className="mt-3 rounded-lg bg-slate-50 p-4 text-sm text-slate-500">
@@ -1289,7 +1290,7 @@ export default function InspectieUitvoerenClient({
           </aside>
 
           <section className="min-w-0 space-y-6">
-            <div className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-8">
+            <div className="min-w-0 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_12px_38px_rgba(15,23,42,0.07)] sm:p-8">
               <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
                 Standaardinbreuk zoeken
               </h2>
@@ -1299,7 +1300,7 @@ export default function InspectieUitvoerenClient({
                 centrale bibliotheek geladen.
               </p>
 
-              <div className="mt-6 grid gap-4 lg:grid-cols-4">
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <label
                     htmlFor="wetgeving"
@@ -1533,7 +1534,7 @@ export default function InspectieUitvoerenClient({
 
             <div
               ref={bewerkFormulierRef}
-              className="min-w-0 scroll-mt-4 rounded-xl bg-white p-4 shadow-sm sm:p-8"
+              className="min-w-0 scroll-mt-4 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_12px_38px_rgba(15,23,42,0.07)] sm:p-8"
             >
               <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
                 {geselecteerdeId === null
@@ -1871,7 +1872,7 @@ export default function InspectieUitvoerenClient({
                       type="submit"
                       className="w-full rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800 sm:w-auto"
                     >
-                      Wijzigingen bewaren
+                      Inbreuk bijwerken
                     </button>
 
                     <button
@@ -1888,7 +1889,7 @@ export default function InspectieUitvoerenClient({
           </section>
         </div>
 
-        <footer className="fixed inset-x-0 bottom-0 z-20 mt-6 flex flex-col items-stretch gap-3 border-t border-slate-200 bg-slate-100/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:items-end sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
+        <footer className="fixed inset-x-0 bottom-0 z-20 mt-6 flex flex-col items-stretch gap-3 border-t border-slate-200 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.1)] backdrop-blur lg:static lg:items-end lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none">
           {exportFout && (
             <p
               role="alert"

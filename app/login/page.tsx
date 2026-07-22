@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import TwwMerk from "@/app/componenten/TwwMerk";
 import { huidigeGebruiker } from "@/lib/auth";
 import { aanmelden } from "./actions";
 
@@ -17,20 +18,18 @@ export default async function LoginPagina({ searchParams }: LoginProps) {
   const parameters = await searchParams;
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-5 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-        <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-700 text-xs font-black tracking-wider text-white">
-            TWW
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              WebApp TWW
-            </h1>
-            <p className="text-sm text-slate-500">
-              Veilig aanmelden
-            </p>
-          </div>
+    <main className="tww-canvas relative flex min-h-screen items-center justify-center overflow-hidden px-5 py-10">
+      <div aria-hidden="true" className="absolute left-1/2 top-0 h-80 w-80 -translate-x-1/2 -translate-y-1/2 rounded-full border border-blue-200/70" />
+      <div className="relative w-full max-w-md rounded-3xl border border-white bg-white/90 p-7 shadow-[0_24px_70px_rgba(15,23,42,0.12)] backdrop-blur sm:p-9">
+        <TwwMerk />
+
+        <div className="mt-8">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-950">
+            Veilig aanmelden
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Ga verder naar je inspectiewerkplek.
+          </p>
         </div>
 
         {parameters.fout && (
@@ -49,7 +48,7 @@ export default async function LoginPagina({ searchParams }: LoginProps) {
               name="gebruikersnaam"
               required
               autoComplete="username"
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
@@ -63,11 +62,11 @@ export default async function LoginPagina({ searchParams }: LoginProps) {
               type="password"
               required
               autoComplete="current-password"
-              className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+              className="mt-2 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
             />
           </div>
 
-          <button className="w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white hover:bg-blue-800">
+          <button className="min-h-12 w-full rounded-xl bg-gradient-to-r from-blue-700 to-blue-800 px-5 py-3 font-bold text-white shadow-[0_10px_25px_rgba(29,78,216,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(29,78,216,0.28)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
             Aanmelden
           </button>
         </form>
