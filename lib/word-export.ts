@@ -25,6 +25,7 @@ export type WordInbreuk = {
   beschrijvingOpmaak?: TekstSegment[];
   inCasu: string;
   specifiekeElementen?: string[];
+  specifiekeElementenAlsSituering?: boolean;
   fotos?: WordFoto[];
   toelichting: string;
   aanvulling: string;
@@ -289,6 +290,7 @@ function voegSitueringToe(
   kinderen: Paragraph[],
   tekst: string,
   specifiekeElementen: string[] = [],
+  specifiekeElementenAlsSituering = false,
 ) {
   const opgeschoondeTekst = tekst.trim();
   const opgeschoondeElementen = specifiekeElementen
@@ -362,7 +364,10 @@ function voegSitueringToe(
     );
   };
 
-  if (opgeschoondeTekst) {
+  if (
+    opgeschoondeTekst &&
+    !specifiekeElementenAlsSituering
+  ) {
     voegOnderdeelToe(
       opgeschoondeTekst,
       "☐",
@@ -374,8 +379,10 @@ function voegSitueringToe(
   opgeschoondeElementen.forEach((element) => {
     voegOnderdeelToe(
       element,
-      "▪",
-      SPECIFIEK_ELEMENT_TEKST_INSPrONG,
+      specifiekeElementenAlsSituering ? "☐" : "▪",
+      specifiekeElementenAlsSituering
+        ? SITUERING_TEKST_INSPrONG
+        : SPECIFIEK_ELEMENT_TEKST_INSPrONG,
       0,
     );
   });
@@ -482,6 +489,7 @@ function maakInbreukParagrafen(
     kinderen,
     inbreuk.inCasu,
     inbreuk.specifiekeElementen,
+    inbreuk.specifiekeElementenAlsSituering,
   );
 
   kinderen.push(

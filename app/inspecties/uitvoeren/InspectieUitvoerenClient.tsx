@@ -65,6 +65,7 @@ export type Inbreuk = {
   wettelijkeVerwijzing: string;
   specifiekeElementen: SpecifiekElementKeuze[];
   geselecteerdeSpecifiekeElementIds: string[];
+  specifiekeElementenAlsSituering: boolean;
   fotos: InspectieFoto[];
 };
 
@@ -507,7 +508,9 @@ export default function InspectieUitvoerenClient({
       beschrijvingOpmaak: kopieerSegmenten(
         standaard.omschrijvingOpmaak,
       ),
-      inCasu: standaard.situering ?? "",
+      inCasu: standaard.specifiekeElementenAlsSituering
+        ? ""
+        : standaard.situering ?? "",
       toelichting: standaard.toelichting ?? "",
       aanvulling: standaard.aanvulling ?? "",
       aanvullingOpmaak: kopieerSegmenten(
@@ -525,6 +528,8 @@ export default function InspectieUitvoerenClient({
             )
           : [],
       geselecteerdeSpecifiekeElementIds: [],
+      specifiekeElementenAlsSituering:
+        standaard.specifiekeElementenAlsSituering,
       fotos: [],
     };
 
@@ -606,6 +611,8 @@ export default function InspectieUitvoerenClient({
             inbreuk.specifiekeElementen,
           geselecteerdeSpecifiekeElementIds:
             inbreuk.geselecteerdeSpecifiekeElementIds,
+          specifiekeElementenAlsSituering:
+            inbreuk.specifiekeElementenAlsSituering,
           bewaardeFotoIds: inbreuk.fotos
             .filter((foto) => Boolean(foto.url))
             .map((foto) => foto.id),
@@ -777,6 +784,8 @@ export default function InspectieUitvoerenClient({
                     ),
                   )
                   .map((element) => element.tekst),
+              specifiekeElementenAlsSituering:
+                inbreuk.specifiekeElementenAlsSituering,
               fotos: await maakWordFotos(
                 inbreuk.fotos,
               ),
@@ -1377,37 +1386,47 @@ export default function InspectieUitvoerenClient({
                         </h3>
 
                         <p className="mt-1 text-sm leading-6 text-slate-600">
-                          Beschrijf de concrete situering zoals vastgesteld tijdens de inspectie.
+                          {geselecteerdeInbreuk
+                            ?.specifiekeElementenAlsSituering
+                            ? "Selecteer de elementen die samen de situering vormen."
+                            : "Beschrijf de concrete situering zoals vastgesteld tijdens de inspectie."}
                         </p>
                       </div>
                     </div>
 
-                    <div>
-                      <label
-                        htmlFor="inCasu"
-                        className="block text-sm font-semibold text-slate-700"
-                      >
-                        Situering
-                      </label>
+                    {geselecteerdeInbreuk
+                      ?.specifiekeElementenAlsSituering ? (
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-800">
+                        De geselecteerde elementen vormen samen de situering.
+                      </div>
+                    ) : (
+                      <div>
+                        <label
+                          htmlFor="inCasu"
+                          className="block text-sm font-semibold text-slate-700"
+                        >
+                          Situering
+                        </label>
 
-                      <textarea
-                        id="inCasu"
-                        value={inCasu}
-                        onChange={(event) =>
-                          setInCasu(
-                            event.target.value,
-                          )
-                        }
-                        rows={7}
-                        placeholder="Beschrijf de situering tijdens de inspectie."
-                        required
-                        className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-7 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                      />
+                        <textarea
+                          id="inCasu"
+                          value={inCasu}
+                          onChange={(event) =>
+                            setInCasu(
+                              event.target.value,
+                            )
+                          }
+                          rows={7}
+                          placeholder="Beschrijf de situering tijdens de inspectie."
+                          required
+                          className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-7 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                        />
 
-                      <p className="mt-2 text-sm text-slate-500">
-                        Vermeld feitelijke, controleerbare elementen en de plaats waarop de situering betrekking heeft.
-                      </p>
-                    </div>
+                        <p className="mt-2 text-sm text-slate-500">
+                          Vermeld feitelijke, controleerbare elementen en de plaats waarop de situering betrekking heeft.
+                        </p>
+                      </div>
+                    )}
 
                     {geselecteerdeInbreuk &&
                       geselecteerdeInbreuk

@@ -241,6 +241,12 @@ export async function bewaarStandaardinbreuk(
       invoer.specifiekeElementenIngeschakeld,
     );
 
+  const specifiekeElementenAlsSituering =
+    specifiekeElementenIngeschakeld &&
+    Boolean(
+      invoer.specifiekeElementenAlsSituering,
+    );
+
   const geverifieerd = Boolean(
     invoer.geverifieerd,
   );
@@ -318,6 +324,7 @@ export async function bewaarStandaardinbreuk(
               ),
 
               specifiekeElementenIngeschakeld,
+              specifiekeElementenAlsSituering,
 
               toelichting: optioneelTekstveld(
                 invoer.toelichting,
@@ -378,6 +385,7 @@ export async function bewaarStandaardinbreuk(
             ),
 
             specifiekeElementenIngeschakeld,
+            specifiekeElementenAlsSituering,
 
             specifiekeElementen:
               specifiekeElementen.length > 0

@@ -19,6 +19,7 @@ const standaardinbreukSelect = {
   omschrijvingOpmaak: true,
   situering: true,
   specifiekeElementenIngeschakeld: true,
+  specifiekeElementenAlsSituering: true,
   specifiekeElementen: {
     select: {
       id: true,
@@ -58,6 +59,8 @@ export function mapStandaardinbreuk(
     situering: inbreuk.situering ?? "",
     specifiekeElementenIngeschakeld:
       inbreuk.specifiekeElementenIngeschakeld,
+    specifiekeElementenAlsSituering:
+      inbreuk.specifiekeElementenAlsSituering,
     specifiekeElementen:
       inbreuk.specifiekeElementen.map(
         (element) => ({

@@ -25,6 +25,7 @@ export type OpgeslagenInbreukInput = {
   wettelijkeVerwijzing: string;
   specifiekeElementen: Array<{ id: string; tekst: string }>;
   geselecteerdeSpecifiekeElementIds: string[];
+  specifiekeElementenAlsSituering: boolean;
   bewaardeFotoIds: string[];
 };
 
@@ -105,6 +106,15 @@ export async function bewaarInspectie(
     });
 
     for (const [volgorde, inbreuk] of inbreuken.entries()) {
+      if (
+        inbreuk.specifiekeElementenAlsSituering &&
+        inbreuk.geselecteerdeSpecifiekeElementIds.length === 0
+      ) {
+        throw new Error(
+          "Selecteer minstens één specifiek element dat als situering wordt gebruikt.",
+        );
+      }
+
       const data = {
         standaardinbreukId: inbreuk.standaardinbreukId || null,
         volgorde,
@@ -118,6 +128,8 @@ export async function bewaarInspectie(
         specifiekeElementen: inbreuk.specifiekeElementen,
         geselecteerdeSpecifiekeElementIds:
           inbreuk.geselecteerdeSpecifiekeElementIds,
+        specifiekeElementenAlsSituering:
+          inbreuk.specifiekeElementenAlsSituering,
       };
 
       await transactie.inspectieInbreuk.upsert({

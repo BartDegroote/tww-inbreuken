@@ -57,6 +57,7 @@ function maakLegeInbreuk(): Standaardinbreuk {
     situering: "",
 
     specifiekeElementenIngeschakeld: false,
+    specifiekeElementenAlsSituering: false,
     specifiekeElementen: [],
 
     toelichting: "",

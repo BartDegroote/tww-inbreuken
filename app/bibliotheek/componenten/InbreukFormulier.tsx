@@ -579,6 +579,11 @@ function initialiseerFormulier(
     specifiekeElementenIngeschakeld:
       inbreuk.specifiekeElementenIngeschakeld ??
       false,
+    specifiekeElementenAlsSituering:
+      Boolean(
+        inbreuk.specifiekeElementenIngeschakeld &&
+          inbreuk.specifiekeElementenAlsSituering,
+      ),
     specifiekeElementen:
       inbreuk.specifiekeElementen ?? [],
   };
@@ -957,6 +962,10 @@ function InbreukFormulierInhoud({
         ...huidig,
         specifiekeElementenIngeschakeld:
           ingeschakeld,
+        specifiekeElementenAlsSituering:
+          ingeschakeld
+            ? huidig.specifiekeElementenAlsSituering
+            : false,
         specifiekeElementen:
           ingeschakeld &&
           huidigeElementen.length === 0
@@ -968,6 +977,24 @@ function InbreukFormulierInhoud({
                 },
               ]
             : huidigeElementen,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigPlaatsingSpecifiekeElementen(
+    alsSituering: boolean,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      return {
+        ...huidig,
+        specifiekeElementenAlsSituering:
+          alsSituering,
       };
     });
 
@@ -1833,27 +1860,85 @@ function InbreukFormulierInhoud({
               )}
             </section>
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Situering van de inbreuk
-              </span>
+            <div className="space-y-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm font-medium text-slate-700">
+                  Situering van de inbreuk
+                </span>
 
-              <textarea
-                value={
-                  formulier.situering ?? ""
-                }
-                onChange={(event) =>
-                  wijzigGewoonTekstveld(
-                    "situering",
-                    event.target.value,
-                  )
-                }
-                rows={4}
-                className={tekstvakStijl}
-                placeholder="Duid aan waar, aan welke installatie of aan welke werkpost de inbreuk werd vastgesteld..."
-                disabled={bezig}
-              />
-            </label>
+                {formulier.specifiekeElementenIngeschakeld && (
+                  <div
+                    role="group"
+                    aria-label="Plaatsing van specifieke elementen"
+                    className="inline-flex w-fit rounded-lg border border-slate-200 bg-slate-100 p-1 shadow-inner"
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={
+                        !formulier.specifiekeElementenAlsSituering
+                      }
+                      onClick={() =>
+                        wijzigPlaatsingSpecifiekeElementen(
+                          false,
+                        )
+                      }
+                      disabled={bezig}
+                      className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                        !formulier.specifiekeElementenAlsSituering
+                          ? "bg-white text-blue-700 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      } disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      Onder situering
+                    </button>
+
+                    <button
+                      type="button"
+                      aria-pressed={
+                        formulier.specifiekeElementenAlsSituering
+                      }
+                      onClick={() =>
+                        wijzigPlaatsingSpecifiekeElementen(
+                          true,
+                        )
+                      }
+                      disabled={bezig}
+                      className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                        formulier.specifiekeElementenAlsSituering
+                          ? "bg-blue-600 text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      } disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      Als situering
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {formulier.specifiekeElementenIngeschakeld &&
+              formulier.specifiekeElementenAlsSituering ? (
+                <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+                  De gekozen elementen vormen tijdens de inspectie de situering.
+                </div>
+              ) : (
+                <textarea
+                  aria-label="Situering van de inbreuk"
+                  value={
+                    formulier.situering ?? ""
+                  }
+                  onChange={(event) =>
+                    wijzigGewoonTekstveld(
+                      "situering",
+                      event.target.value,
+                    )
+                  }
+                  rows={4}
+                  className={tekstvakStijl}
+                  placeholder="Duid aan waar, aan welke installatie of aan welke werkpost de inbreuk werd vastgesteld..."
+                  disabled={bezig}
+                />
+              )}
+            </div>
 
             <label className="block">
               <span className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-600">
@@ -1985,13 +2070,15 @@ function InbreukFormulierInhoud({
 
                   <ol className="mt-3 space-y-2">
                     {geldigeSpecifiekeElementen.map(
-                      (element, index) => (
+                      (element) => (
                         <li
                           key={element.id}
                           className="flex gap-3 text-sm leading-6 text-slate-800"
                         >
-                          <span className="font-semibold text-slate-500">
-                            {index + 1}.
+                          <span className="font-semibold text-slate-700">
+                            {formulier.specifiekeElementenAlsSituering
+                              ? "☐"
+                              : "▪"}
                           </span>
 
                           <span className="whitespace-pre-wrap">
@@ -2025,11 +2112,12 @@ function InbreukFormulierInhoud({
                 )}
               </p>
 
-              {formulier.situering?.trim() && (
+              {!formulier.specifiekeElementenAlsSituering &&
+                formulier.situering?.trim() && (
                 <p className="whitespace-pre-wrap text-sm leading-6 text-slate-900">
                   {formulier.situering}
                 </p>
-              )}
+                )}
 
               {formulier.toelichting?.trim() && (
                 <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-600">

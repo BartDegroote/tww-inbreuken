@@ -37,6 +37,7 @@ export type Standaardinbreuk = {
 
   // 3. Specifieke elementen
   specifiekeElementenIngeschakeld: boolean;
+  specifiekeElementenAlsSituering: boolean;
   specifiekeElementen: SpecifiekElement[];
 
   // 4. Toelichting

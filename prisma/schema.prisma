@@ -73,6 +73,7 @@ model InspectieInbreuk {
   wettelijkeVerwijzing              String
   specifiekeElementen               Json?
   geselecteerdeSpecifiekeElementIds String[]
+  specifiekeElementenAlsSituering   Boolean         @default(false)
   fotos                             InspectieFoto[]
   aangemaaktOp                      DateTime        @default(now())
   gewijzigdOp                       DateTime        @updatedAt
@@ -148,6 +149,7 @@ model Standaardinbreuk {
 
   // 3. Specifieke elementen
   specifiekeElementenIngeschakeld Boolean            @default(false)
+  specifiekeElementenAlsSituering Boolean            @default(false)
   specifiekeElementen             SpecifiekElement[]
 
   // 4. Toelichting / goede praktijk

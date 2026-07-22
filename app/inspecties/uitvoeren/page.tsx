@@ -65,6 +65,7 @@ export default async function InspectieUitvoerenPagina({
             wettelijkeVerwijzing: true,
             specifiekeElementen: true,
             geselecteerdeSpecifiekeElementIds: true,
+            specifiekeElementenAlsSituering: true,
             fotos: {
               orderBy: { aangemaaktOp: "asc" },
               select: { id: true, naam: true },
@@ -110,6 +111,8 @@ export default async function InspectieUitvoerenPagina({
       specifiekeElementen,
       geselecteerdeSpecifiekeElementIds:
         inbreuk.geselecteerdeSpecifiekeElementIds,
+      specifiekeElementenAlsSituering:
+        inbreuk.specifiekeElementenAlsSituering,
       fotos: inbreuk.fotos.map((foto) => ({
         id: foto.id,
         naam: foto.naam,
