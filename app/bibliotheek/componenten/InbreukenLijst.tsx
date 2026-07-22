@@ -9,6 +9,7 @@ import type {
 } from "../BibliotheekClient";
 
 import type { Standaardinbreuk } from "@/bibliotheek";
+import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 
 type InbreukenLijstProps = {
   inbreuken: Standaardinbreuk[];
@@ -167,9 +168,13 @@ export default function InbreukenLijst({
                         </span>
                       )}
 
-                      <span className="mt-1 block whitespace-pre-wrap text-sm leading-5 text-slate-600">
-                        {inbreuk.omschrijving}
-                      </span>
+                      <TekstMetOpmaak
+                        tekst={inbreuk.omschrijving}
+                        segmenten={
+                          inbreuk.omschrijvingOpmaak
+                        }
+                        className="mt-1 block text-sm leading-5"
+                      />
                     </span>
                   </button>
                 </li>

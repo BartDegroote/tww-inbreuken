@@ -94,6 +94,9 @@ function normaliseerTekstSegmenten(
       ...(segment.donkergrijs
         ? { donkergrijs: true }
         : {}),
+      ...(segment.lijstaccent
+        ? { lijstaccent: true }
+        : {}),
     });
   }
 

@@ -2,6 +2,8 @@ export type TekstSegment = {
   tekst: string;
   vet?: boolean;
   donkergrijs?: boolean;
+  /** Alleen als opvallend accent in de app; nooit in Word. */
+  lijstaccent?: boolean;
 };
 
 export type SpecifiekElement = {

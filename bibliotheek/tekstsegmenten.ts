@@ -35,6 +35,9 @@ export function leesTekstSegmenten(
       ...(segment.donkergrijs === true
         ? { donkergrijs: true }
         : {}),
+      ...(segment.lijstaccent === true
+        ? { lijstaccent: true }
+        : {}),
     });
   }
 

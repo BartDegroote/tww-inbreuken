@@ -47,14 +47,18 @@ export default function TekstMetOpmaak({
         (segment, index) => (
           <span
             key={`${index}-${segment.tekst}`}
-            className={[
-              segment.vet
-                ? "font-bold"
-                : "font-normal",
-              segment.donkergrijs
-                ? "text-slate-500"
-                : "text-slate-900",
-            ].join(" ")}
+            className={
+              segment.lijstaccent
+                ? "rounded-sm bg-amber-300 px-0.5 font-bold text-slate-950 ring-1 ring-inset ring-amber-500"
+                : [
+                    segment.vet
+                      ? "font-bold"
+                      : "font-normal",
+                    segment.donkergrijs
+                      ? "text-slate-500"
+                      : "text-slate-900",
+                  ].join(" ")
+            }
           >
             {segment.tekst}
           </span>

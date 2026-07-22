@@ -13,6 +13,7 @@ export type OpgeslagenInbreukInput = {
     tekst: string;
     vet?: boolean;
     donkergrijs?: boolean;
+    lijstaccent?: boolean;
   }>;
   inCasu: string;
   toelichting: string;
@@ -21,6 +22,7 @@ export type OpgeslagenInbreukInput = {
     tekst: string;
     vet?: boolean;
     donkergrijs?: boolean;
+    lijstaccent?: boolean;
   }>;
   wettelijkeVerwijzing: string;
   specifiekeElementen: Array<{ id: string; tekst: string }>;

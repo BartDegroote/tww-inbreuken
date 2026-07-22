@@ -106,7 +106,7 @@ function segmentenNaarHtml(
 
   return segmenten
     .map((segment) => {
-      const inhoud = escapeHtml(
+      let inhoud = escapeHtml(
         segment.tekst,
       ).replaceAll("\n", "<br>");
 
@@ -119,9 +119,16 @@ function segmentenNaarHtml(
 
       if (
         opmaakType === "donkergrijs" &&
+        segment.lijstaccent
+      ) {
+        inhoud = `<mark data-lijstaccent="true" style="background-color: rgb(252, 211, 77); color: rgb(15, 23, 42); font-weight: 700;">${inhoud}</mark>`;
+      }
+
+      if (
+        opmaakType === "donkergrijs" &&
         segment.donkergrijs
       ) {
-        return `<span style="color: rgb(71, 85, 105);">${inhoud}</span>`;
+        inhoud = `<span data-donkergrijs="true" style="color: rgb(71, 85, 105);">${inhoud}</span>`;
       }
 
       return inhoud;
@@ -145,7 +152,9 @@ function voegSegmentToe(
     Boolean(vorigSegment.vet) ===
       Boolean(nieuwSegment.vet) &&
     Boolean(vorigSegment.donkergrijs) ===
-      Boolean(nieuwSegment.donkergrijs)
+      Boolean(nieuwSegment.donkergrijs) &&
+    Boolean(vorigSegment.lijstaccent) ===
+      Boolean(nieuwSegment.lijstaccent)
   ) {
     vorigSegment.tekst += nieuwSegment.tekst;
     return;
@@ -165,6 +174,7 @@ function leesSegmentenUitEditor(
     geerfdeOpmaak: {
       vet: boolean;
       donkergrijs: boolean;
+      lijstaccent: boolean;
     },
   ): void {
     if (knoop.nodeType === Node.TEXT_NODE) {
@@ -175,6 +185,9 @@ function leesSegmentenUitEditor(
           : {}),
         ...(geerfdeOpmaak.donkergrijs
           ? { donkergrijs: true }
+          : {}),
+        ...(geerfdeOpmaak.lijstaccent
+          ? { lijstaccent: true }
           : {}),
       });
 
@@ -193,6 +206,9 @@ function leesSegmentenUitEditor(
           : {}),
         ...(geerfdeOpmaak.donkergrijs
           ? { donkergrijs: true }
+          : {}),
+        ...(geerfdeOpmaak.lijstaccent
+          ? { lijstaccent: true }
           : {}),
       });
 
@@ -216,8 +232,24 @@ function leesSegmentenUitEditor(
 
     const isDonkergrijs =
       geerfdeOpmaak.donkergrijs ||
+      knoop.dataset.donkergrijs ===
+        "true" ||
       kleur === "rgb(71,85,105)" ||
       kleur === "rgba(71,85,105,1)";
+
+    const achtergrondkleur =
+      stijl.backgroundColor
+        .replace(/\s/g, "")
+        .toLowerCase();
+
+    const isLijstaccent =
+      geerfdeOpmaak.lijstaccent ||
+      knoop.dataset.lijstaccent ===
+        "true" ||
+      achtergrondkleur ===
+        "rgb(252,211,77)" ||
+      achtergrondkleur ===
+        "rgba(252,211,77,1)";
 
     const isBlokelement =
       knoop.tagName === "DIV" ||
@@ -235,6 +267,10 @@ function leesSegmentenUitEditor(
         donkergrijs:
           opmaakType === "donkergrijs"
             ? isDonkergrijs
+            : false,
+        lijstaccent:
+          opmaakType === "donkergrijs"
+            ? isLijstaccent
             : false,
       });
     });
@@ -256,6 +292,9 @@ function leesSegmentenUitEditor(
           ...(laatste.donkergrijs
             ? { donkergrijs: true }
             : {}),
+          ...(laatste.lijstaccent
+            ? { lijstaccent: true }
+            : {}),
         });
       }
     }
@@ -265,6 +304,7 @@ function leesSegmentenUitEditor(
     bezoekKnoop(knoop, {
       vet: false,
       donkergrijs: false,
+      lijstaccent: false,
     });
   });
 
@@ -366,6 +406,7 @@ function BeperkteTeksteditor({
     opdracht:
       | "bold"
       | "foreColor"
+      | "backColor"
       | "removeFormat",
   ): void {
     const editor = editorRef.current;
@@ -381,6 +422,12 @@ function BeperkteTeksteditor({
         "foreColor",
         false,
         "#475569",
+      );
+    } else if (opdracht === "backColor") {
+      document.execCommand(
+        "backColor",
+        false,
+        "#FCD34D",
       );
     } else {
       document.execCommand(
@@ -424,21 +471,40 @@ function BeperkteTeksteditor({
 
           {opmaakType ===
             "donkergrijs" && (
-            <button
-              type="button"
-              className={knopStijl}
-              disabled={disabled}
-              onMouseDown={(event) =>
-                event.preventDefault()
-              }
-              onClick={() =>
-                pasOpmaakToe(
-                  "foreColor",
-                )
-              }
-            >
-              Donkergrijs
-            </button>
+            <>
+              <button
+                type="button"
+                className={`${knopStijl} border-amber-500 bg-amber-300 text-slate-950 ring-1 ring-inset ring-amber-500 hover:bg-amber-400`}
+                disabled={disabled}
+                onMouseDown={(event) =>
+                  event.preventDefault()
+                }
+                onClick={() =>
+                  pasOpmaakToe(
+                    "backColor",
+                  )
+                }
+                title="Laat geselecteerde woorden sterk opvallen in de app, maar niet in Word"
+              >
+                Lijstaccent
+              </button>
+
+              <button
+                type="button"
+                className={knopStijl}
+                disabled={disabled}
+                onMouseDown={(event) =>
+                  event.preventDefault()
+                }
+                onClick={() =>
+                  pasOpmaakToe(
+                    "foreColor",
+                  )
+                }
+              >
+                Donkergrijs
+              </button>
+            </>
           )}
 
           <button
@@ -486,6 +552,13 @@ function BeperkteTeksteditor({
       <p className="mt-1.5 text-xs leading-5 text-slate-500">
         Selecteer tekst en gebruik de
         opmaakknoppen.
+
+        {opmaakType === "donkergrijs" && (
+          <span className="ml-1 font-medium text-amber-800">
+            Lijstaccent verschijnt alleen in
+            de app, nooit in Word.
+          </span>
+        )}
       </p>
     </div>
   );
