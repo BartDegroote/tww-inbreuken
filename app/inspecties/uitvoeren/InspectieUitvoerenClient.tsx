@@ -3,12 +3,14 @@
 import Link from "next/link";
 import {
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
 
 import {
   bewaarInspectie,
+  type OngevalsgegevensInput,
   type OpgeslagenInbreukInput,
 } from "@/app/inspecties/actions";
 
@@ -76,6 +78,7 @@ type InspectieUitvoerenClientProps = {
   inspectiedatum: string;
   inspecteur: string;
   flow: string;
+  initialOngevalsgegevens: OngevalsgegevensInput;
   wetgevingen: WetgevingOptie[];
   boeken: BoekOptie[];
   titels: TitelOptie[];
@@ -268,6 +271,7 @@ export default function InspectieUitvoerenClient({
   inspectiedatum,
   inspecteur,
   flow,
+  initialOngevalsgegevens,
   wetgevingen,
   boeken,
   titels,
@@ -328,6 +332,45 @@ export default function InspectieUitvoerenClient({
 
   const [exportFout, setExportFout] =
     useState("");
+
+  const [
+    ernstigArbeidsongeval,
+    setErnstigArbeidsongeval,
+  ] = useState(
+    initialOngevalsgegevens.ernstigArbeidsongeval,
+  );
+
+  const [
+    slachtofferVoornaam,
+    setSlachtofferVoornaam,
+  ] = useState(
+    initialOngevalsgegevens.slachtofferVoornaam,
+  );
+
+  const [slachtofferNaam, setSlachtofferNaam] =
+    useState(
+      initialOngevalsgegevens.slachtofferNaam,
+    );
+
+  const [ongevalsdatum, setOngevalsdatum] =
+    useState(
+      initialOngevalsgegevens.ongevalsdatum,
+    );
+
+  const [
+    slachtofferWerkHervat,
+    setSlachtofferWerkHervat,
+  ] = useState<boolean | null>(
+    initialOngevalsgegevens.slachtofferWerkHervat,
+  );
+
+  const [werkpostBezocht, setWerkpostBezocht] =
+    useState<boolean | null>(
+      initialOngevalsgegevens.werkpostBezocht,
+    );
+
+  const bewerkFormulierRef =
+    useRef<HTMLDivElement | null>(null);
 
   const beschikbareBoeken = useMemo(() => {
     if (!wetgevingFilter) {
@@ -493,6 +536,34 @@ export default function InspectieUitvoerenClient({
     setFotos([]);
   }
 
+  function scrollNaarBewerkFormulier() {
+    if (
+      typeof window === "undefined" ||
+      !window.matchMedia("(max-width: 1023px)")
+        .matches
+    ) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      bewerkFormulierRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
+
+  function huidigeOngevalsgegevens(): OngevalsgegevensInput {
+    return {
+      ernstigArbeidsongeval,
+      slachtofferVoornaam,
+      slachtofferNaam,
+      ongevalsdatum,
+      slachtofferWerkHervat,
+      werkpostBezocht,
+    };
+  }
+
   function startNieuweInbreuk() {
     maakFormulierLeeg();
     setWetgevingFilter("");
@@ -554,6 +625,7 @@ export default function InspectieUitvoerenClient({
     setGeselecteerdeSpecifiekeElementIds([]);
     setFotos([]);
     setExportFout("");
+    scrollNaarBewerkFormulier();
   }
 
   function selecteerInbreuk(
@@ -570,6 +642,7 @@ export default function InspectieUitvoerenClient({
     );
     setFotos(inbreuk.fotos);
     setExportFout("");
+    scrollNaarBewerkFormulier();
   }
 
   function behandelFotos(
@@ -621,7 +694,11 @@ export default function InspectieUitvoerenClient({
             .map((foto) => foto.id),
         }));
 
-      await bewaarInspectie(inspectieId, invoer);
+      await bewaarInspectie(
+        inspectieId,
+        invoer,
+        huidigeOngevalsgegevens(),
+      );
 
       const opgeslagen = await Promise.all(
         gesorteerdeInbreuken.map(async (inbreuk) => {
@@ -751,7 +828,30 @@ export default function InspectieUitvoerenClient({
   }
 
   async function genereerWordVerslag() {
-    if (inbreuken.length === 0 || exportBezig) {
+    if (
+      (inbreuken.length === 0 &&
+        !ernstigArbeidsongeval) ||
+      exportBezig
+    ) {
+      return;
+    }
+
+    const werkHervat =
+      slachtofferWerkHervat;
+    const werkpostIsBezocht =
+      werkpostBezocht;
+
+    if (
+      ernstigArbeidsongeval &&
+      (!slachtofferVoornaam.trim() ||
+        !slachtofferNaam.trim() ||
+        !ongevalsdatum ||
+        werkHervat === null ||
+        werkpostIsBezocht === null)
+    ) {
+      setExportFout(
+        "Vul alle gegevens over het ernstig arbeidsongeval in.",
+      );
       return;
     }
 
@@ -811,6 +911,20 @@ export default function InspectieUitvoerenClient({
         inspecteur,
         flow,
         inbreuken: wordInbreuken,
+        ernstigArbeidsongeval:
+          ernstigArbeidsongeval &&
+          werkHervat !== null &&
+          werkpostIsBezocht !== null
+            ? {
+                slachtofferVoornaam,
+                slachtofferNaam,
+                ongevalsdatum,
+                slachtofferWerkHervat:
+                  werkHervat,
+                werkpostBezocht:
+                  werkpostIsBezocht,
+              }
+            : null,
       });
     } catch (fout) {
       console.error(fout);
@@ -827,7 +941,7 @@ export default function InspectieUitvoerenClient({
 
   return (
     <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 pb-32 pt-6 sm:px-6 sm:pb-6">
         <header className="rounded-xl bg-white p-4 shadow-sm sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
@@ -848,14 +962,69 @@ export default function InspectieUitvoerenClient({
               </p>
             </div>
 
-            <div className="rounded-lg bg-blue-50 px-5 py-4">
-              <p className="text-sm text-blue-700">
-                Flow
-              </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[29rem]">
+              <div className="rounded-xl bg-blue-50 px-5 py-4">
+                <p className="text-sm text-blue-700">
+                  Flow
+                </p>
 
-              <p className="text-xl font-bold text-blue-950">
-                {flow || "Niet ingevuld"}
-              </p>
+                <p className="text-xl font-bold text-blue-950">
+                  {flow || "Niet ingevuld"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                aria-pressed={
+                  ernstigArbeidsongeval
+                }
+                onClick={() => {
+                  setErnstigArbeidsongeval(
+                    (huidigeWaarde) =>
+                      !huidigeWaarde,
+                  );
+                  setExportFout("");
+                }}
+                className={`flex min-h-20 items-center gap-3 rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-amber-300 ${
+                  ernstigArbeidsongeval
+                    ? "border-amber-500 bg-amber-100 text-amber-950 shadow-sm"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    ernstigArbeidsongeval
+                      ? "bg-amber-500 text-slate-950"
+                      : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v4m0 4h.01M10.3 3.7 2.8 17a2 2 0 0 0 1.74 3h14.92a2 2 0 0 0 1.74-3L13.7 3.7a2 2 0 0 0-3.4 0Z"
+                    />
+                  </svg>
+                </span>
+
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">
+                    Ernstig arbeidsongeval
+                  </span>
+                  <span className="mt-0.5 block text-xs opacity-75">
+                    {ernstigArbeidsongeval
+                      ? "Opgenomen in verslag"
+                      : "Toevoegen aan verslag"}
+                  </span>
+                </span>
+              </button>
             </div>
           </div>
 
@@ -900,10 +1069,153 @@ export default function InspectieUitvoerenClient({
               </dd>
             </div>
           </dl>
+
+          {ernstigArbeidsongeval && (
+            <section
+              aria-labelledby="ongevalsgegevens-titel"
+              className="mt-5 overflow-hidden rounded-xl border border-amber-300 bg-amber-50"
+            >
+              <div className="border-b border-amber-200 px-4 py-3 sm:px-5">
+                <h2
+                  id="ongevalsgegevens-titel"
+                  className="font-bold text-amber-950"
+                >
+                  Gegevens ernstig arbeidsongeval
+                </h2>
+                <p className="mt-1 text-sm text-amber-800">
+                  Deze gegevens verschijnen als
+                  afzonderlijke hoofding onderaan
+                  het Word-verslag.
+                </p>
+              </div>
+
+              <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Voornaam slachtoffer
+                  </span>
+                  <input
+                    type="text"
+                    value={slachtofferVoornaam}
+                    maxLength={100}
+                    onChange={(event) =>
+                      setSlachtofferVoornaam(
+                        event.target.value,
+                      )
+                    }
+                    autoComplete="off"
+                    className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Naam slachtoffer
+                  </span>
+                  <input
+                    type="text"
+                    value={slachtofferNaam}
+                    maxLength={100}
+                    onChange={(event) =>
+                      setSlachtofferNaam(
+                        event.target.value,
+                      )
+                    }
+                    autoComplete="off"
+                    className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Datum ongeval
+                  </span>
+                  <input
+                    type="date"
+                    value={ongevalsdatum}
+                    onChange={(event) =>
+                      setOngevalsdatum(
+                        event.target.value,
+                      )
+                    }
+                    className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+                  />
+                </label>
+
+                <fieldset className="sm:col-span-1 lg:col-span-1">
+                  <legend className="text-sm font-semibold text-slate-700">
+                    Slachtoffer opnieuw aan het werk?
+                  </legend>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    {[true, false].map((waarde) => (
+                      <label
+                        key={String(waarde)}
+                        className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                          slachtofferWerkHervat ===
+                          waarde
+                            ? "border-amber-600 bg-amber-200 text-amber-950"
+                            : "border-amber-300 bg-white text-slate-700 hover:bg-amber-100"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="slachtofferWerkHervat"
+                          checked={
+                            slachtofferWerkHervat ===
+                            waarde
+                          }
+                          onChange={() =>
+                            setSlachtofferWerkHervat(
+                              waarde,
+                            )
+                          }
+                          className="h-4 w-4 accent-amber-600"
+                        />
+                        {waarde ? "Ja" : "Nee"}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset className="sm:col-span-1 lg:col-span-2">
+                  <legend className="text-sm font-semibold text-slate-700">
+                    Werkpost van het ongeval bezocht?
+                  </legend>
+                  <div className="mt-2 grid max-w-sm grid-cols-2 gap-2">
+                    {[true, false].map((waarde) => (
+                      <label
+                        key={String(waarde)}
+                        className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                          werkpostBezocht === waarde
+                            ? "border-amber-600 bg-amber-200 text-amber-950"
+                            : "border-amber-300 bg-white text-slate-700 hover:bg-amber-100"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="werkpostBezocht"
+                          checked={
+                            werkpostBezocht === waarde
+                          }
+                          onChange={() =>
+                            setWerkpostBezocht(
+                              waarde,
+                            )
+                          }
+                          className="h-4 w-4 accent-amber-600"
+                        />
+                        {waarde ? "Ja" : "Nee"}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              </div>
+            </section>
+          )}
         </header>
 
         <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <aside className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-5">
+          <aside className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-5 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain">
             <button
               type="button"
               onClick={startNieuweInbreuk}
@@ -1219,7 +1531,10 @@ export default function InspectieUitvoerenClient({
               </div>
             </div>
 
-            <div className="min-w-0 rounded-xl bg-white p-4 shadow-sm sm:p-8">
+            <div
+              ref={bewerkFormulierRef}
+              className="min-w-0 scroll-mt-4 rounded-xl bg-white p-4 shadow-sm sm:p-8"
+            >
               <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
                 {geselecteerdeId === null
                   ? "Selecteer eerst een standaardinbreuk"
@@ -1573,7 +1888,7 @@ export default function InspectieUitvoerenClient({
           </section>
         </div>
 
-        <footer className="mt-6 flex flex-col items-stretch gap-3 sm:items-end">
+        <footer className="fixed inset-x-0 bottom-0 z-20 mt-6 flex flex-col items-stretch gap-3 border-t border-slate-200 bg-slate-100/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:items-end sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:shadow-none">
           {exportFout && (
             <p
               role="alert"
@@ -1583,28 +1898,55 @@ export default function InspectieUitvoerenClient({
             </p>
           )}
 
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             {opslagStatus && (
-              <span className="text-sm font-medium text-slate-500">
+              <span className="col-span-2 text-center text-sm font-medium text-slate-500 sm:text-left">
                 {opslagStatus}
               </span>
             )}
             <button
               type="button"
               onClick={() => void slaDossierOp()}
-              className="w-full rounded-lg bg-blue-700 px-6 py-3 font-semibold text-white hover:bg-blue-800 sm:w-auto"
+              className="w-full rounded-lg bg-blue-700 px-3 py-3 text-sm font-semibold text-white hover:bg-blue-800 sm:w-auto sm:px-6 sm:text-base"
             >
-              Inspectie opslaan
+              <span className="sm:hidden">
+                Opslaan
+              </span>
+              <span className="hidden sm:inline">
+                Inspectie opslaan
+              </span>
             </button>
             <button
               type="button"
               onClick={genereerWordVerslag}
-              disabled={inbreuken.length === 0 || exportBezig}
-              className="w-full rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto"
+              disabled={
+                (inbreuken.length === 0 &&
+                  !ernstigArbeidsongeval) ||
+                exportBezig
+              }
+              className="w-full rounded-lg bg-emerald-700 px-3 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto sm:px-6 sm:text-base"
             >
               {exportBezig
-                ? "Word-verslag wordt gemaakt..."
-                : "Word-verslag genereren"}
+                ? (
+                    <>
+                      <span className="sm:hidden">
+                        Word maken…
+                      </span>
+                      <span className="hidden sm:inline">
+                        Word-verslag wordt gemaakt...
+                      </span>
+                    </>
+                  )
+                : (
+                    <>
+                      <span className="sm:hidden">
+                        Word
+                      </span>
+                      <span className="hidden sm:inline">
+                        Word-verslag genereren
+                      </span>
+                    </>
+                  )}
             </button>
           </div>
         </footer>

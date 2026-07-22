@@ -51,6 +51,12 @@ export default async function InspectieUitvoerenPagina({
         inspectiedatum: true,
         inspecteur: true,
         flow: true,
+        ernstigArbeidsongeval: true,
+        slachtofferVoornaam: true,
+        slachtofferNaam: true,
+        ongevalsdatum: true,
+        slachtofferWerkHervat: true,
+        werkpostBezocht: true,
         inbreuken: {
           orderBy: { volgorde: "asc" },
           select: {
@@ -129,6 +135,20 @@ export default async function InspectieUitvoerenPagina({
       inspectiedatum={inspectie.inspectiedatum}
       inspecteur={inspectie.inspecteur}
       flow={inspectie.flow}
+      initialOngevalsgegevens={{
+        ernstigArbeidsongeval:
+          inspectie.ernstigArbeidsongeval,
+        slachtofferVoornaam:
+          inspectie.slachtofferVoornaam ?? "",
+        slachtofferNaam:
+          inspectie.slachtofferNaam ?? "",
+        ongevalsdatum:
+          inspectie.ongevalsdatum ?? "",
+        slachtofferWerkHervat:
+          inspectie.slachtofferWerkHervat,
+        werkpostBezocht:
+          inspectie.werkpostBezocht,
+      }}
       wetgevingen={wetgevingen}
       boeken={boeken}
       titels={titels}

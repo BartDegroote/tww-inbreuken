@@ -42,7 +42,7 @@ export default function NieuweInspectie() {
 
   return (
     <main className="min-h-screen bg-slate-100">
-      <div className="mx-auto max-w-3xl px-6 py-10">
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <Link
           href="/"
           className="text-sm font-medium text-blue-700 hover:underline"
@@ -50,7 +50,7 @@ export default function NieuweInspectie() {
           ← Terug naar dashboard
         </Link>
 
-        <div className="mt-6 rounded-xl bg-white p-8 shadow-sm">
+        <div className="mt-6 rounded-xl bg-white p-5 shadow-sm sm:p-8">
           <h1 className="text-3xl font-bold text-slate-900">
             Nieuwe inspectie
           </h1>

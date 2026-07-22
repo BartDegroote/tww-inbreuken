@@ -40,19 +40,25 @@ model Sessie {
 }
 
 model Inspectie {
-  id             String             @id @default(cuid())
-  onderneming    String
-  adres          String
-  inspectiedatum String
-  inspecteur     String
-  flow           String
-  status         InspectieStatus    @default(CONCEPT)
-  verwijderdOp   DateTime?
-  gebruikerId    String
-  gebruiker      Gebruiker          @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
-  inbreuken      InspectieInbreuk[]
-  aangemaaktOp   DateTime           @default(now())
-  gewijzigdOp    DateTime           @updatedAt
+  id                    String             @id @default(cuid())
+  onderneming           String
+  adres                 String
+  inspectiedatum        String
+  inspecteur            String
+  flow                  String
+  ernstigArbeidsongeval Boolean            @default(false)
+  slachtofferVoornaam   String?
+  slachtofferNaam       String?
+  ongevalsdatum         String?
+  slachtofferWerkHervat Boolean?
+  werkpostBezocht       Boolean?
+  status                InspectieStatus    @default(CONCEPT)
+  verwijderdOp          DateTime?
+  gebruikerId           String
+  gebruiker             Gebruiker          @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
+  inbreuken             InspectieInbreuk[]
+  aangemaaktOp          DateTime           @default(now())
+  gewijzigdOp           DateTime           @updatedAt
 
   @@index([gebruikerId, status])
   @@index([gebruikerId, gewijzigdOp])

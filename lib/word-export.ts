@@ -6,6 +6,8 @@ import {
   Document,
   Footer,
   ImageRun,
+  LevelFormat,
+  LevelSuffix,
   PageNumber,
   Packer,
   Paragraph,
@@ -33,6 +35,14 @@ export type WordInbreuk = {
   wettelijkeVerwijzing: string;
 };
 
+export type WordOngevalsgegevens = {
+  slachtofferVoornaam: string;
+  slachtofferNaam: string;
+  ongevalsdatum: string;
+  slachtofferWerkHervat: boolean;
+  werkpostBezocht: boolean;
+};
+
 export type WordInspectie = {
   onderneming: string;
   adres: string;
@@ -40,6 +50,7 @@ export type WordInspectie = {
   inspecteur: string;
   flow: string;
   inbreuken: WordInbreuk[];
+  ernstigArbeidsongeval?: WordOngevalsgegevens | null;
 };
 
 const LETTERTYPE = "Verdana";
@@ -58,8 +69,13 @@ const FOTO_HOOGTE_PX = 189;
 
 // De nummers en opsommingstekens beginnen links van de tekst.
 // Alle vervolgregels beginnen exact op dezelfde positie als de hoofdtekst.
-const TEKST_INSPrONG = 540;
+const TEKST_INSPrONG = 1068;
 const HANGENDE_INSPrONG = 360;
+const NUMMER_INSPrONG =
+  TEKST_INSPrONG - HANGENDE_INSPrONG;
+
+const INBREUK_NUMMERING_REFERENTIE =
+  "tww-inbreuken";
 
 // De vaststelling krijgt een extra niveau:
 // het vierkante teken begint waar de gewone inbreuktekst begint,
@@ -452,16 +468,11 @@ function maakInbreukParagrafen(
 
   const kinderen: Paragraph[] = [
     new Paragraph({
-      indent: {
-        left: TEKST_INSPrONG,
-        hanging: HANGENDE_INSPrONG,
+      numbering: {
+        reference:
+          INBREUK_NUMMERING_REFERENTIE,
+        level: 0,
       },
-      tabStops: [
-        {
-          type: TabStopType.LEFT,
-          position: TEKST_INSPrONG,
-        },
-      ],
       spacing: {
         before:
           index === 0 ? 40 : 0,
@@ -469,19 +480,7 @@ function maakInbreukParagrafen(
         line: ENKELE_REGELAFSTAND,
       },
       keepNext: true,
-      children: [
-        new TextRun({
-          text: `${index + 1}.`,
-          bold: false,
-          size: HOOFDTEKST_GROOTTE,
-          font: LETTERTYPE,
-        }),
-        new TextRun({
-          text: "\t",
-          font: LETTERTYPE,
-        }),
-        ...beschrijvingsRuns,
-      ],
+      children: beschrijvingsRuns,
     }),
   ];
 
@@ -560,8 +559,95 @@ function maakInbreukParagrafen(
   return kinderen;
 }
 
+function formatteerDatumVoorWord(
+  datum: string,
+): string {
+  const delen = datum.split("-");
+
+  if (
+    delen.length === 3 &&
+    delen[0].length === 4
+  ) {
+    return `${delen[2]}/${delen[1]}/${delen[0]}`;
+  }
+
+  return datum;
+}
+
+function maakOngevalsParagrafen(
+  gegevens?: WordOngevalsgegevens | null,
+): Paragraph[] {
+  if (!gegevens) {
+    return [];
+  }
+
+  const volledigeNaam = [
+    gegevens.slachtofferVoornaam.trim(),
+    gegevens.slachtofferNaam.trim(),
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const tekst = [
+    "Het ernstig arbeidsongeval werd ter plaatse besproken en de voortgang van het actieplan werd geëvalueerd.",
+    gegevens.slachtofferWerkHervat
+      ? "Het slachtoffer heeft het werk inmiddels hervat."
+      : "Het slachtoffer heeft het werk nog niet hervat.",
+    gegevens.werkpostBezocht
+      ? "Ook de werkpost waar het ongeval plaatsvond, werd bezocht."
+      : "De werkpost waar het ongeval plaatsvond, werd niet bezocht.",
+  ].join(" ");
+
+  return [
+    new Paragraph({
+      numbering: {
+        reference:
+          INBREUK_NUMMERING_REFERENTIE,
+        level: 0,
+      },
+      spacing: {
+        before: 240,
+        after: 120,
+        line: ENKELE_REGELAFSTAND,
+      },
+      keepNext: true,
+      children: [
+        new TextRun({
+          text: `Ongeval ${volledigeNaam}, d.d. ${formatteerDatumVoorWord(
+            gegevens.ongevalsdatum,
+          )}`,
+          bold: true,
+          underline: {},
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+      ],
+    }),
+    new Paragraph({
+      indent: {
+        left: NUMMER_INSPrONG,
+      },
+      spacing: {
+        before: 0,
+        after: 120,
+        line: ENKELE_REGELAFSTAND,
+      },
+      children: [
+        new TextRun({
+          text: tekst,
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+      ],
+    }),
+  ];
+}
+
 export function maakWordDocument(inspectie: WordInspectie): Document {
-  if (inspectie.inbreuken.length === 0) {
+  if (
+    inspectie.inbreuken.length === 0 &&
+    !inspectie.ernstigArbeidsongeval
+  ) {
     throw new Error(
       "Er zijn geen inbreuken om te exporteren.",
     );
@@ -578,6 +664,36 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
     )} - Inbreuken`,
     description:
       "Automatisch gegenereerd inspectieverslag met inbreuken",
+    numbering: {
+      config: [
+        {
+          reference:
+            INBREUK_NUMMERING_REFERENTIE,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT,
+              suffix: LevelSuffix.TAB,
+              style: {
+                run: {
+                  font: LETTERTYPE,
+                  size: HOOFDTEKST_GROOTTE,
+                },
+                paragraph: {
+                  indent: {
+                    left: TEKST_INSPrONG,
+                    hanging:
+                      HANGENDE_INSPrONG,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    },
     sections: [
       {
         properties: {
@@ -669,6 +785,10 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
 
           ...inspectie.inbreuken.flatMap(
             maakInbreukParagrafen,
+          ),
+
+          ...maakOngevalsParagrafen(
+            inspectie.ernstigArbeidsongeval,
           ),
         ],
       },

@@ -31,6 +31,15 @@ export type OpgeslagenInbreukInput = {
   bewaardeFotoIds: string[];
 };
 
+export type OngevalsgegevensInput = {
+  ernstigArbeidsongeval: boolean;
+  slachtofferVoornaam: string;
+  slachtofferNaam: string;
+  ongevalsdatum: string;
+  slachtofferWerkHervat: boolean | null;
+  werkpostBezocht: boolean | null;
+};
+
 export async function maakInspectie(input: {
   onderneming: string;
   adres: string;
@@ -69,6 +78,7 @@ export async function maakInspectie(input: {
 export async function bewaarInspectie(
   inspectieId: string,
   inbreuken: OpgeslagenInbreukInput[],
+  ongevalsgegevens: OngevalsgegevensInput,
 ) {
   const gebruiker = await vereisGebruiker();
   const inspectie = await prisma.inspectie.findFirst({
@@ -78,6 +88,39 @@ export async function bewaarInspectie(
 
   if (!inspectie) {
     throw new Error("Inspectie niet gevonden.");
+  }
+
+  const slachtofferVoornaam =
+    ongevalsgegevens.slachtofferVoornaam.trim();
+  const slachtofferNaam =
+    ongevalsgegevens.slachtofferNaam.trim();
+  const ongevalsdatum =
+    ongevalsgegevens.ongevalsdatum.trim();
+
+  if (
+    ongevalsgegevens.ernstigArbeidsongeval &&
+    (!slachtofferVoornaam ||
+      !slachtofferNaam ||
+      !ongevalsdatum ||
+      ongevalsgegevens.slachtofferWerkHervat === null ||
+      ongevalsgegevens.werkpostBezocht === null)
+  ) {
+    throw new Error(
+      "Vul alle gegevens over het ernstig arbeidsongeval in.",
+    );
+  }
+
+  if (
+    ongevalsgegevens.ernstigArbeidsongeval &&
+    (slachtofferVoornaam.length > 100 ||
+      slachtofferNaam.length > 100 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(
+        ongevalsdatum,
+      ))
+  ) {
+    throw new Error(
+      "Controleer de naam en datum van het ernstig arbeidsongeval.",
+    );
   }
 
   await prisma.$transaction(async (transactie) => {
@@ -160,7 +203,31 @@ export async function bewaarInspectie(
 
     await transactie.inspectie.update({
       where: { id: inspectieId },
-      data: { gewijzigdOp: new Date() },
+      data: {
+        ernstigArbeidsongeval:
+          ongevalsgegevens.ernstigArbeidsongeval,
+        slachtofferVoornaam:
+          ongevalsgegevens.ernstigArbeidsongeval
+            ? slachtofferVoornaam
+            : null,
+        slachtofferNaam:
+          ongevalsgegevens.ernstigArbeidsongeval
+            ? slachtofferNaam
+            : null,
+        ongevalsdatum:
+          ongevalsgegevens.ernstigArbeidsongeval
+            ? ongevalsdatum
+            : null,
+        slachtofferWerkHervat:
+          ongevalsgegevens.ernstigArbeidsongeval
+            ? ongevalsgegevens.slachtofferWerkHervat
+            : null,
+        werkpostBezocht:
+          ongevalsgegevens.ernstigArbeidsongeval
+            ? ongevalsgegevens.werkpostBezocht
+            : null,
+        gewijzigdOp: new Date(),
+      },
     });
   }, { timeout: 60_000 });
 

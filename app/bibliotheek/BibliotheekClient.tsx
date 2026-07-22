@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import {
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { Standaardinbreuk } from "@/bibliotheek";
 
@@ -114,6 +118,26 @@ export default function BibliotheekClient({
     filterKernwoord,
     setFilterKernwoord,
   ] = useState("");
+
+  const formulierRef =
+    useRef<HTMLElement | null>(null);
+
+  function scrollNaarFormulier(): void {
+    if (
+      typeof window === "undefined" ||
+      !window.matchMedia("(max-width: 1023px)")
+        .matches
+    ) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      formulierRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    });
+  }
 
   const kernwoordSuggesties = useMemo(() => {
     const uniekeKernwoorden =
@@ -319,12 +343,14 @@ export default function BibliotheekClient({
     inbreuk: Standaardinbreuk,
   ): void {
     setGeselecteerdeInbreuk(inbreuk);
+    scrollNaarFormulier();
   }
 
   function maakNieuweInbreuk(): void {
     setGeselecteerdeInbreuk(
       maakLegeInbreuk(),
     );
+    scrollNaarFormulier();
   }
 
   async function bewaarInbreuk(
@@ -459,8 +485,8 @@ export default function BibliotheekClient({
           onWisFilters={wisFilters}
         />
 
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(22rem,0.9fr)_minmax(32rem,1.4fr)]">
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:overscroll-contain">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.4fr)]">
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain">
             <InbreukenLijst
               inbreuken={
                 gefilterdeInbreuken
@@ -478,7 +504,10 @@ export default function BibliotheekClient({
             />
           </section>
 
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:sticky xl:top-6 xl:max-h-[calc(100vh-3rem)] xl:overflow-y-auto xl:overscroll-contain">
+          <section
+            ref={formulierRef}
+            className="scroll-mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
+          >
             <InbreukFormulier
               inbreuk={
                 geselecteerdeInbreuk

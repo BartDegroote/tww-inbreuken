@@ -2129,7 +2129,7 @@ function InbreukFormulierInhoud({
                   "Verdana, Geneva, sans-serif",
               }}
             >
-              <div className="grid grid-cols-[24px_minmax(0,1fr)] pl-3">
+              <div className="ml-12 grid grid-cols-[24px_minmax(0,1fr)]">
                 <span>1.</span>
 
                 <p>
@@ -2154,7 +2154,7 @@ function InbreukFormulierInhoud({
 
               {!formulier.specifiekeElementenAlsSituering &&
                 formulier.situering?.trim() && (
-                  <div className="ml-9 grid grid-cols-[24px_minmax(0,1fr)]">
+                  <div className="ml-[72px] grid grid-cols-[24px_minmax(0,1fr)]">
                     <span>☐</span>
                     <p className="whitespace-pre-wrap">
                       {formulier.situering}
@@ -2167,8 +2167,8 @@ function InbreukFormulierInhoud({
                   <div
                     className={
                       formulier.specifiekeElementenAlsSituering
-                        ? "ml-9"
-                        : "ml-[60px]"
+                        ? "ml-[72px]"
+                        : "ml-24"
                     }
                   >
                     {geldigeSpecifiekeElementen.map(
@@ -2193,7 +2193,7 @@ function InbreukFormulierInhoud({
                 )}
 
               {formulier.toelichting?.trim() && (
-                <div className="ml-9 flex items-start gap-2 text-[#595959]">
+                <div className="ml-[72px] flex items-start gap-2 text-[#595959]">
                   <span aria-hidden="true">ⓘ</span>
 
                   <p className="whitespace-pre-wrap">
@@ -2203,7 +2203,7 @@ function InbreukFormulierInhoud({
               )}
 
               {formulier.aanvulling?.trim() && (
-                <p className="ml-9">
+                <p className="ml-[72px]">
                   <TekstMetOpmaak
                     tekst={
                       formulier.aanvulling
@@ -2218,7 +2218,7 @@ function InbreukFormulierInhoud({
               )}
 
               {formulier.wettelijkeVerwijzing && (
-                <p className="ml-9 whitespace-pre-wrap pt-0 text-[9pt] italic">
+                <p className="ml-[72px] whitespace-pre-wrap pt-0 text-[9pt] italic">
                   {formulier.wettelijkeVerwijzing}
                 </p>
               )}
