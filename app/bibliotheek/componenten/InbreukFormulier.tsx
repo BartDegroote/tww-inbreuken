@@ -2094,19 +2094,36 @@ function InbreukFormulierInhoud({
         </section>
 
         <section className="border-t border-slate-200 pt-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Voorbeeld Word-export
-            </h3>
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white shadow-sm"
+                >
+                  W
+                </span>
 
-            <span className="text-xs text-slate-400">
-              Verdana · enkele regelafstand
-            </span>
-          </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-slate-900">
+                    Voorbeeld Word-export
+                  </h3>
 
-          <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-slate-100 p-3 sm:p-6">
+                  <p className="text-xs text-slate-500">
+                    De opmaak zoals ze in het
+                    verslag verschijnt
+                  </p>
+                </div>
+              </div>
+
+              <span className="shrink-0 text-xs font-medium text-slate-500">
+                Verdana · enkele regelafstand
+              </span>
+            </div>
+
+            <div className="overflow-x-auto bg-slate-100/70 p-3 sm:p-5">
             <div
-              className="mx-auto min-h-72 max-w-3xl bg-white px-5 py-7 text-[10pt] leading-[1.2] text-black shadow-sm sm:px-10 sm:py-9"
+              className="mx-auto max-w-3xl rounded-lg border border-slate-200 bg-white px-5 py-6 text-[10pt] leading-[1.2] text-black shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:px-9 sm:py-8"
               style={{
                 fontFamily:
                   "Verdana, Geneva, sans-serif",
@@ -2206,6 +2223,7 @@ function InbreukFormulierInhoud({
                 </p>
               )}
             </div>
+          </div>
           </div>
         </section>
       </div>
