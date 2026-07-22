@@ -1867,50 +1867,56 @@ function InbreukFormulierInhoud({
                 </span>
 
                 {formulier.specifiekeElementenIngeschakeld && (
-                  <div
-                    role="group"
-                    aria-label="Plaatsing van specifieke elementen"
-                    className="inline-flex w-fit rounded-lg border border-slate-200 bg-slate-100 p-1 shadow-inner"
-                  >
-                    <button
-                      type="button"
-                      aria-pressed={
-                        !formulier.specifiekeElementenAlsSituering
-                      }
-                      onClick={() =>
-                        wijzigPlaatsingSpecifiekeElementen(
-                          false,
-                        )
-                      }
-                      disabled={bezig}
-                      className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                        !formulier.specifiekeElementenAlsSituering
-                          ? "bg-white text-blue-700 shadow-sm"
-                          : "text-slate-500 hover:text-slate-700"
-                      } disabled:cursor-not-allowed disabled:opacity-50`}
-                    >
-                      Onder situering
-                    </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-medium text-slate-500">
+                      Specifieke elementen:
+                    </span>
 
-                    <button
-                      type="button"
-                      aria-pressed={
-                        formulier.specifiekeElementenAlsSituering
-                      }
-                      onClick={() =>
-                        wijzigPlaatsingSpecifiekeElementen(
-                          true,
-                        )
-                      }
-                      disabled={bezig}
-                      className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
-                        formulier.specifiekeElementenAlsSituering
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-slate-500 hover:text-slate-700"
-                      } disabled:cursor-not-allowed disabled:opacity-50`}
+                    <div
+                      role="group"
+                      aria-label="Plaatsing van specifieke elementen"
+                      className="inline-flex w-fit rounded-lg border border-slate-200 bg-slate-100 p-1 shadow-inner"
                     >
-                      Als situering
-                    </button>
+                      <button
+                        type="button"
+                        aria-pressed={
+                          !formulier.specifiekeElementenAlsSituering
+                        }
+                        onClick={() =>
+                          wijzigPlaatsingSpecifiekeElementen(
+                            false,
+                          )
+                        }
+                        disabled={bezig}
+                        className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                          !formulier.specifiekeElementenAlsSituering
+                            ? "bg-white text-blue-700 shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        } disabled:cursor-not-allowed disabled:opacity-50`}
+                      >
+                        Onder situering
+                      </button>
+
+                      <button
+                        type="button"
+                        aria-pressed={
+                          formulier.specifiekeElementenAlsSituering
+                        }
+                        onClick={() =>
+                          wijzigPlaatsingSpecifiekeElementen(
+                            true,
+                          )
+                        }
+                        disabled={bezig}
+                        className={`rounded-md px-3 py-1 text-xs font-semibold transition ${
+                          formulier.specifiekeElementenAlsSituering
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-700"
+                        } disabled:cursor-not-allowed disabled:opacity-50`}
+                      >
+                        Als situering
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
