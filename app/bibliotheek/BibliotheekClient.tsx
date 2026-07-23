@@ -65,6 +65,7 @@ function maakLegeInbreuk(): Standaardinbreuk {
     specifiekeElementen: [],
 
     toelichting: "",
+    inspecteurInfo: "",
 
     aanvulling: "",
     aanvullingOpmaak: [],

@@ -346,6 +346,11 @@ export default function InspectieUitvoerenClient({
     useState("");
 
   const [
+    getoondeInspecteurInfo,
+    setGetoondeInspecteurInfo,
+  ] = useState<string | null>(null);
+
+  const [
     ontmoetePersonen,
     setOntmoetePersonen,
   ] = useState<OntmoetePersoonRij[]>(() =>
@@ -494,6 +499,7 @@ export default function InspectieUitvoerenClient({
             (element) => element.tekst,
           ),
           inbreuk.toelichting ?? "",
+          inbreuk.inspecteurInfo ?? "",
           inbreuk.aanvulling ?? "",
           inbreuk.wettelijkeVerwijzing,
           ...inbreuk.kernwoorden,
@@ -517,6 +523,36 @@ export default function InspectieUitvoerenClient({
       ) ?? null,
     [inbreuken, geselecteerdeId],
   );
+
+  const geselecteerdeStandaardinbreuk =
+    useMemo(() => {
+      if (
+        !geselecteerdeInbreuk
+          ?.standaardinbreukId
+      ) {
+        return null;
+      }
+
+      return (
+        standaardinbreuken.find(
+          (standaardinbreuk) =>
+            standaardinbreuk.id ===
+            geselecteerdeInbreuk.standaardinbreukId,
+        ) ?? null
+      );
+    }, [
+      geselecteerdeInbreuk,
+      standaardinbreuken,
+    ]);
+  const geselecteerdeInspecteurInfo =
+    geselecteerdeStandaardinbreuk
+      ?.inspecteurInfo?.trim() ?? "";
+  const toonGeselecteerdeInspecteurInfo =
+    Boolean(
+      geselecteerdeStandaardinbreuk &&
+        getoondeInspecteurInfo ===
+          `bewerken-${geselecteerdeStandaardinbreuk.id}`,
+    );
 
   const actueleBeschrijvingOpmaak =
     useMemo(() => {
@@ -583,6 +619,41 @@ export default function InspectieUitvoerenClient({
     zoekterm,
     zoektekstPerInbreukId,
   ]);
+
+  const zoekresultatenPerOnderwerp =
+    useMemo(() => {
+      const groepen = new Map<
+        string,
+        {
+          sleutel: string;
+          onderwerp: string;
+          inbreuken: Standaardinbreuk[];
+        }
+      >();
+
+      for (const inbreuk of zoekresultaten) {
+        const onderwerp =
+          inbreuk.onderwerp.trim() ||
+          "Zonder onderwerp";
+        const sleutel =
+          onderwerp.toLocaleLowerCase("nl-BE");
+        const bestaandeGroep =
+          groepen.get(sleutel);
+
+        if (bestaandeGroep) {
+          bestaandeGroep.inbreuken.push(inbreuk);
+          continue;
+        }
+
+        groepen.set(sleutel, {
+          sleutel,
+          onderwerp,
+          inbreuken: [inbreuk],
+        });
+      }
+
+      return Array.from(groepen.values());
+    }, [zoekresultaten]);
 
   function maakFormulierLeeg() {
     setGeselecteerdeId(null);
@@ -691,6 +762,7 @@ export default function InspectieUitvoerenClient({
 
   function startNieuweInbreuk() {
     maakFormulierLeeg();
+    setGetoondeInspecteurInfo(null);
     setWetgevingFilter("");
     setBoekFilter("");
     setTitelFilter("");
@@ -750,6 +822,7 @@ export default function InspectieUitvoerenClient({
     setGeselecteerdeSpecifiekeElementIds([]);
     setFotos([]);
     setExportFout("");
+    setGetoondeInspecteurInfo(null);
     scrollNaarBewerkFormulier();
   }
 
@@ -767,6 +840,7 @@ export default function InspectieUitvoerenClient({
     );
     setFotos(inbreuk.fotos);
     setExportFout("");
+    setGetoondeInspecteurInfo(null);
     scrollNaarBewerkFormulier();
   }
 
@@ -1065,6 +1139,131 @@ export default function InspectieUitvoerenClient({
     } finally {
       setExportBezig(false);
     }
+  }
+
+  function wisselInspecteurInfo(
+    sleutel: string,
+  ): void {
+    setGetoondeInspecteurInfo(
+      (huidigeSleutel) =>
+        huidigeSleutel === sleutel
+          ? null
+          : sleutel,
+    );
+  }
+
+  function maakZoekresultaatKaart(
+    inbreuk: Standaardinbreuk,
+  ) {
+    const wetgevingNaam =
+      wetgevingNaamPerId.get(
+        inbreuk.wetgevingId,
+      ) ?? "Onbekende wetgeving";
+
+    const boekNaam =
+      boekNaamPerId.get(inbreuk.boekId) ??
+      "Onbekend boek";
+
+    const titel =
+      titelPerId.get(inbreuk.titelId);
+    const toonTitel =
+      !isVerborgenAfdeling(inbreuk.titelId);
+
+    const compacteWettelijkeVerwijzing =
+      maakCompacteWettelijkeVerwijzing(
+        wetgevingNaam,
+        inbreuk.wettelijkeVerwijzing,
+      );
+    const inspecteurInfo =
+      inbreuk.inspecteurInfo?.trim() ?? "";
+    const inspecteurInfoSleutel =
+      `zoek-${inbreuk.id}`;
+    const toonInspecteurInfo =
+      getoondeInspecteurInfo ===
+      inspecteurInfoSleutel;
+
+    return (
+      <div
+        key={inbreuk.id}
+        className="rounded-lg border border-slate-200 bg-white p-4"
+      >
+        <div className="flex min-w-0 items-start gap-2">
+          <p className="flex min-w-0 flex-1 flex-col items-start gap-1 text-xs font-medium uppercase tracking-wide text-slate-500 sm:flex-row sm:items-center sm:gap-3">
+            <span className="min-w-0 max-w-full truncate sm:flex-1">
+              {wetgevingNaam} · {boekNaam}
+              {titel && toonTitel
+                ? ` · ${titel.naam}`
+                : ""}
+            </span>
+
+            <span className="shrink-0 font-semibold normal-case tracking-normal text-slate-700">
+              {compacteWettelijkeVerwijzing}
+            </span>
+          </p>
+
+          {inspecteurInfo && (
+            <button
+              type="button"
+              aria-label="Info voor inspecteur tonen"
+              aria-expanded={toonInspecteurInfo}
+              title="Info voor inspecteur"
+              onClick={() =>
+                wisselInspecteurInfo(
+                  inspecteurInfoSleutel,
+                )
+              }
+              className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition ${
+                toonInspecteurInfo
+                  ? "border-sky-600 bg-sky-600 text-white"
+                  : "border-sky-300 bg-sky-50 text-sky-700 hover:border-sky-500 hover:bg-sky-100"
+              }`}
+            >
+              i
+            </button>
+          )}
+        </div>
+
+        {inspecteurInfo &&
+          toonInspecteurInfo && (
+          <div
+            role="note"
+            className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 text-sm leading-6 text-sky-950"
+          >
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
+              Info voor inspecteur
+            </p>
+            <p className="whitespace-pre-wrap">
+              {inspecteurInfo}
+            </p>
+          </div>
+        )}
+
+        <TekstMetOpmaak
+          tekst={inbreuk.omschrijving}
+          segmenten={
+            inbreuk.omschrijvingOpmaak
+          }
+          className="mt-2 block"
+        />
+
+        {inbreuk.kernwoorden.length > 0 && (
+          <p className="mt-2 text-sm text-slate-500">
+            Kernwoorden:{" "}
+            {inbreuk.kernwoorden.join(", ")}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={() =>
+            voegStandaardinbreukToe(inbreuk)
+          }
+          className="mt-4 w-full rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 sm:w-auto sm:py-2"
+        >
+          + Toevoegen aan inspectie
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -1738,7 +1937,13 @@ export default function InspectieUitvoerenClient({
               </div>
 
               <div className="mt-6">
-                <h3 className="font-semibold text-slate-900">
+                <h3
+                  className={`font-semibold text-slate-900 ${
+                    zoekresultaten.length > 0
+                      ? "hidden sm:block"
+                      : ""
+                  }`}
+                >
                   Zoekresultaten (
                   {zoekresultaten.length})
                 </h3>
@@ -1750,94 +1955,90 @@ export default function InspectieUitvoerenClient({
                     gevonden.
                   </p>
                 ) : (
-                  <div className="mt-3 space-y-3">
-                    {zoekresultaten.map(
-                      (inbreuk) => {
-                        const wetgevingNaam =
-                          wetgevingNaamPerId.get(
-                            inbreuk.wetgevingId,
-                          ) ??
-                          "Onbekende wetgeving";
+                  <>
+                    <div className="mt-3 hidden space-y-3 sm:block">
+                      {zoekresultaten.map(
+                        maakZoekresultaatKaart,
+                      )}
+                    </div>
 
-                        const boekNaam =
-                          boekNaamPerId.get(
-                            inbreuk.boekId,
-                          ) ?? "Onbekend boek";
-
-                        const titel =
-                          titelPerId.get(
-                            inbreuk.titelId,
-                          );
-                        const toonTitel =
-                          !isVerborgenAfdeling(
-                            inbreuk.titelId,
-                          );
-
-                        const compacteWettelijkeVerwijzing =
-                          maakCompacteWettelijkeVerwijzing(
-                            wetgevingNaam,
-                            inbreuk.wettelijkeVerwijzing,
-                          );
-
-                        return (
-                          <div
-                            key={inbreuk.id}
-                            className="rounded-lg border border-slate-200 p-4"
-                          >
-                            <p className="flex min-w-0 flex-col items-start gap-1 text-xs font-medium uppercase tracking-wide text-slate-500 sm:flex-row sm:items-center sm:gap-3">
-                              <span className="min-w-0 max-w-full truncate sm:flex-1">
-                                {wetgevingNaam} ·{" "}
-                                {boekNaam}
-                                {titel &&
-                                toonTitel
-                                  ? ` · ${titel.naam}`
-                                  : ""}
-                              </span>
-
-                              <span className="shrink-0 font-semibold normal-case tracking-normal text-slate-700">
-                                {
-                                  compacteWettelijkeVerwijzing
-                                }
-                              </span>
-                            </p>
-
-                            <TekstMetOpmaak
-                              tekst={
-                                inbreuk.omschrijving
-                              }
-                              segmenten={
-                                inbreuk.omschrijvingOpmaak
-                              }
-                              className="mt-2 block"
-                            />
-
-                            {inbreuk.kernwoorden
-                              .length > 0 && (
-                              <p className="mt-2 text-sm text-slate-500">
-                                Kernwoorden:{" "}
-                                {inbreuk.kernwoorden.join(
-                                  ", ",
-                                )}
-                              </p>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                voegStandaardinbreukToe(
-                                  inbreuk,
-                                )
-                              }
-                              className="mt-4 w-full rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800 sm:w-auto sm:py-2"
+                    <div className="mt-3 sm:hidden">
+                      {zoekresultatenPerOnderwerp.length ===
+                      1 ? (
+                        <section
+                          aria-labelledby="enig-onderwerp-resultaten"
+                        >
+                          <div className="mb-2 flex min-h-11 items-center justify-between gap-3 rounded-lg bg-slate-100 px-4 py-2.5">
+                            <h3
+                              id="enig-onderwerp-resultaten"
+                              className="min-w-0 truncate font-semibold text-slate-900"
                             >
-                              + Toevoegen aan
-                              inspectie
-                            </button>
+                              {
+                                zoekresultatenPerOnderwerp[0]
+                                  .onderwerp
+                              }
+                            </h3>
+                            <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-500">
+                              {
+                                zoekresultatenPerOnderwerp[0]
+                                  .inbreuken.length
+                              }
+                            </span>
                           </div>
-                        );
-                      },
-                    )}
-                  </div>
+
+                          <div className="space-y-3">
+                            {zoekresultatenPerOnderwerp[0].inbreuken.map(
+                              maakZoekresultaatKaart,
+                            )}
+                          </div>
+                        </section>
+                      ) : (
+                        <div className="space-y-2">
+                          {zoekresultatenPerOnderwerp.map(
+                            (groep) => (
+                              <details
+                                key={groep.sleutel}
+                                name="zoekresultaten-onderwerpen"
+                                className="group overflow-hidden rounded-lg border border-slate-200 bg-white"
+                              >
+                                <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-4 py-3 font-semibold text-slate-900 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500">
+                                  <span className="min-w-0 flex-1 truncate">
+                                    {groep.onderwerp}
+                                  </span>
+                                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+                                    {
+                                      groep.inbreuken
+                                        .length
+                                    }
+                                  </span>
+                                  <svg
+                                    aria-hidden="true"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.8"
+                                    className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180"
+                                  >
+                                    <path
+                                      d="m6 8 4 4 4-4"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </summary>
+
+                                <div className="space-y-3 border-t border-slate-100 bg-slate-50/70 p-2">
+                                  {groep.inbreuken.map(
+                                    maakZoekresultaatKaart,
+                                  )}
+                                </div>
+                              </details>
+                            ),
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1897,7 +2098,7 @@ export default function InspectieUitvoerenClient({
                         </svg>
                       </div>
 
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <h3
                           id="bibliotheekinformatie-titel"
                           className="text-lg font-bold text-slate-900"
@@ -1912,7 +2113,48 @@ export default function InspectieUitvoerenClient({
                           opgenomen in het verslag.
                         </p>
                       </div>
+
+                      {geselecteerdeInspecteurInfo &&
+                        geselecteerdeStandaardinbreuk && (
+                        <button
+                          type="button"
+                          aria-label="Info voor inspecteur tonen"
+                          aria-expanded={
+                            toonGeselecteerdeInspecteurInfo
+                          }
+                          title="Info voor inspecteur"
+                          onClick={() =>
+                            wisselInspecteurInfo(
+                              `bewerken-${geselecteerdeStandaardinbreuk.id}`,
+                            )
+                          }
+                          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold transition ${
+                            toonGeselecteerdeInspecteurInfo
+                              ? "border-sky-600 bg-sky-600 text-white"
+                              : "border-sky-300 bg-white text-sky-700 hover:border-sky-500 hover:bg-sky-50"
+                          }`}
+                        >
+                          i
+                        </button>
+                      )}
                     </div>
+
+                    {geselecteerdeInspecteurInfo &&
+                      toonGeselecteerdeInspecteurInfo && (
+                      <div
+                        role="note"
+                        className="border-b border-sky-200 bg-sky-50 px-5 py-4 text-sm leading-6 text-sky-950 sm:px-6"
+                      >
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-sky-700">
+                          Info voor inspecteur
+                        </p>
+                        <p className="whitespace-pre-wrap">
+                          {
+                            geselecteerdeInspecteurInfo
+                          }
+                        </p>
+                      </div>
+                    )}
 
                     <div className="space-y-5 p-5 sm:p-6">
                       <article>

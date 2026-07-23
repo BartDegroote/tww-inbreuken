@@ -236,6 +236,19 @@ export async function bewaarStandaardinbreuk(
       "Wettelijke verwijzing",
     );
 
+  const inspecteurInfo = optioneelTekstveld(
+    invoer.inspecteurInfo,
+  );
+
+  if (
+    inspecteurInfo &&
+    inspecteurInfo.length > 1200
+  ) {
+    throw new Error(
+      "Info voor de inspecteur mag maximaal 1.200 tekens bevatten.",
+    );
+  }
+
   const kernwoorden = normaliseerKernwoorden(
     invoer.kernwoorden,
   );
@@ -354,6 +367,8 @@ export async function bewaarStandaardinbreuk(
                 invoer.toelichting,
               ),
 
+              inspecteurInfo,
+
               aanvulling: optioneelTekstveld(
                 invoer.aanvulling,
               ),
@@ -428,6 +443,8 @@ export async function bewaarStandaardinbreuk(
             toelichting: optioneelTekstveld(
               invoer.toelichting,
             ),
+
+            inspecteurInfo,
 
             aanvulling: optioneelTekstveld(
               invoer.aanvulling,

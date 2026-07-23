@@ -45,6 +45,9 @@ export type Standaardinbreuk = {
   // 4. Toelichting
   toelichting?: string;
 
+  /** Interne veldinformatie; wordt nooit opgenomen in Word. */
+  inspecteurInfo?: string;
+
   // 5. Aanvulling
   aanvulling?: string;
   aanvullingOpmaak?: TekstSegment[];

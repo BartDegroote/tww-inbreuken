@@ -166,12 +166,24 @@ export default function InbreukenLijst({
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                     }`}
                   >
-                    <span className="block text-xs font-semibold uppercase leading-5 tracking-wide text-slate-500">
-                      {wetgevingNaam}
-                      {" · "}
-                      {boekNaam}
-                      {toonTitel &&
-                        ` · ${titelNaam}`}
+                    <span className="flex items-start justify-between gap-2 text-xs font-semibold uppercase leading-5 tracking-wide text-slate-500">
+                      <span>
+                        {wetgevingNaam}
+                        {" · "}
+                        {boekNaam}
+                        {toonTitel &&
+                          ` · ${titelNaam}`}
+                      </span>
+
+                      {inbreuk.inspecteurInfo?.trim() && (
+                        <span
+                          aria-label="Info voor inspecteur beschikbaar"
+                          title="Info voor inspecteur beschikbaar"
+                          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky-400 bg-sky-50 text-[10px] font-bold normal-case tracking-normal text-sky-700"
+                        >
+                          i
+                        </span>
+                      )}
                     </span>
 
                     <span className="mt-2 block">

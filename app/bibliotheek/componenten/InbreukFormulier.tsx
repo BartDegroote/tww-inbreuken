@@ -653,6 +653,8 @@ function initialiseerFormulier(
     ...inbreuk,
     geverifieerd: inbreuk.geverifieerd ?? false,
     onderwerp: inbreuk.onderwerp ?? "",
+    inspecteurInfo:
+      inbreuk.inspecteurInfo ?? "",
     specifiekeElementenIngeschakeld:
       inbreuk.specifiekeElementenIngeschakeld ??
       false,
@@ -990,6 +992,7 @@ function InbreukFormulierInhoud({
     veld:
       | "situering"
       | "toelichting"
+      | "inspecteurInfo"
       | "wettelijkeVerwijzing",
     waarde: string,
   ): void {
@@ -1811,6 +1814,45 @@ function InbreukFormulierInhoud({
                 )
               }
             />
+
+            <label className="block rounded-xl border border-sky-200 bg-sky-50/70 p-4">
+              <span className="flex items-center gap-2 text-sm font-semibold text-sky-950">
+                <span
+                  aria-hidden="true"
+                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky-500 bg-white text-xs font-bold text-sky-700"
+                >
+                  i
+                </span>
+                Info voor inspecteur
+                <span className="font-normal text-sky-700">
+                  (optioneel)
+                </span>
+              </span>
+
+              <textarea
+                value={
+                  formulier.inspecteurInfo ?? ""
+                }
+                onChange={(event) =>
+                  wijzigGewoonTekstveld(
+                    "inspecteurInfo",
+                    event.target.value,
+                  )
+                }
+                rows={4}
+                maxLength={1200}
+                className={`${tekstvakStijl} mt-3`}
+                placeholder="Bijvoorbeeld: definitie, toepassingsdatum of korte controlehulp voor gebruik tijdens de inspectie."
+                disabled={bezig}
+              />
+
+              <span className="mt-1.5 block text-xs leading-5 text-sky-800">
+                Verschijnt alleen als
+                veldinformatie in de app en wordt
+                nooit opgenomen in het
+                Word-verslag.
+              </span>
+            </label>
 
             <section className="border-t border-slate-200 pt-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

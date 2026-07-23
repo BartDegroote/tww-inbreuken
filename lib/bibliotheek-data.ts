@@ -31,6 +31,7 @@ const standaardinbreukSelect = {
     },
   },
   toelichting: true,
+  inspecteurInfo: true,
   aanvulling: true,
   aanvullingOpmaak: true,
   wettelijkeVerwijzing: true,
@@ -70,6 +71,8 @@ export function mapStandaardinbreuk(
         }),
       ),
     toelichting: inbreuk.toelichting ?? "",
+    inspecteurInfo:
+      inbreuk.inspecteurInfo ?? "",
     aanvulling: inbreuk.aanvulling ?? "",
     aanvullingOpmaak: leesTekstSegmenten(
       inbreuk.aanvullingOpmaak,

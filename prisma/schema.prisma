@@ -163,6 +163,10 @@ model Standaardinbreuk {
   // De fysieke databasekolom blijft "extraInfo".
   toelichting String? @map("extraInfo")
 
+  // Interne veldinformatie voor de inspecteur.
+  // Deze tekst wordt nooit opgenomen in het Word-verslag.
+  inspecteurInfo String?
+
   // 5. Aanvulling inbreuk
   aanvulling       String?
   aanvullingOpmaak Json?
