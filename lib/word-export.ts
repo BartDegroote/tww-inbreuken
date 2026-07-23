@@ -6,7 +6,6 @@ import {
   Document,
   Footer,
   ImageRun,
-  ImportedXmlComponent,
   LevelFormat,
   LevelSuffix,
   PageNumber,
@@ -14,6 +13,8 @@ import {
   Paragraph,
   TabStopType,
   TextRun,
+  XmlAttributeComponent,
+  XmlComponent,
   type IRunOptions,
 } from "docx";
 
@@ -100,18 +101,71 @@ const SITUERING_TEKST_INSPrONG =
 const SPECIFIEK_ELEMENT_TEKST_INSPrONG =
   SITUERING_TEKST_INSPrONG + HANGENDE_INSPrONG;
 
+class ThemaGrijzeKleurAttributen extends XmlAttributeComponent<{
+  val: string;
+  themeColor: string;
+  themeShade: string;
+}> {
+  protected readonly xmlKeys = {
+    val: "w:val",
+    themeColor: "w:themeColor",
+    themeShade: "w:themeShade",
+  };
+}
+
+class ThemaGrijzeKleur extends XmlComponent {
+  constructor() {
+    super("w:color");
+    this.root.push(
+      new ThemaGrijzeKleurAttributen({
+        val: "7F7F7F",
+        themeColor: "background1",
+        themeShade: "80",
+      }),
+    );
+  }
+}
+
 /**
  * Word-thema: Wit, Achtergrond 1, donkerder 50%.
  * De fallbackkleur blijft zichtbaar in programma's die geen themakleur lezen.
  */
 class ThemaGrijzeTekstRun extends TextRun {
   constructor(options: IRunOptions | string) {
-    super(options);
-    this.properties.push(
-      ImportedXmlComponent.fromXmlString(
-        '<w:color xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:val="7F7F7F" w:themeColor="background1" w:themeShade="80"/>',
-      ),
-    );
+    const optiesMetFallbackkleur: IRunOptions =
+      typeof options === "string"
+        ? {
+            text: options,
+            color: "7F7F7F",
+          }
+        : {
+            ...options,
+            color: "7F7F7F",
+          };
+
+    super(optiesMetFallbackkleur);
+
+    const eigenschappen = this
+      .properties as unknown as {
+      root: XmlComponent[];
+    };
+    const kleurIndex =
+      eigenschappen.root.findIndex(
+        (onderdeel) =>
+          (
+            onderdeel as unknown as {
+              rootKey?: string;
+            }
+          ).rootKey === "w:color",
+      );
+
+    if (kleurIndex >= 0) {
+      eigenschappen.root.splice(
+        kleurIndex,
+        1,
+        new ThemaGrijzeKleur(),
+      );
+    }
   }
 }
 
