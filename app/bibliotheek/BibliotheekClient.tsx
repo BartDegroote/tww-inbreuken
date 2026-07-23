@@ -479,7 +479,7 @@ export default function BibliotheekClient({
         />
 
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.4fr)]">
-          <section className="overflow-hidden rounded-2xl border border-white bg-white/95 shadow-[0_12px_38px_rgba(15,23,42,0.07)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain">
+          <section className="overflow-hidden rounded-2xl border border-white bg-white/95 shadow-[0_12px_38px_rgba(15,23,42,0.07)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             <InbreukenLijst
               inbreuken={
                 gefilterdeInbreuken
@@ -499,7 +499,7 @@ export default function BibliotheekClient({
 
           <section
             ref={formulierRef}
-            className="scroll-mt-4 overflow-hidden rounded-2xl border border-white bg-white/95 shadow-[0_12px_38px_rgba(15,23,42,0.07)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto lg:overscroll-contain"
+            className="scroll-mt-4 overflow-hidden rounded-2xl border border-white bg-white/95 shadow-[0_12px_38px_rgba(15,23,42,0.07)]"
           >
             <InbreukFormulier
               inbreuk={
