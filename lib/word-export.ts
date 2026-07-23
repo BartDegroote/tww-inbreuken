@@ -212,6 +212,7 @@ function voegGewoneTekstParagrafenToe(
 
     kinderen.push(
       new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
         indent:
           opties?.inspringingLinks !== undefined
             ? {
@@ -329,6 +330,7 @@ function voegSitueringToe(
 
     kinderen.push(
       new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
         indent: {
           left: tekstInspringing,
           hanging: HANGENDE_INSPrONG,
@@ -468,6 +470,7 @@ function maakInbreukParagrafen(
 
   const kinderen: Paragraph[] = [
     new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
       numbering: {
         reference:
           INBREUK_NUMMERING_REFERENTIE,
@@ -525,6 +528,7 @@ function maakInbreukParagrafen(
   if (aanvullingRuns.length > 0) {
     kinderen.push(
       new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
         indent: {
           left: TEKST_INSPrONG,
         },

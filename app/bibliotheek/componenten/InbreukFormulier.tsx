@@ -2127,6 +2127,7 @@ function InbreukFormulierInhoud({
               style={{
                 fontFamily:
                   "Verdana, Geneva, sans-serif",
+                textAlign: "justify",
               }}
             >
               <div className="ml-12 grid grid-cols-[24px_minmax(0,1fr)]">
