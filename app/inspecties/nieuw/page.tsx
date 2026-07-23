@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import AppBalk from "@/app/componenten/AppBalk";
 import { maakInspectie } from "@/app/inspecties/actions";
 
+const HUIDIG_JAAR = String(new Date().getFullYear());
+
 export default function NieuweInspectie() {
   const router = useRouter();
 
@@ -13,7 +15,7 @@ export default function NieuweInspectie() {
   const [adres, setAdres] = useState("");
   const [inspectiedatum, setInspectiedatum] = useState("");
   const [inspecteur, setInspecteur] = useState("Bart Degroote");
-  const [flowJaar, setFlowJaar] = useState("");
+  const [flowJaar, setFlowJaar] = useState(HUIDIG_JAAR);
   const [flowNummer, setFlowNummer] = useState("");
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState("");
@@ -173,7 +175,7 @@ export default function NieuweInspectie() {
               </div>
 
               <p className="mt-2 text-sm text-slate-500">
-                Voorbeeld: 02/2026/123
+                Het huidige jaar is vooraf ingevuld. Voorbeeld: 02/{HUIDIG_JAAR}/123
               </p>
             </div>
 

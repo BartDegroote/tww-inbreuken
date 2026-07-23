@@ -1069,7 +1069,7 @@ export default function InspectieUitvoerenClient({
 
   return (
     <main className="tww-canvas min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 pb-32 pt-4 sm:px-6 sm:pt-6 lg:pb-6">
+      <div className="mx-auto max-w-7xl px-4 pb-36 pt-4 sm:px-6 sm:pb-32 sm:pt-6">
         <AppBalk terugHref="/inspecties" terugLabel="Inspecties" />
 
         <header className="mt-5 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-6">
@@ -1505,7 +1505,7 @@ export default function InspectieUitvoerenClient({
               onClick={startNieuweInbreuk}
               className="w-full rounded-lg bg-blue-700 px-4 py-3 font-semibold text-white hover:bg-blue-800"
             >
-              + Lege inbreuk toevoegen
+              Nieuwe inbreuk kiezen
             </button>
 
             <div className="mt-6">
@@ -2199,66 +2199,71 @@ export default function InspectieUitvoerenClient({
           </section>
         </div>
 
-        <footer className="fixed inset-x-0 bottom-0 z-20 mt-6 flex flex-col items-stretch gap-3 border-t border-slate-200 bg-white/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-[0_-10px_30px_rgba(15,23,42,0.1)] backdrop-blur lg:static lg:items-end lg:border-0 lg:bg-transparent lg:px-0 lg:py-0 lg:shadow-none">
-          {exportFout && (
-            <p
-              role="alert"
-              className="text-sm font-medium text-red-700"
-            >
-              {exportFout}
-            </p>
-          )}
-
-          <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-            {opslagStatus && (
-              <span className="col-span-2 text-center text-sm font-medium text-slate-500 sm:text-left">
-                {opslagStatus}
-              </span>
+        <footer
+          aria-label="Inspectieacties"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/90 shadow-[0_-10px_30px_rgba(15,23,42,0.12)] backdrop-blur"
+        >
+          <div className="mx-auto flex w-full max-w-7xl flex-col items-stretch gap-2 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 sm:items-end sm:px-6">
+            {exportFout && (
+              <p
+                role="alert"
+                className="text-sm font-medium text-red-700"
+              >
+                {exportFout}
+              </p>
             )}
-            <button
-              type="button"
-              onClick={() => void slaDossierOp()}
-              className="w-full rounded-lg bg-blue-700 px-3 py-3 text-sm font-semibold text-white hover:bg-blue-800 sm:w-auto sm:px-6 sm:text-base"
-            >
-              <span className="sm:hidden">
-                Opslaan
-              </span>
-              <span className="hidden sm:inline">
-                Inspectie opslaan
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={genereerWordVerslag}
-              disabled={
-                (inbreuken.length === 0 &&
-                  !ernstigArbeidsongeval) ||
-                exportBezig
-              }
-              className="w-full rounded-lg bg-emerald-700 px-3 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto sm:px-6 sm:text-base"
-            >
-              {exportBezig
-                ? (
-                    <>
-                      <span className="sm:hidden">
-                        Word maken…
-                      </span>
-                      <span className="hidden sm:inline">
-                        Word-verslag wordt gemaakt...
-                      </span>
-                    </>
-                  )
-                : (
-                    <>
-                      <span className="sm:hidden">
-                        Word
-                      </span>
-                      <span className="hidden sm:inline">
-                        Word-verslag genereren
-                      </span>
-                    </>
-                  )}
-            </button>
+
+            <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              {opslagStatus && (
+                <span className="col-span-2 text-center text-sm font-medium text-slate-500 sm:text-left">
+                  {opslagStatus}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => void slaDossierOp()}
+                className="w-full rounded-lg bg-blue-700 px-3 py-3 text-sm font-semibold text-white hover:bg-blue-800 sm:w-auto sm:px-6 sm:text-base"
+              >
+                <span className="sm:hidden">
+                  Opslaan
+                </span>
+                <span className="hidden sm:inline">
+                  Inspectie opslaan
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={genereerWordVerslag}
+                disabled={
+                  (inbreuken.length === 0 &&
+                    !ernstigArbeidsongeval) ||
+                  exportBezig
+                }
+                className="w-full rounded-lg bg-emerald-700 px-3 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto sm:px-6 sm:text-base"
+              >
+                {exportBezig
+                  ? (
+                      <>
+                        <span className="sm:hidden">
+                          Word maken…
+                        </span>
+                        <span className="hidden sm:inline">
+                          Word-verslag wordt gemaakt...
+                        </span>
+                      </>
+                    )
+                  : (
+                      <>
+                        <span className="sm:hidden">
+                          Word
+                        </span>
+                        <span className="hidden sm:inline">
+                          Word-verslag genereren
+                        </span>
+                      </>
+                    )}
+              </button>
+            </div>
           </div>
         </footer>
       </div>
