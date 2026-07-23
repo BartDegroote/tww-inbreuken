@@ -630,6 +630,7 @@ function maakOngevalsParagrafen(
       ],
     }),
     new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
       indent: {
         left: NUMMER_INSPrONG,
       },
