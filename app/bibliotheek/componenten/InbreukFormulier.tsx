@@ -2219,7 +2219,7 @@ function InbreukFormulierInhoud({
               )}
 
               {formulier.wettelijkeVerwijzing && (
-                <p className="ml-[72px] whitespace-pre-wrap pt-0 text-[9pt] italic">
+                <p className="ml-[72px] mt-[1pt] whitespace-pre-wrap text-[9pt] italic">
                   {formulier.wettelijkeVerwijzing}
                 </p>
               )}

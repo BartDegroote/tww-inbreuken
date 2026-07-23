@@ -62,6 +62,7 @@ const LICHTGRIJS = "D9E2F3";
 const HOOFDTEKST_GROOTTE = 20; // 10 pt
 const WETTELIJKE_VERWIJZING_GROOTTE = 18; // 9 pt
 const ENKELE_REGELAFSTAND = 240;
+const AFSTAND_VOOR_WETTELIJKE_VERWIJZING = 20; // 1 pt
 const AFSTAND_NA_WETTELIJKE_VERWIJZING = 360;
 
 // ImageRun gebruikt pixels. 5 cm bij 96 dpi is ongeveer 189 px.
@@ -552,7 +553,8 @@ function maakInbreukParagrafen(
         WETTELIJKE_VERWIJZING_GROOTTE,
       inspringingLinks:
         TEKST_INSPrONG,
-      afstandVoor: 0,
+      afstandVoor:
+        AFSTAND_VOOR_WETTELIJKE_VERWIJZING,
       afstandNa:
         AFSTAND_NA_WETTELIJKE_VERWIJZING,
       regelafstand:
