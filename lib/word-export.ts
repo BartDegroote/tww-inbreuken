@@ -64,9 +64,6 @@ export type WordInspectie = {
 
 const LETTERTYPE = "Verdana";
 
-const DONKERBLAUW = "1F4E78";
-const LICHTGRIJS = "D9E2F3";
-
 const HOOFDTEKST_GROOTTE = 20; // 10 pt
 const WETTELIJKE_VERWIJZING_GROOTTE = 18; // 9 pt
 const ENKELE_REGELAFSTAND = 240;
@@ -82,6 +79,7 @@ const TEKST_INSPrONG = 1068;
 const HANGENDE_INSPrONG = 360;
 const NUMMER_INSPrONG =
   TEKST_INSPrONG - HANGENDE_INSPrONG;
+const SJABLOON_LINKERLIJN = 709;
 
 const INBREUK_NUMMERING_REFERENTIE =
   "tww-inbreuken";
@@ -349,81 +347,45 @@ function voegGewoneTekstParagrafenToe(
   });
 }
 
-function maakHorizontaleLijn(): Paragraph {
-  return new Paragraph({
-    border: {
-      bottom: {
-        color: LICHTGRIJS,
-        size: 8,
-        space: 1,
-        style: BorderStyle.SINGLE,
-      },
-    },
-    spacing: {
-      before: 80,
-      after: 220,
-    },
-  });
-}
-
-function maakGegevensregel(
-  label: string,
-  waarde: string,
-): Paragraph {
-  return new Paragraph({
-    tabStops: [
-      {
-        type: TabStopType.LEFT,
-        position: 2000,
-      },
-    ],
-    spacing: {
-      after: 70,
-    },
-    children: [
-      new ThemaGrijzeTekstRun({
-        text: label,
-        bold: true,
-        size: 20,
-        font: LETTERTYPE,
-      }),
-      new TextRun({
-        text: "\t",
-        font: LETTERTYPE,
-      }),
-      new TextRun({
-        text: tekstOfStreepje(waarde),
-        size: 20,
-        font: LETTERTYPE,
-      }),
-    ],
-  });
-}
-
 function maakVerslagOnderdeelTitel(
   tekst: string,
-  afstandVoor = 0,
 ): Paragraph {
+  const heeftDubbelePunt = tekst.endsWith(":");
+  const titelZonderDubbelePunt =
+    heeftDubbelePunt
+      ? tekst.slice(0, -1)
+      : tekst;
+
   return new Paragraph({
+    alignment: AlignmentType.JUSTIFIED,
     numbering: {
       reference:
         VERSLAG_ONDERDELEN_NUMMERING_REFERENTIE,
       level: 0,
     },
     spacing: {
-      before: afstandVoor,
-      after: 100,
+      before: 0,
+      after: 120,
       line: ENKELE_REGELAFSTAND,
     },
-    keepNext: true,
     children: [
       new TextRun({
-        text: tekst,
+        text: titelZonderDubbelePunt,
         bold: true,
         underline: {},
         size: HOOFDTEKST_GROOTTE,
         font: LETTERTYPE,
       }),
+      ...(heeftDubbelePunt
+        ? [
+            new TextRun({
+              text: ":",
+              bold: true,
+              size: HOOFDTEKST_GROOTTE,
+              font: LETTERTYPE,
+            }),
+          ]
+        : []),
     ],
   });
 }
@@ -459,6 +421,7 @@ function maakOntmoetePersonenParagrafen(
             after: 0,
             line: ENKELE_REGELAFSTAND,
           },
+          alignment: AlignmentType.JUSTIFIED,
           children: [
             new TextRun({
               text: `${persoon.naam}, ${persoon.functie}`,
@@ -468,6 +431,17 @@ function maakOntmoetePersonenParagrafen(
           ],
         }),
     ),
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      indent: {
+        left: TEKST_INSPrONG,
+      },
+      spacing: {
+        before: 0,
+        after: 120,
+        line: ENKELE_REGELAFSTAND,
+      },
+    }),
   ];
 }
 
@@ -475,19 +449,17 @@ function maakVaststellingenInleiding(): Paragraph[] {
   return [
     maakVerslagOnderdeelTitel(
       "Niet-beperkende lijst van vaststellingen gemeld als schriftelijke waarschuwing:",
-      180,
     ),
     new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: {
-        left: NUMMER_INSPrONG,
+        left: SJABLOON_LINKERLIJN,
       },
       spacing: {
         before: 0,
-        after: 160,
+        after: 120,
         line: ENKELE_REGELAFSTAND,
       },
-      keepNext: true,
       children: [
         new TextRun({
           text: "Volgende overtredingen werden vastgesteld en deel ik u mee als schriftelijke waarschuwing in uitvoering van art. 21 2° van het sociaal strafwetboek ingevoerd door de wet van 6 juni 2010:",
@@ -954,11 +926,16 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
       {
         properties: {
           page: {
+            size: {
+              width: 11906,
+              height: 16838,
+            },
             margin: {
-              top: 900,
-              right: 1134,
-              bottom: 900,
-              left: 1134,
+              top: 850,
+              right: 850,
+              bottom: 560,
+              left: 850,
+              footer: 709,
             },
           },
         },
@@ -968,14 +945,27 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
               new Paragraph({
                 alignment:
                   AlignmentType.RIGHT,
+                border: {
+                  top: {
+                    color: "0070C0",
+                    size: 4,
+                    space: 1,
+                    style:
+                      BorderStyle.SINGLE,
+                  },
+                },
                 children: [
-                  new ThemaGrijzeTekstRun({
-                    size: 18,
+                  new TextRun({
+                    color: "0070C0",
+                    size: 14,
                     font: LETTERTYPE,
                     children: [
+                      `${tekstOfStreepje(
+                        inspectie.flow,
+                      )} - `,
                       "Pagina ",
                       PageNumber.CURRENT,
-                      " van ",
+                      "/",
                       PageNumber.TOTAL_PAGES,
                     ],
                   }),
@@ -986,42 +976,27 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
         },
         children: [
           new Paragraph({
+            alignment:
+              AlignmentType.JUSTIFIED,
+            indent: {
+              left: SJABLOON_LINKERLIJN,
+            },
             spacing: {
-              after: 40,
+              after: 120,
+              line:
+                ENKELE_REGELAFSTAND,
             },
             children: [
               new TextRun({
-                text: "BIJLAGE - INSPECTIEVERSLAG",
+                text: "BIJLAGE – INSPECTIEVERSLAG",
                 bold: true,
-                color: DONKERBLAUW,
-                size: 36,
+                color: "000000",
+                size:
+                  HOOFDTEKST_GROOTTE,
                 font: LETTERTYPE,
               }),
             ],
           }),
-
-          maakGegevensregel(
-            "Onderneming",
-            inspectie.onderneming.toUpperCase(),
-          ),
-          maakGegevensregel(
-            "Flow",
-            inspectie.flow,
-          ),
-          maakGegevensregel(
-            "Adres",
-            inspectie.adres,
-          ),
-          maakGegevensregel(
-            "Inspectiedatum",
-            inspectie.inspectiedatum,
-          ),
-          maakGegevensregel(
-            "Inspecteur",
-            inspectie.inspecteur,
-          ),
-
-          maakHorizontaleLijn(),
 
           ...maakOntmoetePersonenParagrafen(
             inspectie.ontmoetePersonen,
