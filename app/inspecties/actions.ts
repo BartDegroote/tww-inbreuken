@@ -40,6 +40,50 @@ export type OngevalsgegevensInput = {
   werkpostBezocht: boolean | null;
 };
 
+export type OntmoetePersoonInput = {
+  naam: string;
+  functie: string;
+};
+
+function normaliseerOntmoetePersonen(
+  personen: OntmoetePersoonInput[],
+): OntmoetePersoonInput[] {
+  if (personen.length > 50) {
+    throw new Error(
+      "Je kunt maximaal 50 ontmoete personen toevoegen.",
+    );
+  }
+
+  return personen
+    .map((persoon) => ({
+      naam: persoon.naam.trim(),
+      functie: persoon.functie.trim(),
+    }))
+    .filter(
+      (persoon) =>
+        persoon.naam.length > 0 ||
+        persoon.functie.length > 0,
+    )
+    .map((persoon) => {
+      if (!persoon.naam || !persoon.functie) {
+        throw new Error(
+          "Vul voor elke ontmoete persoon zowel de naam als de functie in.",
+        );
+      }
+
+      if (
+        persoon.naam.length > 150 ||
+        persoon.functie.length > 150
+      ) {
+        throw new Error(
+          "De naam en functie van een ontmoete persoon mogen maximaal 150 tekens bevatten.",
+        );
+      }
+
+      return persoon;
+    });
+}
+
 export async function maakInspectie(input: {
   onderneming: string;
   adres: string;
@@ -79,6 +123,7 @@ export async function bewaarInspectie(
   inspectieId: string,
   inbreuken: OpgeslagenInbreukInput[],
   ongevalsgegevens: OngevalsgegevensInput,
+  ontmoetePersonen: OntmoetePersoonInput[],
 ) {
   const gebruiker = await vereisGebruiker();
   const inspectie = await prisma.inspectie.findFirst({
@@ -96,6 +141,8 @@ export async function bewaarInspectie(
     ongevalsgegevens.slachtofferNaam.trim();
   const ongevalsdatum =
     ongevalsgegevens.ongevalsdatum.trim();
+  const genormaliseerdeOntmoetePersonen =
+    normaliseerOntmoetePersonen(ontmoetePersonen);
 
   if (
     ongevalsgegevens.ernstigArbeidsongeval &&
@@ -204,6 +251,8 @@ export async function bewaarInspectie(
     await transactie.inspectie.update({
       where: { id: inspectieId },
       data: {
+        ontmoetePersonen:
+          genormaliseerdeOntmoetePersonen,
         ernstigArbeidsongeval:
           ongevalsgegevens.ernstigArbeidsongeval,
         slachtofferVoornaam:

@@ -52,6 +52,7 @@ model Inspectie {
   ongevalsdatum         String?
   slachtofferWerkHervat Boolean?
   werkpostBezocht       Boolean?
+  ontmoetePersonen      Json               @default("[]")
   status                InspectieStatus    @default(CONCEPT)
   verwijderdOp          DateTime?
   gebruikerId           String

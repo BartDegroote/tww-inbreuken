@@ -51,6 +51,7 @@ export default async function InspectieUitvoerenPagina({
         inspectiedatum: true,
         inspecteur: true,
         flow: true,
+        ontmoetePersonen: true,
         ernstigArbeidsongeval: true,
         slachtofferVoornaam: true,
         slachtofferNaam: true,
@@ -127,6 +128,26 @@ export default async function InspectieUitvoerenPagina({
     };
   });
 
+  const initialOntmoetePersonen = Array.isArray(
+    inspectie.ontmoetePersonen,
+  )
+    ? inspectie.ontmoetePersonen.filter(
+        (
+          persoon,
+        ): persoon is {
+          naam: string;
+          functie: string;
+        } =>
+          typeof persoon === "object" &&
+          persoon !== null &&
+          !Array.isArray(persoon) &&
+          typeof (persoon as { naam?: unknown })
+            .naam === "string" &&
+          typeof (persoon as { functie?: unknown })
+            .functie === "string",
+      )
+    : [];
+
   return (
     <InspectieUitvoerenClient
       inspectieId={inspectie.id}
@@ -135,6 +156,9 @@ export default async function InspectieUitvoerenPagina({
       inspectiedatum={inspectie.inspectiedatum}
       inspecteur={inspectie.inspecteur}
       flow={inspectie.flow}
+      initialOntmoetePersonen={
+        initialOntmoetePersonen
+      }
       initialOngevalsgegevens={{
         ernstigArbeidsongeval:
           inspectie.ernstigArbeidsongeval,

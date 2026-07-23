@@ -9,6 +9,7 @@ import {
 
 import {
   bewaarInspectie,
+  type OntmoetePersoonInput,
   type OngevalsgegevensInput,
   type OpgeslagenInbreukInput,
 } from "@/app/inspecties/actions";
@@ -52,6 +53,11 @@ type SpecifiekElementKeuze = {
   tekst: string;
 };
 
+type OntmoetePersoonRij =
+  OntmoetePersoonInput & {
+    id: string;
+  };
+
 export type InspectieFoto = {
   id: string;
   naam: string;
@@ -82,6 +88,7 @@ type InspectieUitvoerenClientProps = {
   inspectiedatum: string;
   inspecteur: string;
   flow: string;
+  initialOntmoetePersonen: OntmoetePersoonInput[];
   initialOngevalsgegevens: OngevalsgegevensInput;
   wetgevingen: WetgevingOptie[];
   boeken: BoekOptie[];
@@ -275,6 +282,7 @@ export default function InspectieUitvoerenClient({
   inspectiedatum,
   inspecteur,
   flow,
+  initialOntmoetePersonen,
   initialOngevalsgegevens,
   wetgevingen,
   boeken,
@@ -336,6 +344,24 @@ export default function InspectieUitvoerenClient({
 
   const [exportFout, setExportFout] =
     useState("");
+
+  const [
+    ontmoetePersonen,
+    setOntmoetePersonen,
+  ] = useState<OntmoetePersoonRij[]>(() =>
+    initialOntmoetePersonen.map((persoon) => ({
+      id: maakTijdelijkId(),
+      naam: persoon.naam,
+      functie: persoon.functie,
+    })),
+  );
+
+  const [
+    toonOntmoetePersonen,
+    setToonOntmoetePersonen,
+  ] = useState(
+    initialOntmoetePersonen.length > 0,
+  );
 
   const [
     ernstigArbeidsongeval,
@@ -595,6 +621,74 @@ export default function InspectieUitvoerenClient({
     };
   }
 
+  function huidigeOntmoetePersonen(): OntmoetePersoonInput[] {
+    return ontmoetePersonen.map(
+      ({ naam, functie }) => ({
+        naam,
+        functie,
+      }),
+    );
+  }
+
+  function wisselOntmoetePersonenPaneel() {
+    setToonOntmoetePersonen(
+      (huidigeWaarde) => {
+        const nieuweWaarde = !huidigeWaarde;
+
+        if (
+          nieuweWaarde &&
+          ontmoetePersonen.length === 0
+        ) {
+          setOntmoetePersonen([
+            {
+              id: maakTijdelijkId(),
+              naam: "",
+              functie: "",
+            },
+          ]);
+        }
+
+        return nieuweWaarde;
+      },
+    );
+    setExportFout("");
+  }
+
+  function wijzigOntmoetePersoon(
+    id: string,
+    veld: "naam" | "functie",
+    waarde: string,
+  ) {
+    setOntmoetePersonen((huidigePersonen) =>
+      huidigePersonen.map((persoon) =>
+        persoon.id === id
+          ? { ...persoon, [veld]: waarde }
+          : persoon,
+      ),
+    );
+    setExportFout("");
+  }
+
+  function voegOntmoetePersoonToe() {
+    setOntmoetePersonen((huidigePersonen) => [
+      ...huidigePersonen,
+      {
+        id: maakTijdelijkId(),
+        naam: "",
+        functie: "",
+      },
+    ]);
+  }
+
+  function verwijderOntmoetePersoon(id: string) {
+    setOntmoetePersonen((huidigePersonen) =>
+      huidigePersonen.filter(
+        (persoon) => persoon.id !== id,
+      ),
+    );
+    setExportFout("");
+  }
+
   function startNieuweInbreuk() {
     maakFormulierLeeg();
     setWetgevingFilter("");
@@ -729,6 +823,7 @@ export default function InspectieUitvoerenClient({
         inspectieId,
         invoer,
         huidigeOngevalsgegevens(),
+        huidigeOntmoetePersonen(),
       );
 
       const opgeslagen = await Promise.all(
@@ -941,6 +1036,8 @@ export default function InspectieUitvoerenClient({
         inspectiedatum,
         inspecteur,
         flow,
+        ontmoetePersonen:
+          huidigeOntmoetePersonen(),
         inbreuken: wordInbreuken,
         ernstigArbeidsongeval:
           ernstigArbeidsongeval &&
@@ -988,7 +1085,7 @@ export default function InspectieUitvoerenClient({
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[29rem]">
+            <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[44rem]">
               <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-5 py-4">
                 <p className="text-sm text-blue-700">
                   Flow
@@ -998,6 +1095,64 @@ export default function InspectieUitvoerenClient({
                   {flow || "Niet ingevuld"}
                 </p>
               </div>
+
+              <button
+                type="button"
+                aria-expanded={
+                  toonOntmoetePersonen
+                }
+                aria-controls="ontmoete-personen-paneel"
+                onClick={wisselOntmoetePersonenPaneel}
+                className={`flex min-h-20 items-center gap-3 rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                  toonOntmoetePersonen
+                    ? "border-blue-500 bg-blue-100 text-blue-950 shadow-sm"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    toonOntmoetePersonen
+                      ? "bg-blue-600 text-white"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87m-2-11.26a4 4 0 0 1 0 7.75"
+                    />
+                  </svg>
+                </span>
+
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">
+                    Ontmoete personen
+                  </span>
+                  <span className="mt-0.5 block text-xs opacity-75">
+                    {ontmoetePersonen.filter(
+                      (persoon) =>
+                        persoon.naam.trim() &&
+                        persoon.functie.trim(),
+                    ).length > 0
+                      ? `${
+                          ontmoetePersonen.filter(
+                            (persoon) =>
+                              persoon.naam.trim() &&
+                              persoon.functie.trim(),
+                          ).length
+                        } toegevoegd`
+                      : "Naam en functie"}
+                  </span>
+                </span>
+              </button>
 
               <button
                 type="button"
@@ -1095,6 +1250,109 @@ export default function InspectieUitvoerenClient({
               </dd>
             </div>
           </dl>
+
+          {toonOntmoetePersonen && (
+            <section
+              id="ontmoete-personen-paneel"
+              aria-labelledby="ontmoete-personen-titel"
+              className="mt-5 overflow-hidden rounded-xl border border-blue-200 bg-blue-50/70"
+            >
+              <div className="flex flex-col gap-3 border-b border-blue-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div>
+                  <h2
+                    id="ontmoete-personen-titel"
+                    className="font-bold text-blue-950"
+                  >
+                    Personen ontmoet tijdens het inspectiebezoek
+                  </h2>
+                  <p className="mt-1 text-sm text-blue-800">
+                    Naam en functie verschijnen onder onderdeel 1 van het Word-verslag.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={voegOntmoetePersoonToe}
+                  disabled={
+                    ontmoetePersonen.length >= 50
+                  }
+                  className="min-h-10 shrink-0 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-bold text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  + Persoon toevoegen
+                </button>
+              </div>
+
+              <div className="space-y-3 p-4 sm:p-5">
+                {ontmoetePersonen.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-blue-300 bg-white/70 px-4 py-3 text-sm text-blue-800">
+                    Er zijn nog geen personen toegevoegd.
+                  </p>
+                ) : (
+                  ontmoetePersonen.map(
+                    (persoon, index) => (
+                      <div
+                        key={persoon.id}
+                        className="grid gap-3 rounded-lg border border-blue-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+                      >
+                        <label className="block min-w-0">
+                          <span className="text-sm font-semibold text-slate-700">
+                            Naam persoon {index + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={persoon.naam}
+                            maxLength={150}
+                            onChange={(event) =>
+                              wijzigOntmoetePersoon(
+                                persoon.id,
+                                "naam",
+                                event.target.value,
+                              )
+                            }
+                            autoComplete="off"
+                            className="mt-2 min-h-11 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-base outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                          />
+                        </label>
+
+                        <label className="block min-w-0">
+                          <span className="text-sm font-semibold text-slate-700">
+                            Functie
+                          </span>
+                          <input
+                            type="text"
+                            value={persoon.functie}
+                            maxLength={150}
+                            onChange={(event) =>
+                              wijzigOntmoetePersoon(
+                                persoon.id,
+                                "functie",
+                                event.target.value,
+                              )
+                            }
+                            autoComplete="off"
+                            className="mt-2 min-h-11 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-base outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            verwijderOntmoetePersoon(
+                              persoon.id,
+                            )
+                          }
+                          aria-label={`Verwijder persoon ${index + 1}`}
+                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                        >
+                          Verwijderen
+                        </button>
+                      </div>
+                    ),
+                  )
+                )}
+              </div>
+            </section>
+          )}
 
           {ernstigArbeidsongeval && (
             <section

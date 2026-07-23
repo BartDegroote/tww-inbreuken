@@ -16,7 +16,7 @@ export default function PrivacyPagina() {
           <div className="mt-8 space-y-7 text-sm leading-6 text-slate-600">
             <section>
               <h2 className="text-lg font-bold text-slate-900">Welke gegevens?</h2>
-              <p className="mt-2">Inspectiegegevens, bedrijfs- en adresgegevens, vaststellingen, namen van inspecteurs, foto’s en technische aanmeld- en sessiegegevens. Bij een ernstig arbeidsongeval kunnen ook de naam van het slachtoffer, de ongevalsdatum, de werkhervatting en het bezoek aan de werkpost worden geregistreerd. Voeg alleen gegevens toe die noodzakelijk zijn voor de inspectie en vermijd medische details.</p>
+              <p className="mt-2">Inspectiegegevens, bedrijfs- en adresgegevens, vaststellingen, namen van inspecteurs, namen en functies van tijdens het inspectiebezoek ontmoete personen, foto’s en technische aanmeld- en sessiegegevens. Bij een ernstig arbeidsongeval kunnen ook de naam van het slachtoffer, de ongevalsdatum, de werkhervatting en het bezoek aan de werkpost worden geregistreerd. Voeg alleen gegevens toe die noodzakelijk zijn voor de inspectie en vermijd medische details.</p>
             </section>
             <section>
               <h2 className="text-lg font-bold text-slate-900">Doel en rechtsgrond</h2>

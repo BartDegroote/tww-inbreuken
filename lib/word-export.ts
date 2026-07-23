@@ -6,6 +6,7 @@ import {
   Document,
   Footer,
   ImageRun,
+  ImportedXmlComponent,
   LevelFormat,
   LevelSuffix,
   PageNumber,
@@ -13,6 +14,7 @@ import {
   Paragraph,
   TabStopType,
   TextRun,
+  type IRunOptions,
 } from "docx";
 
 export type WordFoto = {
@@ -43,12 +45,18 @@ export type WordOngevalsgegevens = {
   werkpostBezocht: boolean;
 };
 
+export type WordOntmoetePersoon = {
+  naam: string;
+  functie: string;
+};
+
 export type WordInspectie = {
   onderneming: string;
   adres: string;
   inspectiedatum: string;
   inspecteur: string;
   flow: string;
+  ontmoetePersonen?: WordOntmoetePersoon[];
   inbreuken: WordInbreuk[];
   ernstigArbeidsongeval?: WordOngevalsgegevens | null;
 };
@@ -56,7 +64,6 @@ export type WordInspectie = {
 const LETTERTYPE = "Verdana";
 
 const DONKERBLAUW = "1F4E78";
-const DONKERGRIJS = "595959";
 const LICHTGRIJS = "D9E2F3";
 
 const HOOFDTEKST_GROOTTE = 20; // 10 pt
@@ -77,6 +84,10 @@ const NUMMER_INSPrONG =
 
 const INBREUK_NUMMERING_REFERENTIE =
   "tww-inbreuken";
+const VERSLAG_ONDERDELEN_NUMMERING_REFERENTIE =
+  "tww-verslag-onderdelen";
+const ONTMOETE_PERSONEN_NUMMERING_REFERENTIE =
+  "tww-ontmoete-personen";
 
 // De vaststelling krijgt een extra niveau:
 // het vierkante teken begint waar de gewone inbreuktekst begint,
@@ -88,6 +99,21 @@ const SITUERING_TEKST_INSPrONG =
 // Het kleine vierkant begint waar de tekst van de vaststelling begint.
 const SPECIFIEK_ELEMENT_TEKST_INSPrONG =
   SITUERING_TEKST_INSPrONG + HANGENDE_INSPrONG;
+
+/**
+ * Word-thema: Wit, Achtergrond 1, donkerder 50%.
+ * De fallbackkleur blijft zichtbaar in programma's die geen themakleur lezen.
+ */
+class ThemaGrijzeTekstRun extends TextRun {
+  constructor(options: IRunOptions | string) {
+    super(options);
+    this.properties.push(
+      ImportedXmlComponent.fromXmlString(
+        '<w:color xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:val="7F7F7F" w:themeColor="background1" w:themeShade="80"/>',
+      ),
+    );
+  }
+}
 
 function veiligeBestandsnaam(
   waarde: string,
@@ -158,20 +184,26 @@ function maakOpgemaakteRuns(
         return;
       }
 
+      const runOpties: IRunOptions = {
+        text: regel,
+        bold:
+          opties?.standaardVet === true ||
+          segment.vet === true,
+        ...(!segment.donkergrijs
+          ? { color: "000000" }
+          : {}),
+        size:
+          opties?.grootte ??
+          HOOFDTEKST_GROOTTE,
+        font: LETTERTYPE,
+      };
+
       runs.push(
-        new TextRun({
-          text: regel,
-          bold:
-            opties?.standaardVet === true ||
-            segment.vet === true,
-          color: segment.donkergrijs
-            ? "666666"
-            : "000000",
-          size:
-            opties?.grootte ??
-            HOOFDTEKST_GROOTTE,
-          font: LETTERTYPE,
-        }),
+        segment.donkergrijs
+          ? new ThemaGrijzeTekstRun(
+              runOpties,
+            )
+          : new TextRun(runOpties),
       );
     });
   }
@@ -190,6 +222,7 @@ function voegGewoneTekstParagrafenToe(
     grootte?: number;
     inspringingLinks?: number;
     hangendeInspringing?: number;
+    themaGrijs?: boolean;
     afstandVoor?: number;
     afstandNa?: number;
     regelafstand?: number;
@@ -235,17 +268,27 @@ function voegGewoneTekstParagrafenToe(
             ENKELE_REGELAFSTAND,
         },
         children: [
-          new TextRun({
-            text: `${prefix}${regel}`,
-            bold: opties?.vet,
-            italics: opties?.cursief,
-            color:
-              opties?.kleur ?? "000000",
-            size:
-              opties?.grootte ??
-              HOOFDTEKST_GROOTTE,
-            font: LETTERTYPE,
-          }),
+          opties?.themaGrijs
+            ? new ThemaGrijzeTekstRun({
+                text: `${prefix}${regel}`,
+                bold: opties.vet,
+                italics: opties.cursief,
+                size:
+                  opties.grootte ??
+                  HOOFDTEKST_GROOTTE,
+                font: LETTERTYPE,
+              })
+            : new TextRun({
+                text: `${prefix}${regel}`,
+                bold: opties?.vet,
+                italics: opties?.cursief,
+                color:
+                  opties?.kleur ?? "000000",
+                size:
+                  opties?.grootte ??
+                  HOOFDTEKST_GROOTTE,
+                font: LETTERTYPE,
+              }),
         ],
       }),
     );
@@ -284,10 +327,9 @@ function maakGegevensregel(
       after: 70,
     },
     children: [
-      new TextRun({
+      new ThemaGrijzeTekstRun({
         text: label,
         bold: true,
-        color: DONKERGRIJS,
         size: 20,
         font: LETTERTYPE,
       }),
@@ -302,6 +344,105 @@ function maakGegevensregel(
       }),
     ],
   });
+}
+
+function maakVerslagOnderdeelTitel(
+  tekst: string,
+  afstandVoor = 0,
+): Paragraph {
+  return new Paragraph({
+    numbering: {
+      reference:
+        VERSLAG_ONDERDELEN_NUMMERING_REFERENTIE,
+      level: 0,
+    },
+    spacing: {
+      before: afstandVoor,
+      after: 100,
+      line: ENKELE_REGELAFSTAND,
+    },
+    keepNext: true,
+    children: [
+      new TextRun({
+        text: tekst,
+        bold: true,
+        underline: {},
+        size: HOOFDTEKST_GROOTTE,
+        font: LETTERTYPE,
+      }),
+    ],
+  });
+}
+
+function maakOntmoetePersonenParagrafen(
+  personen: WordOntmoetePersoon[] = [],
+): Paragraph[] {
+  const geldigePersonen = personen
+    .map((persoon) => ({
+      naam: persoon.naam.trim(),
+      functie: persoon.functie.trim(),
+    }))
+    .filter(
+      (persoon) =>
+        persoon.naam.length > 0 &&
+        persoon.functie.length > 0,
+    );
+
+  return [
+    maakVerslagOnderdeelTitel(
+      "Personen ontmoet tijdens het inspectiebezoek:",
+    ),
+    ...geldigePersonen.map(
+      (persoon) =>
+        new Paragraph({
+          numbering: {
+            reference:
+              ONTMOETE_PERSONEN_NUMMERING_REFERENTIE,
+            level: 0,
+          },
+          spacing: {
+            before: 0,
+            after: 0,
+            line: ENKELE_REGELAFSTAND,
+          },
+          children: [
+            new TextRun({
+              text: `${persoon.naam}, ${persoon.functie}`,
+              size: HOOFDTEKST_GROOTTE,
+              font: LETTERTYPE,
+            }),
+          ],
+        }),
+    ),
+  ];
+}
+
+function maakVaststellingenInleiding(): Paragraph[] {
+  return [
+    maakVerslagOnderdeelTitel(
+      "Niet-beperkende lijst van vaststellingen gemeld als schriftelijke waarschuwing:",
+      180,
+    ),
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      indent: {
+        left: NUMMER_INSPrONG,
+      },
+      spacing: {
+        before: 0,
+        after: 160,
+        line: ENKELE_REGELAFSTAND,
+      },
+      keepNext: true,
+      children: [
+        new TextRun({
+          text: "Volgende overtredingen werden vastgesteld en deel ik u mee als schriftelijke waarschuwing in uitvoering van art. 21 2° van het sociaal strafwetboek ingevoerd door de wet van 6 juni 2010:",
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+      ],
+    }),
+  ];
 }
 
 function voegSitueringToe(
@@ -506,7 +647,7 @@ function maakInbreukParagrafen(
     inbreuk.toelichting,
     {
       prefix: "ⓘ ",
-      kleur: DONKERGRIJS,
+      themaGrijs: true,
       grootte:
         HOOFDTEKST_GROOTTE,
       inspringingLinks:
@@ -699,6 +840,60 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
             },
           ],
         },
+        {
+          reference:
+            VERSLAG_ONDERDELEN_NUMMERING_REFERENTIE,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT,
+              suffix: LevelSuffix.TAB,
+              style: {
+                run: {
+                  font: LETTERTYPE,
+                  size: HOOFDTEKST_GROOTTE,
+                  bold: true,
+                },
+                paragraph: {
+                  indent: {
+                    left: TEKST_INSPrONG,
+                    hanging:
+                      HANGENDE_INSPrONG,
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          reference:
+            ONTMOETE_PERSONEN_NUMMERING_REFERENTIE,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.BULLET,
+              text: "•",
+              alignment: AlignmentType.LEFT,
+              suffix: LevelSuffix.TAB,
+              style: {
+                run: {
+                  font: LETTERTYPE,
+                  size: HOOFDTEKST_GROOTTE,
+                },
+                paragraph: {
+                  indent: {
+                    left:
+                      SITUERING_TEKST_INSPrONG,
+                    hanging:
+                      HANGENDE_INSPrONG,
+                  },
+                },
+              },
+            },
+          ],
+        },
       ],
     },
     sections: [
@@ -720,8 +915,7 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
                 alignment:
                   AlignmentType.RIGHT,
                 children: [
-                  new TextRun({
-                    color: DONKERGRIJS,
+                  new ThemaGrijzeTekstRun({
                     size: 18,
                     font: LETTERTYPE,
                     children: [
@@ -743,25 +937,10 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
             },
             children: [
               new TextRun({
-                text: "INSPECTIEVERSLAG",
+                text: "BIJLAGE - INSPECTIEVERSLAG",
                 bold: true,
                 color: DONKERBLAUW,
                 size: 36,
-                font: LETTERTYPE,
-              }),
-            ],
-          }),
-
-          new Paragraph({
-            spacing: {
-              after: 180,
-            },
-            children: [
-              new TextRun({
-                text: "INBREUKEN",
-                bold: true,
-                color: DONKERGRIJS,
-                size: 24,
                 font: LETTERTYPE,
               }),
             ],
@@ -789,6 +968,12 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
           ),
 
           maakHorizontaleLijn(),
+
+          ...maakOntmoetePersonenParagrafen(
+            inspectie.ontmoetePersonen,
+          ),
+
+          ...maakVaststellingenInleiding(),
 
           ...inspectie.inbreuken.flatMap(
             maakInbreukParagrafen,
