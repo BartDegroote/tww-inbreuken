@@ -4,6 +4,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../app/generated/prisma/client";
 import { boeken } from "../bibliotheek/boeken";
 import { titels } from "../bibliotheek/titels";
+import { wetgevingen } from "../bibliotheek/wetgevingen";
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -22,18 +23,17 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  const wetgeving = await prisma.wetgeving.upsert({
-    where: {
-      id: "codex-welzijn",
-    },
-    update: {
-      naam: "Codex over het welzijn op het werk",
-    },
-    create: {
-      id: "codex-welzijn",
-      naam: "Codex over het welzijn op het werk",
-    },
-  });
+  for (const wetgevingOptie of wetgevingen) {
+    await prisma.wetgeving.upsert({
+      where: {
+        id: wetgevingOptie.id,
+      },
+      update: {
+        naam: wetgevingOptie.naam,
+      },
+      create: wetgevingOptie,
+    });
+  }
 
   for (const boek of boeken) {
     await prisma.boek.upsert({
@@ -42,12 +42,12 @@ async function main() {
       },
       update: {
         naam: boek.naam,
-        wetgevingId: wetgeving.id,
+        wetgevingId: boek.wetgevingId,
       },
       create: {
         id: boek.id,
         naam: boek.naam,
-        wetgevingId: wetgeving.id,
+        wetgevingId: boek.wetgevingId,
       },
     });
   }
@@ -65,6 +65,10 @@ async function main() {
 
   const basiseisenTitel = await prisma.titel.findUniqueOrThrow({
     where: { id: "boek-iii-titel-1" },
+  });
+
+  const wetgeving = await prisma.wetgeving.findUniqueOrThrow({
+    where: { id: "codex-welzijn" },
   });
 
   await prisma.standaardinbreuk.upsert({

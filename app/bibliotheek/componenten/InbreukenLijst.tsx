@@ -9,6 +9,10 @@ import type {
 } from "../BibliotheekClient";
 
 import type { Standaardinbreuk } from "@/bibliotheek";
+import {
+  isVerborgenAfdeling,
+  isWelzijnswet,
+} from "@/bibliotheek/welzijnswet";
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 
 type InbreukenLijstProps = {
@@ -135,6 +139,15 @@ export default function InbreukenLijst({
                 zoekTitelNaam(
                   inbreuk.titelId,
                 );
+              const welzijnswet =
+                isWelzijnswet(
+                  inbreuk.wetgevingId,
+                );
+              const toonTitel =
+                !welzijnswet ||
+                !isVerborgenAfdeling(
+                  inbreuk.titelId,
+                );
 
               return (
                 <li key={inbreuk.id}>
@@ -157,12 +170,13 @@ export default function InbreukenLijst({
                       {wetgevingNaam}
                       {" · "}
                       {boekNaam}
-                      {" · "}
-                      {titelNaam}
+                      {toonTitel &&
+                        ` · ${titelNaam}`}
                     </span>
 
                     <span className="mt-2 block">
-                      {inbreuk.onderwerp.trim() && (
+                      {!welzijnswet &&
+                        inbreuk.onderwerp.trim() && (
                         <span className="block text-sm font-semibold text-slate-800">
                           {inbreuk.onderwerp}
                         </span>

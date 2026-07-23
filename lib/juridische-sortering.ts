@@ -66,7 +66,15 @@ function leesArtikelSleutel(tekst: string): ArtikelSleutel | null {
 }
 
 function leesTitelNummer(titelId: string): number {
-  return Number(titelId.match(/-titel-(\d+)$/)?.[1] ?? Number.MAX_SAFE_INTEGER);
+  if (titelId.endsWith("-algemeen")) {
+    return 0;
+  }
+
+  return Number(
+    titelId.match(
+      /-(?:titel|afdeling)-(\d+)$/,
+    )?.[1] ?? Number.MAX_SAFE_INTEGER,
+  );
 }
 
 function vergelijkGetallen(a: number, b: number): number {

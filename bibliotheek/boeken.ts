@@ -55,6 +55,7 @@ export const boeken: Boek[] = [
     wetgevingId: "codex-welzijn",
     naam: "X - Werkorganisatie en bijzondere werknemerscategorieën",
   },
+  ...welzijnswetHoofdstukken,
 ];
 
 const boekVolgorde = new Map(
@@ -79,3 +80,4 @@ export function zoekBoekenVoorWetgeving(
     (boek) => boek.wetgevingId === wetgevingId,
   );
 }
+import { welzijnswetHoofdstukken } from "./welzijnswet";

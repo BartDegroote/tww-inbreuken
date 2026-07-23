@@ -13,6 +13,10 @@ import type {
   Standaardinbreuk,
   TekstSegment,
 } from "@/bibliotheek";
+import {
+  isVerborgenAfdeling,
+  isWelzijnswet,
+} from "@/bibliotheek/welzijnswet";
 
 type WetgevingOptie = {
   id: string;
@@ -730,6 +734,19 @@ function InbreukFormulierInhoud({
     formulier,
   ]);
 
+  const welzijnswetGeselecteerd = isWelzijnswet(
+    formulier?.wetgevingId ?? "",
+  );
+
+  const zichtbareTitels = useMemo(
+    () =>
+      beschikbareTitels.filter(
+        (titel) =>
+          !isVerborgenAfdeling(titel.id),
+      ),
+    [beschikbareTitels],
+  );
+
   const beschikbareOnderwerpSuggesties =
     useMemo(() => {
       if (
@@ -891,10 +908,22 @@ function InbreukFormulierInhoud({
         return huidig;
       }
 
+      const titelsVoorBoek = titels.filter(
+        (titel) => titel.boekId === boekId,
+      );
+      const verborgenAfdeling =
+        titelsVoorBoek.find((titel) =>
+          isVerborgenAfdeling(titel.id),
+        );
+
       return {
         ...huidig,
         boekId,
-        titelId: "",
+        titelId:
+          isWelzijnswet(huidig.wetgevingId) &&
+          verborgenAfdeling
+            ? verborgenAfdeling.id
+            : "",
         onderwerp: "",
       };
     });
@@ -1410,8 +1439,9 @@ function InbreukFormulierInhoud({
       0 &&
     formulier.boekId.trim().length > 0 &&
     formulier.titelId.trim().length > 0 &&
-    formulier.onderwerp.trim().length >
-      0 &&
+    (welzijnswetGeselecteerd ||
+      formulier.onderwerp.trim().length >
+        0) &&
     formulier.omschrijving.trim().length >
       0 &&
     formulier.wettelijkeVerwijzing
@@ -1500,7 +1530,9 @@ function InbreukFormulierInhoud({
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Boek
+                {welzijnswetGeselecteerd
+                  ? "Hoofdstuk"
+                  : "Boek"}
                 <span className="ml-1 text-red-600">
                   *
                 </span>
@@ -1521,7 +1553,9 @@ function InbreukFormulierInhoud({
                 required
               >
                 <option value="">
-                  Selecteer boek
+                  {welzijnswetGeselecteerd
+                    ? "Selecteer hoofdstuk"
+                    : "Selecteer boek"}
                 </option>
 
                 {beschikbareBoeken.map(
@@ -1537,48 +1571,66 @@ function InbreukFormulierInhoud({
               </select>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                Titel
-                <span className="ml-1 text-red-600">
-                  *
+            {(!welzijnswetGeselecteerd ||
+              zichtbareTitels.length > 0) && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                  {welzijnswetGeselecteerd
+                    ? "Afdeling"
+                    : "Titel"}
+                  <span className="ml-1 text-red-600">
+                    *
+                  </span>
                 </span>
-              </span>
 
-              <select
-                value={
-                  formulier.titelId
-                }
-                onChange={(event) =>
-                  wijzigTitel(
-                    event.target.value,
-                  )
-                }
-                className={veldStijl}
-                disabled={
-                  !formulier.boekId ||
-                  bezig
-                }
-                required
-              >
-                <option value="">
-                  Selecteer titel
-                </option>
+                <select
+                  value={
+                    formulier.titelId
+                  }
+                  onChange={(event) =>
+                    wijzigTitel(
+                      event.target.value,
+                    )
+                  }
+                  className={veldStijl}
+                  disabled={
+                    !formulier.boekId ||
+                    bezig
+                  }
+                  required
+                >
+                  <option value="">
+                    {welzijnswetGeselecteerd
+                      ? "Selecteer afdeling"
+                      : "Selecteer titel"}
+                  </option>
 
-                {beschikbareTitels.map(
-                  (titel) => (
+                  {(welzijnswetGeselecteerd
+                    ? zichtbareTitels
+                    : beschikbareTitels
+                  ).map((titel) => (
                     <option
                       key={titel.id}
                       value={titel.id}
                     >
                       {titel.naam}
                     </option>
-                  ),
-                )}
-              </select>
-            </label>
+                  ))}
+                </select>
+              </label>
+            )}
 
-            <div className="block">
+            {welzijnswetGeselecteerd &&
+              formulier.boekId &&
+              zichtbareTitels.length === 0 && (
+                <div className="flex min-h-11 items-center rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                  Dit hoofdstuk bevat geen
+                  afzonderlijke afdelingen.
+                </div>
+              )}
+
+            {!welzijnswetGeselecteerd && (
+              <div className="block">
               <label
                 htmlFor="inbreuk-onderwerp"
                 className="mb-1.5 block text-sm font-medium text-slate-700"
@@ -1652,7 +1704,8 @@ function InbreukFormulierInhoud({
                   )}
                 </div>
               )}
-            </div>
+              </div>
+            )}
           </div>
         </section>
 

@@ -18,6 +18,10 @@ import type {
   Standaardinbreuk,
   TekstSegment,
 } from "@/bibliotheek";
+import {
+  isVerborgenAfdeling,
+  isWelzijnswet,
+} from "@/bibliotheek/welzijnswet";
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 import {
   downloadWordVerslag,
@@ -384,14 +388,37 @@ export default function InspectieUitvoerenClient({
   }, [boeken, wetgevingFilter]);
 
   const beschikbareTitels = useMemo(() => {
-    if (!boekFilter) {
-      return titels;
+    if (boekFilter) {
+      return titels.filter(
+        (titel) =>
+          titel.boekId === boekFilter &&
+          !isVerborgenAfdeling(titel.id),
+      );
     }
 
-    return titels.filter(
-      (titel) => titel.boekId === boekFilter,
+    const boekIds = new Set(
+      beschikbareBoeken.map((boek) => boek.id),
     );
-  }, [titels, boekFilter]);
+
+    return titels.filter(
+      (titel) =>
+        boekIds.has(titel.boekId) &&
+        !isVerborgenAfdeling(titel.id),
+    );
+  }, [titels, boekFilter, beschikbareBoeken]);
+
+  const welzijnswetGeselecteerd =
+    isWelzijnswet(wetgevingFilter);
+  const eersteNiveauLabel = wetgevingFilter
+    ? welzijnswetGeselecteerd
+      ? "Hoofdstuk"
+      : "Boek"
+    : "Boek / hoofdstuk";
+  const tweedeNiveauLabel = wetgevingFilter
+    ? welzijnswetGeselecteerd
+      ? "Afdeling"
+      : "Titel"
+    : "Titel / afdeling";
 
   const wetgevingNaamPerId = useMemo(() => {
     return new Map(
@@ -429,8 +456,12 @@ export default function InspectieUitvoerenClient({
             inbreuk.wetgevingId,
           ) ?? "",
           boekNaamPerId.get(inbreuk.boekId) ?? "",
-          titelPerId.get(inbreuk.titelId)?.naam ?? "",
-          inbreuk.onderwerp,
+          isVerborgenAfdeling(inbreuk.titelId)
+            ? ""
+            : (titelPerId.get(inbreuk.titelId)?.naam ?? ""),
+          isWelzijnswet(inbreuk.wetgevingId)
+            ? ""
+            : inbreuk.onderwerp,
           inbreuk.omschrijving,
           inbreuk.situering ?? "",
           ...inbreuk.specifiekeElementen.map(
@@ -1343,7 +1374,7 @@ export default function InspectieUitvoerenClient({
                     htmlFor="boek"
                     className="block text-sm font-medium text-slate-700"
                   >
-                    Boek
+                    {eersteNiveauLabel}
                   </label>
 
                   <select
@@ -1358,7 +1389,12 @@ export default function InspectieUitvoerenClient({
                     className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
                   >
                     <option value="">
-                      Alle boeken
+                      Alle{" "}
+                      {welzijnswetGeselecteerd
+                        ? "hoofdstukken"
+                        : wetgevingFilter
+                          ? "boeken"
+                          : "boeken / hoofdstukken"}
                     </option>
 
                     {beschikbareBoeken.map(
@@ -1379,7 +1415,7 @@ export default function InspectieUitvoerenClient({
                     htmlFor="titel"
                     className="block text-sm font-medium text-slate-700"
                   >
-                    Titel
+                    {tweedeNiveauLabel}
                   </label>
 
                   <select
@@ -1393,7 +1429,12 @@ export default function InspectieUitvoerenClient({
                     className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
                   >
                     <option value="">
-                      Alle titels
+                      Alle{" "}
+                      {welzijnswetGeselecteerd
+                        ? "afdelingen"
+                        : wetgevingFilter
+                          ? "titels"
+                          : "titels / afdelingen"}
                     </option>
 
                     {beschikbareTitels.map(
@@ -1463,6 +1504,10 @@ export default function InspectieUitvoerenClient({
                           titelPerId.get(
                             inbreuk.titelId,
                           );
+                        const toonTitel =
+                          !isVerborgenAfdeling(
+                            inbreuk.titelId,
+                          );
 
                         const compacteWettelijkeVerwijzing =
                           maakCompacteWettelijkeVerwijzing(
@@ -1479,7 +1524,8 @@ export default function InspectieUitvoerenClient({
                               <span className="min-w-0 max-w-full truncate sm:flex-1">
                                 {wetgevingNaam} ·{" "}
                                 {boekNaam}
-                                {titel
+                                {titel &&
+                                toonTitel
                                   ? ` · ${titel.naam}`
                                   : ""}
                               </span>

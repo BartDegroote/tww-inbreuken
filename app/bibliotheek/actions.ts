@@ -7,6 +7,10 @@ import type {
   Standaardinbreuk,
   TekstSegment,
 } from "@/bibliotheek";
+import {
+  isVerborgenAfdeling,
+  isWelzijnswet,
+} from "@/bibliotheek/welzijnswet";
 import { mapStandaardinbreuk } from "@/lib/bibliotheek-data";
 import { prisma } from "@/lib/prisma";
 import { vereisGebruiker } from "@/lib/auth";
@@ -149,16 +153,21 @@ async function controleerJuridischeIndeling({
   wetgevingId: string;
   boekId: string;
   titelId: string;
-}): Promise<void> {
+}): Promise<{
+  boekNaam: string;
+  titelNaam: string;
+}> {
   const titel = await prisma.titel.findUnique({
     where: {
       id: titelId,
     },
     select: {
       boekId: true,
+      naam: true,
       boek: {
         select: {
           wetgevingId: true,
+          naam: true,
         },
       },
     },
@@ -181,6 +190,11 @@ async function controleerJuridischeIndeling({
       "Het geselecteerde boek behoort niet tot de geselecteerde wetgeving.",
     );
   }
+
+  return {
+    boekNaam: titel.boek.naam,
+    titelNaam: titel.naam,
+  };
 }
 
 /**
@@ -199,19 +213,16 @@ export async function bewaarStandaardinbreuk(
     "Wetgeving",
   );
 
+  const welzijnswet = isWelzijnswet(wetgevingId);
+
   const boekId = verplichtTekstveld(
     invoer.boekId,
-    "Boek",
+    welzijnswet ? "Hoofdstuk" : "Boek",
   );
 
   const titelId = verplichtTekstveld(
     invoer.titelId,
-    "Titel",
-  );
-
-  const onderwerp = verplichtTekstveld(
-    invoer.onderwerp,
-    "Onderwerp",
+    welzijnswet ? "Afdeling" : "Titel",
   );
 
   const omschrijving = verplichtTekstveld(
@@ -270,11 +281,21 @@ export async function bewaarStandaardinbreuk(
     );
   }
 
-  await controleerJuridischeIndeling({
+  const juridischeIndeling =
+    await controleerJuridischeIndeling({
     wetgevingId,
     boekId,
     titelId,
   });
+
+  const onderwerp = welzijnswet
+    ? isVerborgenAfdeling(titelId)
+      ? juridischeIndeling.boekNaam
+      : juridischeIndeling.titelNaam
+    : verplichtTekstveld(
+        invoer.onderwerp,
+        "Onderwerp",
+      );
 
   const opgeslagenInbreuk =
     await prisma.$transaction(

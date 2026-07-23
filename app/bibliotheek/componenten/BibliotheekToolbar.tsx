@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  isVerborgenAfdeling,
+  isWelzijnswet,
+} from "@/bibliotheek/welzijnswet";
+
 type WetgevingOptie = {
   id: string;
   naam: string;
@@ -70,15 +75,35 @@ export default function BibliotheekToolbar({
   const beschikbareTitels = filterBoekId
     ? titels.filter(
         (titel) =>
-          titel.boekId === filterBoekId,
+          titel.boekId === filterBoekId &&
+          !isVerborgenAfdeling(titel.id),
       )
     : filterWetgevingId
       ? titels.filter((titel) =>
+          !isVerborgenAfdeling(titel.id) &&
           beschikbareBoeken.some(
             (boek) => boek.id === titel.boekId,
           ),
         )
-      : titels;
+      : titels.filter(
+          (titel) =>
+            !isVerborgenAfdeling(titel.id),
+        );
+
+  const welzijnswetGeselecteerd =
+    isWelzijnswet(filterWetgevingId);
+  const eersteNiveauLabel =
+    filterWetgevingId
+      ? welzijnswetGeselecteerd
+        ? "Hoofdstuk"
+        : "Boek"
+      : "Boek / hoofdstuk";
+  const tweedeNiveauLabel =
+    filterWetgevingId
+      ? welzijnswetGeselecteerd
+        ? "Afdeling"
+        : "Titel"
+      : "Titel / afdeling";
 
   function wijzigWetgeving(
     wetgevingId: string,
@@ -137,7 +162,13 @@ export default function BibliotheekToolbar({
         </div>
       </div>
 
-      <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-5">
+      <div
+        className={`grid gap-4 p-5 sm:grid-cols-2 ${
+          welzijnswetGeselecteerd
+            ? "xl:grid-cols-4"
+            : "xl:grid-cols-5"
+        }`}
+      >
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
             Wetgeving
@@ -171,7 +202,7 @@ export default function BibliotheekToolbar({
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Boek
+            {eersteNiveauLabel}
           </span>
 
           <select
@@ -185,7 +216,12 @@ export default function BibliotheekToolbar({
             }
           >
             <option value="">
-              Alle boeken
+              Alle{" "}
+              {welzijnswetGeselecteerd
+                ? "hoofdstukken"
+                : filterWetgevingId
+                  ? "boeken"
+                  : "boeken / hoofdstukken"}
             </option>
 
             {beschikbareBoeken.map(
@@ -203,7 +239,7 @@ export default function BibliotheekToolbar({
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Titel
+            {tweedeNiveauLabel}
           </span>
 
           <select
@@ -217,7 +253,12 @@ export default function BibliotheekToolbar({
             }
           >
             <option value="">
-              Alle titels
+              Alle{" "}
+              {welzijnswetGeselecteerd
+                ? "afdelingen"
+                : filterWetgevingId
+                  ? "titels"
+                  : "titels / afdelingen"}
             </option>
 
             {beschikbareTitels.map(
@@ -233,7 +274,8 @@ export default function BibliotheekToolbar({
           </select>
         </label>
 
-        <label className="block">
+        {!welzijnswetGeselecteerd && (
+          <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">
             Onderwerp
           </span>
@@ -266,7 +308,8 @@ export default function BibliotheekToolbar({
               ),
             )}
           </select>
-        </label>
+          </label>
+        )}
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">

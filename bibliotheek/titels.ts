@@ -1,4 +1,5 @@
 import { vergelijkBoekIds } from "./boeken";
+import { welzijnswetAfdelingen } from "./welzijnswet";
 
 export type Titel = {
   id: string;
@@ -67,13 +68,18 @@ export const titels: Titel[] = [
   { id: "boek-x-titel-4", boekId: "boek-x", naam: "4 - Stagiairs" },
   { id: "boek-x-titel-5", boekId: "boek-x", naam: "5 - Moederschapsbescherming" },
   { id: "boek-x-titel-6", boekId: "boek-x", naam: "6 - Dienstboden en huispersoneel" },
+  ...welzijnswetAfdelingen,
 ];
 
 export function vergelijkTitelIds(a: Titel, b: Titel): number {
   const boekVerschil = vergelijkBoekIds(a.boekId, b.boekId);
   if (boekVerschil !== 0) return boekVerschil;
 
-  const nummer = (id: string) => Number(id.match(/-titel-(\d+)$/)?.[1] ?? 0);
+  const nummer = (id: string) =>
+    Number(
+      id.match(/-(?:titel|afdeling)-(\d+)$/)?.[1] ??
+        (id.endsWith("-algemeen") ? 0 : Number.MAX_SAFE_INTEGER),
+    );
   return nummer(a.id) - nummer(b.id);
 }
 
