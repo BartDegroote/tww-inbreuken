@@ -164,9 +164,11 @@ export default function BibliotheekToolbar({
 
       <div
         className={`grid gap-4 p-5 sm:grid-cols-2 ${
-          welzijnswetGeselecteerd
-            ? "xl:grid-cols-4"
-            : "xl:grid-cols-5"
+          filterWetgevingId
+            ? welzijnswetGeselecteerd
+              ? "xl:grid-cols-4"
+              : "xl:grid-cols-5"
+            : "xl:grid-cols-2"
         }`}
       >
         <label className="block">
@@ -200,116 +202,117 @@ export default function BibliotheekToolbar({
           </select>
         </label>
 
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            {eersteNiveauLabel}
-          </span>
-
-          <select
-            value={filterBoekId}
-            onChange={(event) =>
-              wijzigBoek(event.target.value)
-            }
-            className={veldStijl}
-            disabled={
-              beschikbareBoeken.length === 0
-            }
-          >
-            <option value="">
-              Alle{" "}
-              {welzijnswetGeselecteerd
-                ? "hoofdstukken"
-                : filterWetgevingId
-                  ? "boeken"
-                  : "boeken / hoofdstukken"}
-            </option>
-
-            {beschikbareBoeken.map(
-              (boek) => (
-                <option
-                  key={boek.id}
-                  value={boek.id}
-                >
-                  {boek.naam}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            {tweedeNiveauLabel}
-          </span>
-
-          <select
-            value={filterTitelId}
-            onChange={(event) =>
-              wijzigTitel(event.target.value)
-            }
-            className={veldStijl}
-            disabled={
-              beschikbareTitels.length === 0
-            }
-          >
-            <option value="">
-              Alle{" "}
-              {welzijnswetGeselecteerd
-                ? "afdelingen"
-                : filterWetgevingId
-                  ? "titels"
-                  : "titels / afdelingen"}
-            </option>
-
-            {beschikbareTitels.map(
-              (titel) => (
-                <option
-                  key={titel.id}
-                  value={titel.id}
-                >
-                  {titel.naam}
-                </option>
-              ),
-            )}
-          </select>
-        </label>
-
-        {!welzijnswetGeselecteerd && (
+        {filterWetgevingId && (
           <label className="block">
-          <span className="mb-1.5 block text-sm font-medium text-slate-700">
-            Onderwerp
-          </span>
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">
+              {eersteNiveauLabel}
+            </span>
 
-          <select
-            value={filterOnderwerp}
-            onChange={(event) =>
-              onWijzigOnderwerp(
-                event.target.value,
-              )
-            }
-            className={veldStijl}
-            disabled={
-              beschikbareOnderwerpen.length ===
-              0
-            }
-          >
-            <option value="">
-              Alle onderwerpen
-            </option>
+            <select
+              value={filterBoekId}
+              onChange={(event) =>
+                wijzigBoek(event.target.value)
+              }
+              className={veldStijl}
+              disabled={
+                beschikbareBoeken.length === 0
+              }
+            >
+              <option value="">
+                Alle{" "}
+                {welzijnswetGeselecteerd
+                  ? "hoofdstukken"
+                  : "boeken"}
+              </option>
 
-            {beschikbareOnderwerpen.map(
-              (onderwerp) => (
-                <option
-                  key={onderwerp}
-                  value={onderwerp}
-                >
-                  {onderwerp}
-                </option>
-              ),
-            )}
-          </select>
+              {beschikbareBoeken.map(
+                (boek) => (
+                  <option
+                    key={boek.id}
+                    value={boek.id}
+                  >
+                    {boek.naam}
+                  </option>
+                ),
+              )}
+            </select>
           </label>
         )}
+
+        {filterWetgevingId && (
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium text-slate-700">
+              {tweedeNiveauLabel}
+            </span>
+
+            <select
+              value={filterTitelId}
+              onChange={(event) =>
+                wijzigTitel(event.target.value)
+              }
+              className={veldStijl}
+              disabled={
+                beschikbareTitels.length === 0
+              }
+            >
+              <option value="">
+                Alle{" "}
+                {welzijnswetGeselecteerd
+                  ? "afdelingen"
+                  : "titels"}
+              </option>
+
+              {beschikbareTitels.map(
+                (titel) => (
+                  <option
+                    key={titel.id}
+                    value={titel.id}
+                  >
+                    {titel.naam}
+                  </option>
+                ),
+              )}
+            </select>
+          </label>
+        )}
+
+        {filterWetgevingId &&
+          !welzijnswetGeselecteerd && (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">
+                Onderwerp
+              </span>
+
+              <select
+                value={filterOnderwerp}
+                onChange={(event) =>
+                  onWijzigOnderwerp(
+                    event.target.value,
+                  )
+                }
+                className={veldStijl}
+                disabled={
+                  beschikbareOnderwerpen.length ===
+                  0
+                }
+              >
+                <option value="">
+                  Alle onderwerpen
+                </option>
+
+                {beschikbareOnderwerpen.map(
+                  (onderwerp) => (
+                    <option
+                      key={onderwerp}
+                      value={onderwerp}
+                    >
+                      {onderwerp}
+                    </option>
+                  ),
+                )}
+              </select>
+            </label>
+          )}
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium text-slate-700">

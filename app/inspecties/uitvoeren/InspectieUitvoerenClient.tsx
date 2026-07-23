@@ -1331,7 +1331,13 @@ export default function InspectieUitvoerenClient({
                 centrale bibliotheek geladen.
               </p>
 
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div
+                className={`mt-6 grid gap-4 sm:grid-cols-2 ${
+                  wetgevingFilter
+                    ? "lg:grid-cols-4"
+                    : "lg:grid-cols-2"
+                }`}
+              >
                 <div>
                   <label
                     htmlFor="wetgeving"
@@ -1369,86 +1375,86 @@ export default function InspectieUitvoerenClient({
                   </select>
                 </div>
 
-                <div>
-                  <label
-                    htmlFor="boek"
-                    className="block text-sm font-medium text-slate-700"
-                  >
-                    {eersteNiveauLabel}
-                  </label>
+                {wetgevingFilter && (
+                  <div>
+                    <label
+                      htmlFor="boek"
+                      className="block text-sm font-medium text-slate-700"
+                    >
+                      {eersteNiveauLabel}
+                    </label>
 
-                  <select
-                    id="boek"
-                    value={boekFilter}
-                    onChange={(event) => {
-                      setBoekFilter(
-                        event.target.value,
-                      );
-                      setTitelFilter("");
-                    }}
-                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
-                  >
-                    <option value="">
-                      Alle{" "}
-                      {welzijnswetGeselecteerd
-                        ? "hoofdstukken"
-                        : wetgevingFilter
-                          ? "boeken"
-                          : "boeken / hoofdstukken"}
-                    </option>
+                    <select
+                      id="boek"
+                      value={boekFilter}
+                      onChange={(event) => {
+                        setBoekFilter(
+                          event.target.value,
+                        );
+                        setTitelFilter("");
+                      }}
+                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
+                    >
+                      <option value="">
+                        Alle{" "}
+                        {welzijnswetGeselecteerd
+                          ? "hoofdstukken"
+                          : "boeken"}
+                      </option>
 
-                    {beschikbareBoeken.map(
-                      (boek) => (
-                        <option
-                          key={boek.id}
-                          value={boek.id}
-                        >
-                          {boek.naam}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
+                      {beschikbareBoeken.map(
+                        (boek) => (
+                          <option
+                            key={boek.id}
+                            value={boek.id}
+                          >
+                            {boek.naam}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </div>
+                )}
 
-                <div>
-                  <label
-                    htmlFor="titel"
-                    className="block text-sm font-medium text-slate-700"
-                  >
-                    {tweedeNiveauLabel}
-                  </label>
+                {wetgevingFilter && (
+                  <div>
+                    <label
+                      htmlFor="titel"
+                      className="block text-sm font-medium text-slate-700"
+                    >
+                      {tweedeNiveauLabel}
+                    </label>
 
-                  <select
-                    id="titel"
-                    value={titelFilter}
-                    onChange={(event) =>
-                      setTitelFilter(
-                        event.target.value,
-                      )
-                    }
-                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
-                  >
-                    <option value="">
-                      Alle{" "}
-                      {welzijnswetGeselecteerd
-                        ? "afdelingen"
-                        : wetgevingFilter
-                          ? "titels"
-                          : "titels / afdelingen"}
-                    </option>
+                    <select
+                      id="titel"
+                      value={titelFilter}
+                      onChange={(event) =>
+                        setTitelFilter(
+                          event.target.value,
+                        )
+                      }
+                      className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
+                    >
+                      <option value="">
+                        Alle{" "}
+                        {welzijnswetGeselecteerd
+                          ? "afdelingen"
+                          : "titels"}
+                      </option>
 
-                    {beschikbareTitels.map(
-                      (titel) => (
-                        <option
-                          key={titel.id}
-                          value={titel.id}
-                        >
-                          {titel.naam}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
+                      {beschikbareTitels.map(
+                        (titel) => (
+                          <option
+                            key={titel.id}
+                            value={titel.id}
+                          >
+                            {titel.naam}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label

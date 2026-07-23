@@ -1528,51 +1528,51 @@ function InbreukFormulierInhoud({
               </select>
             </label>
 
-            <label className="block">
-              <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                {welzijnswetGeselecteerd
-                  ? "Hoofdstuk"
-                  : "Boek"}
-                <span className="ml-1 text-red-600">
-                  *
-                </span>
-              </span>
-
-              <select
-                value={formulier.boekId}
-                onChange={(event) =>
-                  wijzigBoek(
-                    event.target.value,
-                  )
-                }
-                className={veldStijl}
-                disabled={
-                  !formulier.wetgevingId ||
-                  bezig
-                }
-                required
-              >
-                <option value="">
+            {formulier.wetgevingId && (
+              <label className="block">
+                <span className="mb-1.5 block text-sm font-medium text-slate-700">
                   {welzijnswetGeselecteerd
-                    ? "Selecteer hoofdstuk"
-                    : "Selecteer boek"}
-                </option>
+                    ? "Hoofdstuk"
+                    : "Boek"}
+                  <span className="ml-1 text-red-600">
+                    *
+                  </span>
+                </span>
 
-                {beschikbareBoeken.map(
-                  (boek) => (
-                    <option
-                      key={boek.id}
-                      value={boek.id}
-                    >
-                      {boek.naam}
-                    </option>
-                  ),
-                )}
-              </select>
-            </label>
+                <select
+                  value={formulier.boekId}
+                  onChange={(event) =>
+                    wijzigBoek(
+                      event.target.value,
+                    )
+                  }
+                  className={veldStijl}
+                  disabled={bezig}
+                  required
+                >
+                  <option value="">
+                    {welzijnswetGeselecteerd
+                      ? "Selecteer hoofdstuk"
+                      : "Selecteer boek"}
+                  </option>
 
-            {(!welzijnswetGeselecteerd ||
-              zichtbareTitels.length > 0) && (
+                  {beschikbareBoeken.map(
+                    (boek) => (
+                      <option
+                        key={boek.id}
+                        value={boek.id}
+                      >
+                        {boek.naam}
+                      </option>
+                    ),
+                  )}
+                </select>
+              </label>
+            )}
+
+            {formulier.wetgevingId &&
+              (!welzijnswetGeselecteerd ||
+                zichtbareTitels.length > 0) && (
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
                   {welzijnswetGeselecteerd
@@ -1629,7 +1629,8 @@ function InbreukFormulierInhoud({
                 </div>
               )}
 
-            {!welzijnswetGeselecteerd && (
+            {formulier.wetgevingId &&
+              !welzijnswetGeselecteerd && (
               <div className="block">
               <label
                 htmlFor="inbreuk-onderwerp"
