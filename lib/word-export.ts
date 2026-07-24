@@ -1,4 +1,8 @@
-import type { TekstSegment } from "@/bibliotheek";
+import {
+  zoekEaoCode,
+  type InbreukType,
+  type TekstSegment,
+} from "@/bibliotheek";
 
 import {
   AlignmentType,
@@ -12,7 +16,13 @@ import {
   Packer,
   Paragraph,
   TabStopType,
+  Table,
+  TableCell,
+  TableLayoutType,
+  TableRow,
   TextRun,
+  VerticalAlign,
+  WidthType,
   XmlAttributeComponent,
   XmlComponent,
   type IRunOptions,
@@ -26,6 +36,7 @@ export type WordFoto = {
 };
 
 export type WordInbreuk = {
+  inbreukType: InbreukType;
   beschrijving: string;
   beschrijvingOpmaak?: TekstSegment[];
   inCasu: string;
@@ -36,6 +47,9 @@ export type WordInbreuk = {
   aanvulling: string;
   aanvullingOpmaak?: TekstSegment[];
   wettelijkeVerwijzing: string;
+  afwijkendeGebeurtenisCode?: string;
+  betrokkenVoorwerpCode?: string;
+  soortLetselCode?: string;
 };
 
 export type WordOngevalsgegevens = {
@@ -43,6 +57,7 @@ export type WordOngevalsgegevens = {
   slachtofferNaam: string;
   ongevalsdatum: string;
   slachtofferWerkHervat: boolean;
+  werkhervattingsdatum: string;
   werkpostBezocht: boolean;
 };
 
@@ -747,6 +762,323 @@ function formatteerDatumVoorWord(
   return datum;
 }
 
+function formatteerLangeDatumVoorWord(
+  datum: string,
+): string {
+  const [jaar, maand, dag] = datum
+    .split("-")
+    .map(Number);
+
+  if (
+    !jaar ||
+    !maand ||
+    !dag
+  ) {
+    return datum;
+  }
+
+  return new Intl.DateTimeFormat("nl-BE", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(
+    new Date(
+      Date.UTC(jaar, maand - 1, dag),
+    ),
+  );
+}
+
+const GEEN_TABELRAND = {
+  style: BorderStyle.NONE,
+  size: 0,
+  color: "FFFFFF",
+} as const;
+
+function maakEaoCodeTabel(
+  inbreuk: WordInbreuk,
+): Table {
+  const rijen = [
+    {
+      label: "Afwijkende gebeurtenis",
+      optie: zoekEaoCode(
+        "afwijkendeGebeurtenissen",
+        inbreuk.afwijkendeGebeurtenisCode ??
+          "",
+      ),
+      verkortCode: false,
+    },
+    {
+      label: "Betrokken voorwerp",
+      optie: zoekEaoCode(
+        "betrokkenVoorwerpen",
+        inbreuk.betrokkenVoorwerpCode ?? "",
+      ),
+      verkortCode: false,
+    },
+    {
+      label: "Soort letsel",
+      optie: zoekEaoCode(
+        "soortenLetsel",
+        inbreuk.soortLetselCode ?? "",
+      ),
+      verkortCode: true,
+    },
+  ];
+
+  return new Table({
+    width: {
+      size: 8755,
+      type: WidthType.DXA,
+    },
+    indent: {
+      size: 1441,
+      type: WidthType.DXA,
+    },
+    columnWidths: [1400, 7355],
+    layout: TableLayoutType.FIXED,
+    borders: {
+      top: GEEN_TABELRAND,
+      bottom: GEEN_TABELRAND,
+      left: GEEN_TABELRAND,
+      right: GEEN_TABELRAND,
+      insideHorizontal: GEEN_TABELRAND,
+      insideVertical: GEEN_TABELRAND,
+    },
+    rows: rijen.map(
+      ({ label, optie, verkortCode }) =>
+        new TableRow({
+          children: [
+            new TableCell({
+              width: {
+                size: 1400,
+                type: WidthType.DXA,
+              },
+              verticalAlign:
+                VerticalAlign.CENTER,
+              margins: {
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              },
+              borders: {
+                top: GEEN_TABELRAND,
+                bottom: GEEN_TABELRAND,
+                left: GEEN_TABELRAND,
+                right: GEEN_TABELRAND,
+              },
+              children: [
+                new Paragraph({
+                  alignment:
+                    AlignmentType.LEFT,
+                  spacing: {
+                    before: 0,
+                    after: 0,
+                    line:
+                      ENKELE_REGELAFSTAND,
+                  },
+                  children: [
+                    new TextRun({
+                      text: label,
+                      size:
+                        HOOFDTEKST_GROOTTE,
+                      font: LETTERTYPE,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+            new TableCell({
+              width: {
+                size: 7355,
+                type: WidthType.DXA,
+              },
+              verticalAlign:
+                VerticalAlign.CENTER,
+              margins: {
+                top: 0,
+                bottom: 0,
+                left: 0,
+                right: 0,
+              },
+              borders: {
+                top: GEEN_TABELRAND,
+                bottom: GEEN_TABELRAND,
+                left: GEEN_TABELRAND,
+                right: GEEN_TABELRAND,
+              },
+              children: [
+                new Paragraph({
+                  alignment:
+                    AlignmentType.JUSTIFIED,
+                  spacing: {
+                    before: 0,
+                    after: 0,
+                    line:
+                      ENKELE_REGELAFSTAND,
+                  },
+                  children: [
+                    new ThemaGrijzeTekstRun({
+                      text: optie
+                        ? `${verkortCode
+                            ? optie.code.replace(
+                                /^0/,
+                                "",
+                              )
+                            : optie.code} – ${optie.omschrijving}`
+                        : "Niet ingevuld",
+                      size:
+                        HOOFDTEKST_GROOTTE,
+                      font: LETTERTYPE,
+                    }),
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+    ),
+  });
+}
+
+function maakEaoInbreukOnderdelen(
+  inbreuk: WordInbreuk,
+  index: number,
+  gegevens: WordOngevalsgegevens,
+): Array<Paragraph | Table> {
+  const volledigeNaam = [
+    gegevens.slachtofferVoornaam.trim(),
+    gegevens.slachtofferNaam
+      .trim()
+      .toLocaleUpperCase("nl-BE"),
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const onderdelen: Array<
+    Paragraph | Table
+  > = [
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      numbering: {
+        reference:
+          INBREUK_NUMMERING_REFERENTIE,
+        level: 0,
+      },
+      spacing: {
+        before: index === 0 ? 40 : 0,
+        after: 0,
+        line: ENKELE_REGELAFSTAND,
+      },
+      keepNext: true,
+      children: maakOpgemaakteRuns(
+        inbreuk.beschrijving,
+        inbreuk.beschrijvingOpmaak,
+        {
+          grootte:
+            HOOFDTEKST_GROOTTE,
+        },
+      ),
+    }),
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      indent: {
+        left:
+          SITUERING_TEKST_INSPrONG,
+        hanging: HANGENDE_INSPrONG,
+      },
+      tabStops: [
+        {
+          type: TabStopType.LEFT,
+          position:
+            SITUERING_TEKST_INSPrONG,
+        },
+      ],
+      spacing: {
+        before: 0,
+        after: 0,
+        line: ENKELE_REGELAFSTAND,
+      },
+      keepNext: true,
+      children: [
+        new TextRun({
+          text: "☐",
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+        new TextRun({
+          text: "\t",
+          font: LETTERTYPE,
+        }),
+        new TextRun({
+          text: `Het betreft het ongeval van de heer ${volledigeNaam}, d.d. ${formatteerDatumVoorWord(
+            gegevens.ongevalsdatum,
+          )} met volgende codes:`,
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+      ],
+    }),
+    maakEaoCodeTabel(inbreuk),
+  ];
+
+  const werkhervatting =
+    gegevens.slachtofferWerkHervat
+      ? gegevens.werkhervattingsdatum
+        ? `Het slachtoffer heeft het werk pas op ${formatteerLangeDatumVoorWord(
+            gegevens.werkhervattingsdatum,
+          )} hervat.`
+        : "Het slachtoffer heeft het werk inmiddels hervat."
+      : "Het slachtoffer heeft het werk nog niet hervat.";
+
+  const werkhervattingParagrafen: Paragraph[] =
+    [];
+  voegGewoneTekstParagrafenToe(
+    werkhervattingParagrafen,
+    werkhervatting,
+    {
+      inspringingLinks:
+        TEKST_INSPrONG,
+      afstandVoor: 0,
+      afstandNa: 0,
+    },
+  );
+  onderdelen.push(
+    ...werkhervattingParagrafen,
+  );
+
+  onderdelen.push(
+    ...maakFotoParagrafen(
+      inbreuk.fotos,
+    ),
+  );
+
+  const wettelijkeParagrafen: Paragraph[] =
+    [];
+  voegGewoneTekstParagrafenToe(
+    wettelijkeParagrafen,
+    inbreuk.wettelijkeVerwijzing,
+    {
+      cursief: true,
+      kleur: "000000",
+      grootte:
+        WETTELIJKE_VERWIJZING_GROOTTE,
+      inspringingLinks:
+        TEKST_INSPrONG,
+      afstandVoor:
+        AFSTAND_VOOR_WETTELIJKE_VERWIJZING,
+      afstandNa:
+        AFSTAND_NA_WETTELIJKE_VERWIJZING,
+      regelafstand:
+        ENKELE_REGELAFSTAND,
+    },
+  );
+  onderdelen.push(...wettelijkeParagrafen);
+
+  return onderdelen;
+}
+
 function maakOngevalsParagrafen(
   gegevens?: WordOngevalsgegevens | null,
 ): Paragraph[] {
@@ -1005,12 +1337,35 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
           ...maakVaststellingenInleiding(),
 
           ...inspectie.inbreuken.flatMap(
-            maakInbreukParagrafen,
+            (inbreuk, index) => {
+              if (
+                inbreuk.inbreukType ===
+                  "EAO_CODES" &&
+                inspectie.ernstigArbeidsongeval
+              ) {
+                return maakEaoInbreukOnderdelen(
+                  inbreuk,
+                  index,
+                  inspectie.ernstigArbeidsongeval,
+                );
+              }
+
+              return maakInbreukParagrafen(
+                inbreuk,
+                index,
+              );
+            },
           ),
 
-          ...maakOngevalsParagrafen(
-            inspectie.ernstigArbeidsongeval,
-          ),
+          ...(inspectie.inbreuken.some(
+            (inbreuk) =>
+              inbreuk.inbreukType ===
+              "EAO_CODES",
+          )
+            ? []
+            : maakOngevalsParagrafen(
+                inspectie.ernstigArbeidsongeval,
+              )),
         ],
       },
     ],

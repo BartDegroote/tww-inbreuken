@@ -51,6 +51,7 @@ model Inspectie {
   slachtofferNaam       String?
   ongevalsdatum         String?
   slachtofferWerkHervat Boolean?
+  werkhervattingsdatum  String?
   werkpostBezocht       Boolean?
   ontmoetePersonen      Json               @default("[]")
   status                InspectieStatus    @default(CONCEPT)
@@ -70,6 +71,7 @@ model InspectieInbreuk {
   inspectieId                       String
   inspectie                         Inspectie       @relation(fields: [inspectieId], references: [id], onDelete: Cascade)
   standaardinbreukId                String?
+  inbreukType                       String          @default("STANDAARD")
   volgorde                          Int
   beschrijving                      String
   beschrijvingOpmaak                Json?
@@ -81,6 +83,9 @@ model InspectieInbreuk {
   specifiekeElementen               Json?
   geselecteerdeSpecifiekeElementIds String[]
   specifiekeElementenAlsSituering   Boolean         @default(false)
+  afwijkendeGebeurtenisCode         String?
+  betrokkenVoorwerpCode             String?
+  soortLetselCode                   String?
   fotos                             InspectieFoto[]
   aangemaaktOp                      DateTime        @default(now())
   gewijzigdOp                       DateTime        @updatedAt
@@ -134,6 +139,7 @@ model Standaardinbreuk {
   id String @id @default(cuid())
 
   geverifieerd Boolean @default(false)
+  inbreukType String  @default("STANDAARD")
 
   wetgevingId String
   boekId      String
@@ -165,7 +171,8 @@ model Standaardinbreuk {
 
   // Interne veldinformatie voor de inspecteur.
   // Deze tekst wordt nooit opgenomen in het Word-verslag.
-  inspecteurInfo String?
+  inspecteurInfo               String?
+  inspecteurInfoIngeschakeld   Boolean @default(false)
 
   // 5. Aanvulling inbreuk
   aanvulling       String?

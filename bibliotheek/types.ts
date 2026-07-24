@@ -12,10 +12,15 @@ export type SpecifiekElement = {
   volgorde: number;
 };
 
+export type InbreukType =
+  | "STANDAARD"
+  | "EAO_CODES";
+
 export type Standaardinbreuk = {
   id: string;
 
   geverifieerd: boolean;
+  inbreukType: InbreukType;
 
   wetgevingId: string;
   boekId: string;
@@ -47,6 +52,7 @@ export type Standaardinbreuk = {
 
   /** Interne veldinformatie; wordt nooit opgenomen in Word. */
   inspecteurInfo?: string;
+  inspecteurInfoIngeschakeld: boolean;
 
   // 5. Aanvulling
   aanvulling?: string;

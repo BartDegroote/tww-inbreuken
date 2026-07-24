@@ -1,4 +1,5 @@
 export * from "./types";
+export * from "./eao-codes";
 export * from "./wetgevingen";
 export * from "./boeken";
 export * from "./titels";

@@ -168,6 +168,12 @@ export default function InbreukenLijst({
                   >
                     <span className="flex items-start justify-between gap-2 text-xs font-semibold uppercase leading-5 tracking-wide text-slate-500">
                       <span>
+                        {inbreuk.inbreukType ===
+                          "EAO_CODES" && (
+                          <span className="mr-2 inline-flex rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold tracking-normal text-amber-800">
+                            EAO-codes
+                          </span>
+                        )}
                         {wetgevingNaam}
                         {" · "}
                         {boekNaam}
@@ -175,7 +181,8 @@ export default function InbreukenLijst({
                           ` · ${titelNaam}`}
                       </span>
 
-                      {inbreuk.inspecteurInfo?.trim() && (
+                      {inbreuk.inspecteurInfoIngeschakeld &&
+                        inbreuk.inspecteurInfo?.trim() && (
                         <span
                           aria-label="Info voor inspecteur beschikbaar"
                           title="Info voor inspecteur beschikbaar"

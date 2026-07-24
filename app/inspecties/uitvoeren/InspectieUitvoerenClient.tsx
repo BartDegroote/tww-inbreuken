@@ -16,8 +16,16 @@ import {
 import AppBalk from "@/app/componenten/AppBalk";
 
 import type {
+  EaoCodeOptie,
+  InbreukType,
   Standaardinbreuk,
   TekstSegment,
+} from "@/bibliotheek";
+import {
+  afwijkendeGebeurtenissen,
+  betrokkenVoorwerpen,
+  formatteerEaoCode,
+  soortenLetsel,
 } from "@/bibliotheek";
 import {
   isVerborgenAfdeling,
@@ -68,6 +76,7 @@ export type InspectieFoto = {
 export type Inbreuk = {
   id: string;
   standaardinbreukId: string;
+  inbreukType: InbreukType;
   beschrijving: string;
   beschrijvingOpmaak: TekstSegment[];
   inCasu: string;
@@ -78,6 +87,9 @@ export type Inbreuk = {
   specifiekeElementen: SpecifiekElementKeuze[];
   geselecteerdeSpecifiekeElementIds: string[];
   specifiekeElementenAlsSituering: boolean;
+  afwijkendeGebeurtenisCode: string;
+  betrokkenVoorwerpCode: string;
+  soortLetselCode: string;
   fotos: InspectieFoto[];
 };
 
@@ -96,6 +108,112 @@ type InspectieUitvoerenClientProps = {
   standaardinbreuken: Standaardinbreuk[];
   initialInbreuken: Inbreuk[];
 };
+
+type EaoCodeVeldProps = {
+  id: string;
+  label: string;
+  waarde: string;
+  opties: readonly EaoCodeOptie[];
+  onChange: (code: string) => void;
+};
+
+function EaoCodeVeld({
+  id,
+  label,
+  waarde,
+  opties,
+  onChange,
+}: EaoCodeVeldProps) {
+  const geselecteerd = opties.find(
+    (optie) => optie.code === waarde,
+  );
+  const weergave = geselecteerd
+    ? formatteerEaoCode(geselecteerd)
+    : "";
+  const [invoer, setInvoer] =
+    useState(weergave);
+
+  function wijzigInvoer(
+    nieuweWaarde: string,
+  ): void {
+    setInvoer(nieuweWaarde);
+
+    const genormaliseerd =
+      nieuweWaarde.trim().toLocaleLowerCase(
+        "nl-BE",
+      );
+    const keuze = opties.find(
+      (optie) =>
+        optie.code.toLocaleLowerCase(
+          "nl-BE",
+        ) === genormaliseerd ||
+        formatteerEaoCode(optie)
+          .toLocaleLowerCase("nl-BE") ===
+          genormaliseerd,
+    );
+
+    if (keuze) {
+      setInvoer(formatteerEaoCode(keuze));
+    }
+
+    onChange(keuze?.code ?? "");
+  }
+
+  return (
+    <label className="block min-w-0">
+      <span className="text-sm font-semibold text-slate-800">
+        {label}
+      </span>
+
+      <input
+        id={id}
+        type="text"
+        list={`${id}-opties`}
+        value={invoer}
+        onChange={(event) =>
+          wijzigInvoer(event.target.value)
+        }
+        onBlur={() => {
+          if (!waarde) {
+            setInvoer("");
+          }
+        }}
+        placeholder="Typ een code of zoekterm…"
+        autoComplete="off"
+        className="mt-2 min-h-11 w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-amber-600 focus:ring-4 focus:ring-amber-100"
+        required
+      />
+
+      <datalist id={`${id}-opties`}>
+        {opties.map((optie) => (
+          <option
+            key={optie.code}
+            value={formatteerEaoCode(optie)}
+          >
+            {optie.eaoRelevant
+              ? "EAO-relevant"
+              : "Andere code"}
+          </option>
+        ))}
+      </datalist>
+
+      {geselecteerd && (
+        <span className="mt-2 flex flex-wrap items-center gap-2 text-xs leading-5 text-slate-600">
+          {geselecteerd.eaoRelevant && (
+            <span className="inline-flex rounded-full border border-amber-400 bg-amber-100 px-2 py-0.5 font-bold text-amber-900">
+              EAO-relevant
+            </span>
+          )}
+          <span>
+            {geselecteerd.eaoRelevant
+              ? "Deze code komt voor in een relevante Codex-bijlage."
+              : "Deze code is niet afzonderlijk aangeduid in de EAO-bijlagen."}
+          </span>
+        </span>
+      )}
+    </label>
+  );
+}
 
 function kopieerSegmenten(
   segmenten?: TekstSegment[],
@@ -327,6 +445,19 @@ export default function InspectieUitvoerenClient({
     setGeselecteerdeSpecifiekeElementIds,
   ] = useState<string[]>([]);
 
+  const [
+    afwijkendeGebeurtenisCode,
+    setAfwijkendeGebeurtenisCode,
+  ] = useState("");
+
+  const [
+    betrokkenVoorwerpCode,
+    setBetrokkenVoorwerpCode,
+  ] = useState("");
+
+  const [soortLetselCode, setSoortLetselCode] =
+    useState("");
+
   const [wetgevingFilter, setWetgevingFilter] =
     useState("");
 
@@ -334,6 +465,9 @@ export default function InspectieUitvoerenClient({
     useState("");
 
   const [titelFilter, setTitelFilter] =
+    useState("");
+
+  const [onderwerpFilter, setOnderwerpFilter] =
     useState("");
 
   const [zoekterm, setZoekterm] =
@@ -399,6 +533,13 @@ export default function InspectieUitvoerenClient({
     initialOngevalsgegevens.slachtofferWerkHervat,
   );
 
+  const [
+    werkhervattingsdatum,
+    setWerkhervattingsdatum,
+  ] = useState(
+    initialOngevalsgegevens.werkhervattingsdatum,
+  );
+
   const [werkpostBezocht, setWerkpostBezocht] =
     useState<boolean | null>(
       initialOngevalsgegevens.werkpostBezocht,
@@ -437,6 +578,55 @@ export default function InspectieUitvoerenClient({
         !isVerborgenAfdeling(titel.id),
     );
   }, [titels, boekFilter, beschikbareBoeken]);
+
+  const beschikbareOnderwerpen = useMemo(() => {
+    const uniekeOnderwerpen =
+      new Map<string, string>();
+
+    for (const inbreuk of standaardinbreuken) {
+      const juisteWetgeving =
+        wetgevingFilter === "" ||
+        inbreuk.wetgevingId === wetgevingFilter;
+      const juisteBoek =
+        boekFilter === "" ||
+        inbreuk.boekId === boekFilter;
+      const juisteTitel =
+        titelFilter === "" ||
+        inbreuk.titelId === titelFilter;
+      const onderwerp = inbreuk.onderwerp.trim();
+
+      if (
+        !juisteWetgeving ||
+        !juisteBoek ||
+        !juisteTitel ||
+        !onderwerp
+      ) {
+        continue;
+      }
+
+      const sleutel =
+        onderwerp.toLocaleLowerCase("nl-BE");
+
+      if (!uniekeOnderwerpen.has(sleutel)) {
+        uniekeOnderwerpen.set(
+          sleutel,
+          onderwerp,
+        );
+      }
+    }
+
+    return [...uniekeOnderwerpen.values()].sort(
+      (a, b) =>
+        a.localeCompare(b, "nl-BE", {
+          sensitivity: "base",
+        }),
+    );
+  }, [
+    standaardinbreuken,
+    wetgevingFilter,
+    boekFilter,
+    titelFilter,
+  ]);
 
   const welzijnswetGeselecteerd =
     isWelzijnswet(wetgevingFilter);
@@ -546,7 +736,10 @@ export default function InspectieUitvoerenClient({
     ]);
   const geselecteerdeInspecteurInfo =
     geselecteerdeStandaardinbreuk
-      ?.inspecteurInfo?.trim() ?? "";
+      ?.inspecteurInfoIngeschakeld
+      ? geselecteerdeStandaardinbreuk.inspecteurInfo?.trim() ??
+        ""
+      : "";
   const toonGeselecteerdeInspecteurInfo =
     Boolean(
       geselecteerdeStandaardinbreuk &&
@@ -592,6 +785,15 @@ export default function InspectieUitvoerenClient({
           titelFilter === "" ||
           inbreuk.titelId === titelFilter;
 
+        const juisteOnderwerp =
+          onderwerpFilter === "" ||
+          inbreuk.onderwerp
+            .trim()
+            .toLocaleLowerCase("nl-BE") ===
+            onderwerpFilter.toLocaleLowerCase(
+              "nl-BE",
+            );
+
         const zoekbareTekst =
           zoektekstPerInbreukId.get(
             inbreuk.id,
@@ -607,6 +809,7 @@ export default function InspectieUitvoerenClient({
           juisteWetgeving &&
           juisteBoek &&
           juisteTitel &&
+          juisteOnderwerp &&
           juisteZoekterm
         );
       },
@@ -616,6 +819,7 @@ export default function InspectieUitvoerenClient({
     wetgevingFilter,
     boekFilter,
     titelFilter,
+    onderwerpFilter,
     zoekterm,
     zoektekstPerInbreukId,
   ]);
@@ -661,6 +865,9 @@ export default function InspectieUitvoerenClient({
     setInCasu("");
     setWettelijkeVerwijzing("");
     setGeselecteerdeSpecifiekeElementIds([]);
+    setAfwijkendeGebeurtenisCode("");
+    setBetrokkenVoorwerpCode("");
+    setSoortLetselCode("");
     setFotos([]);
   }
 
@@ -688,6 +895,7 @@ export default function InspectieUitvoerenClient({
       slachtofferNaam,
       ongevalsdatum,
       slachtofferWerkHervat,
+      werkhervattingsdatum,
       werkpostBezocht,
     };
   }
@@ -775,6 +983,7 @@ export default function InspectieUitvoerenClient({
     const nieuweInbreuk: Inbreuk = {
       id: maakTijdelijkId(),
       standaardinbreukId: standaard.id,
+      inbreukType: standaard.inbreukType,
       beschrijving: standaard.omschrijving,
       beschrijvingOpmaak: kopieerSegmenten(
         standaard.omschrijvingOpmaak,
@@ -801,8 +1010,15 @@ export default function InspectieUitvoerenClient({
       geselecteerdeSpecifiekeElementIds: [],
       specifiekeElementenAlsSituering:
         standaard.specifiekeElementenAlsSituering,
+      afwijkendeGebeurtenisCode: "",
+      betrokkenVoorwerpCode: "",
+      soortLetselCode: "",
       fotos: [],
     };
+
+    if (standaard.inbreukType === "EAO_CODES") {
+      setErnstigArbeidsongeval(true);
+    }
 
     setInbreuken((huidigeInbreuken) =>
       sorteerInbreuken([
@@ -820,6 +1036,9 @@ export default function InspectieUitvoerenClient({
       nieuweInbreuk.wettelijkeVerwijzing,
     );
     setGeselecteerdeSpecifiekeElementIds([]);
+    setAfwijkendeGebeurtenisCode("");
+    setBetrokkenVoorwerpCode("");
+    setSoortLetselCode("");
     setFotos([]);
     setExportFout("");
     setGetoondeInspecteurInfo(null);
@@ -837,6 +1056,15 @@ export default function InspectieUitvoerenClient({
     );
     setGeselecteerdeSpecifiekeElementIds(
       inbreuk.geselecteerdeSpecifiekeElementIds,
+    );
+    setAfwijkendeGebeurtenisCode(
+      inbreuk.afwijkendeGebeurtenisCode,
+    );
+    setBetrokkenVoorwerpCode(
+      inbreuk.betrokkenVoorwerpCode,
+    );
+    setSoortLetselCode(
+      inbreuk.soortLetselCode,
     );
     setFotos(inbreuk.fotos);
     setExportFout("");
@@ -872,6 +1100,7 @@ export default function InspectieUitvoerenClient({
           id: inbreuk.id,
           standaardinbreukId:
             inbreuk.standaardinbreukId,
+          inbreukType: inbreuk.inbreukType,
           beschrijving: inbreuk.beschrijving,
           beschrijvingOpmaak:
             inbreuk.beschrijvingOpmaak,
@@ -888,6 +1117,12 @@ export default function InspectieUitvoerenClient({
             inbreuk.geselecteerdeSpecifiekeElementIds,
           specifiekeElementenAlsSituering:
             inbreuk.specifiekeElementenAlsSituering,
+          afwijkendeGebeurtenisCode:
+            inbreuk.afwijkendeGebeurtenisCode,
+          betrokkenVoorwerpCode:
+            inbreuk.betrokkenVoorwerpCode,
+          soortLetselCode:
+            inbreuk.soortLetselCode,
           bewaardeFotoIds: inbreuk.fotos
             .filter((foto) => Boolean(foto.url))
             .map((foto) => foto.id),
@@ -982,6 +1217,9 @@ export default function InspectieUitvoerenClient({
           inCasu,
           wettelijkeVerwijzing,
           geselecteerdeSpecifiekeElementIds,
+          afwijkendeGebeurtenisCode,
+          betrokkenVoorwerpCode,
+          soortLetselCode,
           fotos,
         };
       }),
@@ -1047,6 +1285,8 @@ export default function InspectieUitvoerenClient({
         !slachtofferNaam.trim() ||
         !ongevalsdatum ||
         werkHervat === null ||
+        (werkHervat &&
+          !werkhervattingsdatum) ||
         werkpostIsBezocht === null)
     ) {
       setExportFout(
@@ -1062,6 +1302,23 @@ export default function InspectieUitvoerenClient({
       const actueleInbreuken =
         synchroniseerFormulier(inbreuken);
 
+      const onvolledigeEaoInbreuk =
+        actueleInbreuken.find(
+          (inbreuk) =>
+            inbreuk.inbreukType ===
+              "EAO_CODES" &&
+            (!inbreuk.afwijkendeGebeurtenisCode ||
+              !inbreuk.betrokkenVoorwerpCode ||
+              !inbreuk.soortLetselCode),
+        );
+
+      if (onvolledigeEaoInbreuk) {
+        setExportFout(
+          "Kies voor elke EAO-inbreuk de afwijkende gebeurtenis, het betrokken voorwerp en het soort letsel.",
+        );
+        return;
+      }
+
       setInbreuken(actueleInbreuken);
 
       const opgeslagenInbreuken = await slaDossierOp(actueleInbreuken);
@@ -1074,6 +1331,7 @@ export default function InspectieUitvoerenClient({
         await Promise.all(
           opgeslagenInbreuken.map(
             async (inbreuk) => ({
+              inbreukType: inbreuk.inbreukType,
               beschrijving:
                 inbreuk.beschrijving,
               beschrijvingOpmaak:
@@ -1100,6 +1358,12 @@ export default function InspectieUitvoerenClient({
                 inbreuk.aanvullingOpmaak,
               wettelijkeVerwijzing:
                 inbreuk.wettelijkeVerwijzing,
+              afwijkendeGebeurtenisCode:
+                inbreuk.afwijkendeGebeurtenisCode,
+              betrokkenVoorwerpCode:
+                inbreuk.betrokkenVoorwerpCode,
+              soortLetselCode:
+                inbreuk.soortLetselCode,
             }),
           ),
         );
@@ -1123,6 +1387,7 @@ export default function InspectieUitvoerenClient({
                 ongevalsdatum,
                 slachtofferWerkHervat:
                   werkHervat,
+                werkhervattingsdatum,
                 werkpostBezocht:
                   werkpostIsBezocht,
               }
@@ -1175,7 +1440,10 @@ export default function InspectieUitvoerenClient({
         inbreuk.wettelijkeVerwijzing,
       );
     const inspecteurInfo =
-      inbreuk.inspecteurInfo?.trim() ?? "";
+      inbreuk.inspecteurInfoIngeschakeld
+        ? inbreuk.inspecteurInfo?.trim() ??
+          ""
+        : "";
     const inspecteurInfoSleutel =
       `zoek-${inbreuk.id}`;
     const toonInspecteurInfo =
@@ -1200,6 +1468,13 @@ export default function InspectieUitvoerenClient({
               {compacteWettelijkeVerwijzing}
             </span>
           </p>
+
+          {inbreuk.inbreukType ===
+            "EAO_CODES" && (
+            <span className="inline-flex shrink-0 rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+              EAO
+            </span>
+          )}
 
           {inspecteurInfo && (
             <button
@@ -1566,9 +1841,10 @@ export default function InspectieUitvoerenClient({
                   Gegevens ernstig arbeidsongeval
                 </h2>
                 <p className="mt-1 text-sm text-amber-800">
-                  Deze gegevens verschijnen als
-                  afzonderlijke hoofding onderaan
-                  het Word-verslag.
+                  Deze gegevens worden
+                  automatisch gebruikt in de
+                  EAO-inbreuk en het
+                  Word-verslag.
                 </p>
               </div>
 
@@ -1660,7 +1936,32 @@ export default function InspectieUitvoerenClient({
                   </div>
                 </fieldset>
 
-                <fieldset className="sm:col-span-1 lg:col-span-2">
+                {slachtofferWerkHervat && (
+                  <label className="block">
+                    <span className="text-sm font-semibold text-slate-700">
+                      Datum werkhervatting
+                    </span>
+                    <input
+                      type="date"
+                      value={werkhervattingsdatum}
+                      onChange={(event) =>
+                        setWerkhervattingsdatum(
+                          event.target.value,
+                        )
+                      }
+                      className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+                      required
+                    />
+                  </label>
+                )}
+
+                <fieldset
+                  className={
+                    slachtofferWerkHervat
+                      ? "sm:col-span-2 lg:col-span-1"
+                      : "sm:col-span-1 lg:col-span-2"
+                  }
+                >
                   <legend className="text-sm font-semibold text-slate-700">
                     Werkpost van het ongeval bezocht?
                   </legend>
@@ -1743,8 +2044,16 @@ export default function InspectieUitvoerenClient({
                               : "border-slate-200 hover:bg-slate-50"
                           }`}
                         >
-                          <span className="block text-sm font-semibold text-slate-900">
-                            Inbreuk {index + 1}
+                          <span className="flex items-center justify-between gap-2 text-sm font-semibold text-slate-900">
+                            <span>
+                              Inbreuk {index + 1}
+                            </span>
+                            {inbreuk.inbreukType ===
+                              "EAO_CODES" && (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                                EAO
+                              </span>
+                            )}
                           </span>
 
                           <TekstMetOpmaak
@@ -1791,8 +2100,8 @@ export default function InspectieUitvoerenClient({
               <div
                 className={`mt-6 grid gap-4 sm:grid-cols-2 ${
                   wetgevingFilter
-                    ? "lg:grid-cols-4"
-                    : "lg:grid-cols-2"
+                    ? "lg:grid-cols-3 xl:grid-cols-5"
+                    : "lg:grid-cols-3"
                 }`}
               >
                 <div>
@@ -1812,6 +2121,7 @@ export default function InspectieUitvoerenClient({
                       );
                       setBoekFilter("");
                       setTitelFilter("");
+                      setOnderwerpFilter("");
                     }}
                     className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
                   >
@@ -1849,6 +2159,7 @@ export default function InspectieUitvoerenClient({
                           event.target.value,
                         );
                         setTitelFilter("");
+                        setOnderwerpFilter("");
                       }}
                       className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
                     >
@@ -1885,11 +2196,12 @@ export default function InspectieUitvoerenClient({
                     <select
                       id="titel"
                       value={titelFilter}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         setTitelFilter(
                           event.target.value,
-                        )
-                      }
+                        );
+                        setOnderwerpFilter("");
+                      }}
                       className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
                     >
                       <option value="">
@@ -1912,6 +2224,41 @@ export default function InspectieUitvoerenClient({
                     </select>
                   </div>
                 )}
+
+                <div className="hidden lg:block">
+                  <label
+                    htmlFor="onderwerp"
+                    className="block text-sm font-medium text-slate-700"
+                  >
+                    Onderwerp
+                  </label>
+
+                  <select
+                    id="onderwerp"
+                    value={onderwerpFilter}
+                    onChange={(event) =>
+                      setOnderwerpFilter(
+                        event.target.value,
+                      )
+                    }
+                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
+                  >
+                    <option value="">
+                      Alle onderwerpen
+                    </option>
+
+                    {beschikbareOnderwerpen.map(
+                      (onderwerp) => (
+                        <option
+                          key={onderwerp}
+                          value={onderwerp}
+                        >
+                          {onderwerp}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                </div>
 
                 <div>
                   <label
@@ -2221,6 +2568,109 @@ export default function InspectieUitvoerenClient({
                     </div>
                   </section>
 
+                  {geselecteerdeInbreuk
+                    ?.inbreukType ===
+                  "EAO_CODES" ? (
+                    <section
+                      aria-labelledby="eao-codes-titel"
+                      className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white p-5 shadow-sm sm:p-6"
+                    >
+                      <div className="flex flex-col gap-3 border-b border-amber-200 pb-5 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <h3
+                            id="eao-codes-titel"
+                            className="text-lg font-bold text-slate-900"
+                          >
+                            Ongevalscodes
+                          </h3>
+                          <p className="mt-1 text-sm leading-6 text-slate-600">
+                            Zoek op code of
+                            omschrijving. De
+                            slachtoffergegevens
+                            worden bovenaan beheerd.
+                          </p>
+                        </div>
+
+                        <span className="inline-flex w-fit rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900">
+                          EAO-layout
+                        </span>
+                      </div>
+
+                      <div className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+                        Het betreft het ongeval van{" "}
+                        <strong>
+                          {[
+                            slachtofferVoornaam,
+                            slachtofferNaam,
+                          ]
+                            .filter((deel) =>
+                              deel.trim(),
+                            )
+                            .join(" ") ||
+                            "het slachtoffer"}
+                        </strong>
+                        , d.d.{" "}
+                        <strong>
+                          {ongevalsdatum ||
+                            "datum nog invullen"}
+                        </strong>
+                        .
+                      </div>
+
+                      <div className="mt-5 grid gap-5">
+                        <EaoCodeVeld
+                          key={`afwijkende-${geselecteerdeInbreuk.id}`}
+                          id="afwijkende-gebeurtenis"
+                          label="Afwijkende gebeurtenis"
+                          waarde={
+                            afwijkendeGebeurtenisCode
+                          }
+                          opties={
+                            afwijkendeGebeurtenissen
+                          }
+                          onChange={
+                            setAfwijkendeGebeurtenisCode
+                          }
+                        />
+
+                        <EaoCodeVeld
+                          key={`voorwerp-${geselecteerdeInbreuk.id}`}
+                          id="betrokken-voorwerp"
+                          label="Betrokken voorwerp"
+                          waarde={
+                            betrokkenVoorwerpCode
+                          }
+                          opties={
+                            betrokkenVoorwerpen
+                          }
+                          onChange={
+                            setBetrokkenVoorwerpCode
+                          }
+                        />
+
+                        <EaoCodeVeld
+                          key={`letsel-${geselecteerdeInbreuk.id}`}
+                          id="soort-letsel"
+                          label="Soort letsel"
+                          waarde={soortLetselCode}
+                          opties={soortenLetsel}
+                          onChange={
+                            setSoortLetselCode
+                          }
+                        />
+                      </div>
+
+                      <p className="mt-5 rounded-lg bg-amber-100 px-3 py-2 text-xs leading-5 text-amber-900">
+                        “EAO-relevant” betekent
+                        dat de code in een
+                        toepasselijke
+                        Codex-bijlage voorkomt.
+                        De ernst volgt steeds uit
+                        de volledige wettelijke
+                        combinatie.
+                      </p>
+                    </section>
+                  ) : (
                   <section
                     aria-labelledby="inspectievaststelling-titel"
                     className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
@@ -2363,6 +2813,7 @@ export default function InspectieUitvoerenClient({
                         </div>
                       )}
                   </section>
+                  )}
 
                   <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                     <div>

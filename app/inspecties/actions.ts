@@ -2,12 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
+import {
+  zoekEaoCode,
+  type EaoCodeCategorie,
+  type InbreukType,
+} from "@/bibliotheek";
 import { vereisGebruiker } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export type OpgeslagenInbreukInput = {
   id: string;
   standaardinbreukId: string;
+  inbreukType: InbreukType;
   beschrijving: string;
   beschrijvingOpmaak: Array<{
     tekst: string;
@@ -28,6 +34,9 @@ export type OpgeslagenInbreukInput = {
   specifiekeElementen: Array<{ id: string; tekst: string }>;
   geselecteerdeSpecifiekeElementIds: string[];
   specifiekeElementenAlsSituering: boolean;
+  afwijkendeGebeurtenisCode: string;
+  betrokkenVoorwerpCode: string;
+  soortLetselCode: string;
   bewaardeFotoIds: string[];
 };
 
@@ -37,6 +46,7 @@ export type OngevalsgegevensInput = {
   slachtofferNaam: string;
   ongevalsdatum: string;
   slachtofferWerkHervat: boolean | null;
+  werkhervattingsdatum: string;
   werkpostBezocht: boolean | null;
 };
 
@@ -44,6 +54,25 @@ export type OntmoetePersoonInput = {
   naam: string;
   functie: string;
 };
+
+function controleerEaoCode(
+  categorie: EaoCodeCategorie,
+  code: string,
+  veldnaam: string,
+): string {
+  const opgeschoondeCode = code.trim();
+
+  if (
+    !opgeschoondeCode ||
+    !zoekEaoCode(categorie, opgeschoondeCode)
+  ) {
+    throw new Error(
+      `Kies een geldige code voor ${veldnaam}.`,
+    );
+  }
+
+  return opgeschoondeCode;
+}
 
 function normaliseerOntmoetePersonen(
   personen: OntmoetePersoonInput[],
@@ -141,6 +170,8 @@ export async function bewaarInspectie(
     ongevalsgegevens.slachtofferNaam.trim();
   const ongevalsdatum =
     ongevalsgegevens.ongevalsdatum.trim();
+  const werkhervattingsdatum =
+    ongevalsgegevens.werkhervattingsdatum.trim();
   const genormaliseerdeOntmoetePersonen =
     normaliseerOntmoetePersonen(ontmoetePersonen);
 
@@ -150,6 +181,8 @@ export async function bewaarInspectie(
       !slachtofferNaam ||
       !ongevalsdatum ||
       ongevalsgegevens.slachtofferWerkHervat === null ||
+      (ongevalsgegevens.slachtofferWerkHervat &&
+        !werkhervattingsdatum) ||
       ongevalsgegevens.werkpostBezocht === null)
   ) {
     throw new Error(
@@ -163,7 +196,11 @@ export async function bewaarInspectie(
       slachtofferNaam.length > 100 ||
       !/^\d{4}-\d{2}-\d{2}$/.test(
         ongevalsdatum,
-      ))
+      ) ||
+      (ongevalsgegevens.slachtofferWerkHervat &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(
+          werkhervattingsdatum,
+        )))
   ) {
     throw new Error(
       "Controleer de naam en datum van het ernstig arbeidsongeval.",
@@ -198,7 +235,46 @@ export async function bewaarInspectie(
     });
 
     for (const [volgorde, inbreuk] of inbreuken.entries()) {
+      const inbreukType: InbreukType =
+        inbreuk.inbreukType === "EAO_CODES"
+          ? "EAO_CODES"
+          : "STANDAARD";
+      const afwijkendeGebeurtenisCode =
+        inbreukType === "EAO_CODES"
+          ? controleerEaoCode(
+              "afwijkendeGebeurtenissen",
+              inbreuk.afwijkendeGebeurtenisCode,
+              "afwijkende gebeurtenis",
+            )
+          : null;
+      const betrokkenVoorwerpCode =
+        inbreukType === "EAO_CODES"
+          ? controleerEaoCode(
+              "betrokkenVoorwerpen",
+              inbreuk.betrokkenVoorwerpCode,
+              "betrokken voorwerp",
+            )
+          : null;
+      const soortLetselCode =
+        inbreukType === "EAO_CODES"
+          ? controleerEaoCode(
+              "soortenLetsel",
+              inbreuk.soortLetselCode,
+              "soort letsel",
+            )
+          : null;
+
       if (
+        inbreukType === "EAO_CODES" &&
+        !ongevalsgegevens.ernstigArbeidsongeval
+      ) {
+        throw new Error(
+          "Schakel Ernstig arbeidsongeval in om een EAO-code-inbreuk te gebruiken.",
+        );
+      }
+
+      if (
+        inbreukType === "STANDAARD" &&
         inbreuk.specifiekeElementenAlsSituering &&
         inbreuk.geselecteerdeSpecifiekeElementIds.length === 0
       ) {
@@ -209,6 +285,7 @@ export async function bewaarInspectie(
 
       const data = {
         standaardinbreukId: inbreuk.standaardinbreukId || null,
+        inbreukType,
         volgorde,
         beschrijving: inbreuk.beschrijving,
         beschrijvingOpmaak: inbreuk.beschrijvingOpmaak,
@@ -222,6 +299,9 @@ export async function bewaarInspectie(
           inbreuk.geselecteerdeSpecifiekeElementIds,
         specifiekeElementenAlsSituering:
           inbreuk.specifiekeElementenAlsSituering,
+        afwijkendeGebeurtenisCode,
+        betrokkenVoorwerpCode,
+        soortLetselCode,
       };
 
       await transactie.inspectieInbreuk.upsert({
@@ -270,6 +350,11 @@ export async function bewaarInspectie(
         slachtofferWerkHervat:
           ongevalsgegevens.ernstigArbeidsongeval
             ? ongevalsgegevens.slachtofferWerkHervat
+            : null,
+        werkhervattingsdatum:
+          ongevalsgegevens.ernstigArbeidsongeval &&
+          ongevalsgegevens.slachtofferWerkHervat
+            ? werkhervattingsdatum
             : null,
         werkpostBezocht:
           ongevalsgegevens.ernstigArbeidsongeval

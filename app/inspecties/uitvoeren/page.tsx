@@ -57,12 +57,14 @@ export default async function InspectieUitvoerenPagina({
         slachtofferNaam: true,
         ongevalsdatum: true,
         slachtofferWerkHervat: true,
+        werkhervattingsdatum: true,
         werkpostBezocht: true,
         inbreuken: {
           orderBy: { volgorde: "asc" },
           select: {
             id: true,
             standaardinbreukId: true,
+            inbreukType: true,
             beschrijving: true,
             beschrijvingOpmaak: true,
             inCasu: true,
@@ -73,6 +75,9 @@ export default async function InspectieUitvoerenPagina({
             specifiekeElementen: true,
             geselecteerdeSpecifiekeElementIds: true,
             specifiekeElementenAlsSituering: true,
+            afwijkendeGebeurtenisCode: true,
+            betrokkenVoorwerpCode: true,
+            soortLetselCode: true,
             fotos: {
               orderBy: { aangemaaktOp: "asc" },
               select: { id: true, naam: true },
@@ -108,6 +113,10 @@ export default async function InspectieUitvoerenPagina({
     return {
       id: inbreuk.id,
       standaardinbreukId: inbreuk.standaardinbreukId ?? "",
+      inbreukType:
+        inbreuk.inbreukType === "EAO_CODES"
+          ? "EAO_CODES"
+          : "STANDAARD",
       beschrijving: inbreuk.beschrijving,
       beschrijvingOpmaak: leesTekstSegmenten(inbreuk.beschrijvingOpmaak),
       inCasu: inbreuk.inCasu,
@@ -120,6 +129,12 @@ export default async function InspectieUitvoerenPagina({
         inbreuk.geselecteerdeSpecifiekeElementIds,
       specifiekeElementenAlsSituering:
         inbreuk.specifiekeElementenAlsSituering,
+      afwijkendeGebeurtenisCode:
+        inbreuk.afwijkendeGebeurtenisCode ?? "",
+      betrokkenVoorwerpCode:
+        inbreuk.betrokkenVoorwerpCode ?? "",
+      soortLetselCode:
+        inbreuk.soortLetselCode ?? "",
       fotos: inbreuk.fotos.map((foto) => ({
         id: foto.id,
         naam: foto.naam,
@@ -170,6 +185,8 @@ export default async function InspectieUitvoerenPagina({
           inspectie.ongevalsdatum ?? "",
         slachtofferWerkHervat:
           inspectie.slachtofferWerkHervat,
+        werkhervattingsdatum:
+          inspectie.werkhervattingsdatum ?? "",
         werkpostBezocht:
           inspectie.werkpostBezocht,
       }}

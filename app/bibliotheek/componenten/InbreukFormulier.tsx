@@ -652,9 +652,16 @@ function initialiseerFormulier(
   return {
     ...inbreuk,
     geverifieerd: inbreuk.geverifieerd ?? false,
+    inbreukType:
+      inbreuk.inbreukType === "EAO_CODES"
+        ? "EAO_CODES"
+        : "STANDAARD",
     onderwerp: inbreuk.onderwerp ?? "",
     inspecteurInfo:
       inbreuk.inspecteurInfo ?? "",
+    inspecteurInfoIngeschakeld:
+      inbreuk.inspecteurInfoIngeschakeld ??
+      Boolean(inbreuk.inspecteurInfo?.trim()),
     specifiekeElementenIngeschakeld:
       inbreuk.specifiekeElementenIngeschakeld ??
       false,
@@ -982,6 +989,49 @@ function InbreukFormulierInhoud({
       return {
         ...huidig,
         geverifieerd,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigInbreukType(
+    inbreukType: Standaardinbreuk["inbreukType"],
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      return {
+        ...huidig,
+        inbreukType,
+        specifiekeElementenIngeschakeld:
+          inbreukType === "EAO_CODES"
+            ? false
+            : huidig.specifiekeElementenIngeschakeld,
+        specifiekeElementenAlsSituering:
+          inbreukType === "EAO_CODES"
+            ? false
+            : huidig.specifiekeElementenAlsSituering,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigInspecteurInfoIngeschakeld(
+    ingeschakeld: boolean,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      return {
+        ...huidig,
+        inspecteurInfoIngeschakeld:
+          ingeschakeld,
       };
     });
 
@@ -1433,9 +1483,13 @@ function InbreukFormulierInhoud({
     );
 
   const specifiekeElementenGeldig =
-    !formulier
-      .specifiekeElementenIngeschakeld ||
+    formulier.inbreukType === "EAO_CODES" ||
+    !formulier.specifiekeElementenIngeschakeld ||
     geldigeSpecifiekeElementen.length > 0;
+
+  const inspecteurInfoGeldig =
+    !formulier.inspecteurInfoIngeschakeld ||
+    Boolean(formulier.inspecteurInfo?.trim());
 
   const formulierGeldig =
     formulier.wetgevingId.trim().length >
@@ -1449,23 +1503,72 @@ function InbreukFormulierInhoud({
       0 &&
     formulier.wettelijkeVerwijzing
       .trim().length > 0 &&
-    specifiekeElementenGeldig;
+    specifiekeElementenGeldig &&
+    inspecteurInfoGeldig;
 
   const isNieuweInbreuk =
     formulier.id.trim().length === 0;
 
   return (
     <form onSubmit={bewaarWijzigingen}>
-      <div className="border-b border-slate-200 p-5">
-        <h2 className="text-lg font-semibold text-slate-900">
-          Standaardinbreuk
-        </h2>
+      <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900">
+            Standaardinbreuk
+          </h2>
 
-        <p className="mt-1 text-sm text-slate-500">
-          Bewerk de juridische indeling
-          en de inhoud van de
-          standaardinbreuk.
-        </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Bewerk de juridische indeling
+            en de inhoud van de
+            standaardinbreuk.
+          </p>
+        </div>
+
+        <div
+          role="group"
+          aria-label="Type standaardinbreuk"
+          className="inline-flex w-fit shrink-0 rounded-xl border border-slate-200 bg-slate-100 p-1"
+        >
+          <button
+            type="button"
+            aria-pressed={
+              formulier.inbreukType ===
+              "STANDAARD"
+            }
+            onClick={() =>
+              wijzigInbreukType("STANDAARD")
+            }
+            disabled={bezig}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              formulier.inbreukType ===
+              "STANDAARD"
+                ? "bg-white text-blue-700 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            Standaard
+          </button>
+
+          <button
+            type="button"
+            aria-pressed={
+              formulier.inbreukType ===
+              "EAO_CODES"
+            }
+            onClick={() =>
+              wijzigInbreukType("EAO_CODES")
+            }
+            disabled={bezig}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              formulier.inbreukType ===
+              "EAO_CODES"
+                ? "bg-amber-500 text-white shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            } disabled:cursor-not-allowed disabled:opacity-50`}
+          >
+            EAO-codes
+          </button>
+        </div>
       </div>
 
       <div className="space-y-6 p-5">
@@ -1815,45 +1918,95 @@ function InbreukFormulierInhoud({
               }
             />
 
-            <label className="block rounded-xl border border-sky-200 bg-sky-50/70 p-4">
-              <span className="flex items-center gap-2 text-sm font-semibold text-sky-950">
-                <span
-                  aria-hidden="true"
-                  className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky-500 bg-white text-xs font-bold text-sky-700"
-                >
-                  i
-                </span>
-                Info voor inspecteur
-                <span className="font-normal text-sky-700">
-                  (optioneel)
-                </span>
-              </span>
+            <section className="rounded-xl border border-sky-200 bg-sky-50/70 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h4 className="flex items-center gap-2 text-sm font-semibold text-sky-950">
+                    <span
+                      aria-hidden="true"
+                      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-sky-500 bg-white text-xs font-bold text-sky-700"
+                    >
+                      i
+                    </span>
+                    Info voor inspecteur
+                  </h4>
 
-              <textarea
-                value={
-                  formulier.inspecteurInfo ?? ""
-                }
-                onChange={(event) =>
-                  wijzigGewoonTekstveld(
-                    "inspecteurInfo",
-                    event.target.value,
-                  )
-                }
-                rows={4}
-                maxLength={1200}
-                className={`${tekstvakStijl} mt-3`}
-                placeholder="Bijvoorbeeld: definitie, toepassingsdatum of korte controlehulp voor gebruik tijdens de inspectie."
-                disabled={bezig}
-              />
+                  <p className="mt-1 text-xs leading-5 text-sky-800">
+                    Alleen zichtbaar in de app;
+                    nooit in het Word-verslag.
+                  </p>
+                </div>
 
-              <span className="mt-1.5 block text-xs leading-5 text-sky-800">
-                Verschijnt alleen als
-                veldinformatie in de app en wordt
-                nooit opgenomen in het
-                Word-verslag.
-              </span>
-            </label>
+                <label className="inline-flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={
+                      formulier.inspecteurInfoIngeschakeld
+                    }
+                    onChange={(event) =>
+                      wijzigInspecteurInfoIngeschakeld(
+                        event.target.checked,
+                      )
+                    }
+                    disabled={bezig}
+                    className="h-5 w-5 rounded border-sky-300 text-sky-600 focus:ring-sky-500"
+                  />
 
+                  <span className="text-sm font-semibold text-sky-950">
+                    Ingeschakeld
+                  </span>
+                </label>
+              </div>
+
+              {formulier.inspecteurInfoIngeschakeld && (
+                <>
+                  <textarea
+                    value={
+                      formulier.inspecteurInfo ?? ""
+                    }
+                    onChange={(event) =>
+                      wijzigGewoonTekstveld(
+                        "inspecteurInfo",
+                        event.target.value,
+                      )
+                    }
+                    rows={4}
+                    maxLength={1200}
+                    className={`${tekstvakStijl} mt-3`}
+                    placeholder="Bijvoorbeeld: definitie, toepassingsdatum of korte controlehulp voor gebruik tijdens de inspectie."
+                    disabled={bezig}
+                  />
+
+                  {!inspecteurInfoGeldig && (
+                    <p className="mt-2 text-sm font-medium text-red-600">
+                      Vul info in of schakel deze
+                      functie uit.
+                    </p>
+                  )}
+                </>
+              )}
+            </section>
+
+            {formulier.inbreukType ===
+              "EAO_CODES" && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p className="text-sm font-semibold text-amber-950">
+                  EAO-codes worden tijdens de
+                  inspectie gekozen
+                </p>
+                <p className="mt-1 text-sm leading-6 text-amber-800">
+                  Slachtoffer en ongevalsdatum
+                  komen automatisch uit het blok
+                  Ernstig arbeidsongeval. De drie
+                  codelijsten verschijnen pas bij
+                  de toegevoegde inbreuk.
+                </p>
+              </div>
+            )}
+
+            {formulier.inbreukType ===
+              "STANDAARD" && (
+              <>
             <section className="border-t border-slate-200 pt-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -2159,6 +2312,8 @@ function InbreukFormulierInhoud({
                 )
               }
             />
+              </>
+            )}
 
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -2226,6 +2381,58 @@ function InbreukFormulierInhoud({
                 textAlign: "justify",
               }}
             >
+              {formulier.inbreukType ===
+              "EAO_CODES" ? (
+                <>
+                  <div className="ml-12 grid grid-cols-[24px_minmax(0,1fr)]">
+                    <span>1.</span>
+                    <p>
+                      {formulier.omschrijving ||
+                        "De omschrijving verschijnt hier."}
+                    </p>
+                  </div>
+
+                  <div className="ml-[72px] grid grid-cols-[24px_minmax(0,1fr)]">
+                    <span>☐</span>
+                    <p>
+                      Het betreft het ongeval van
+                      het slachtoffer, d.d.
+                      ongevalsdatum met volgende
+                      codes:
+                    </p>
+                  </div>
+
+                  <dl className="ml-24 mt-1 grid grid-cols-[150px_minmax(280px,1fr)] gap-x-3 gap-y-1">
+                    <dt>Afwijkende gebeurtenis</dt>
+                    <dd className="text-[#595959]">
+                      Geselecteerde code
+                    </dd>
+                    <dt>Betrokken voorwerp</dt>
+                    <dd className="text-[#595959]">
+                      Geselecteerde code
+                    </dd>
+                    <dt>Soort letsel</dt>
+                    <dd className="text-[#595959]">
+                      Geselecteerde code
+                    </dd>
+                  </dl>
+
+                  <p className="ml-[72px] mt-2">
+                    De werkhervatting wordt
+                    automatisch aangevuld vanuit
+                    de ongevalsgegevens.
+                  </p>
+
+                  {formulier.wettelijkeVerwijzing && (
+                    <p className="ml-[72px] mt-[1pt] whitespace-pre-wrap text-[9pt] italic">
+                      {
+                        formulier.wettelijkeVerwijzing
+                      }
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
               <div className="ml-12 grid grid-cols-[24px_minmax(0,1fr)]">
                 <span>1.</span>
 
@@ -2318,6 +2525,8 @@ function InbreukFormulierInhoud({
                 <p className="ml-[72px] mt-[1pt] whitespace-pre-wrap text-[9pt] italic">
                   {formulier.wettelijkeVerwijzing}
                 </p>
+              )}
+                </>
               )}
             </div>
           </div>

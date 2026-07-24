@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 const standaardinbreukSelect = {
   id: true,
   geverifieerd: true,
+  inbreukType: true,
   wetgevingId: true,
   boekId: true,
   titelId: true,
@@ -32,6 +33,7 @@ const standaardinbreukSelect = {
   },
   toelichting: true,
   inspecteurInfo: true,
+  inspecteurInfoIngeschakeld: true,
   aanvulling: true,
   aanvullingOpmaak: true,
   wettelijkeVerwijzing: true,
@@ -48,6 +50,10 @@ export function mapStandaardinbreuk(
   return {
     id: inbreuk.id,
     geverifieerd: inbreuk.geverifieerd,
+    inbreukType:
+      inbreuk.inbreukType === "EAO_CODES"
+        ? "EAO_CODES"
+        : "STANDAARD",
     wetgevingId: inbreuk.wetgevingId,
     boekId: inbreuk.boekId,
     titelId: inbreuk.titelId,
@@ -73,6 +79,8 @@ export function mapStandaardinbreuk(
     toelichting: inbreuk.toelichting ?? "",
     inspecteurInfo:
       inbreuk.inspecteurInfo ?? "",
+    inspecteurInfoIngeschakeld:
+      inbreuk.inspecteurInfoIngeschakeld,
     aanvulling: inbreuk.aanvulling ?? "",
     aanvullingOpmaak: leesTekstSegmenten(
       inbreuk.aanvullingOpmaak,

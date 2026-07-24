@@ -207,6 +207,10 @@ export async function bewaarStandaardinbreuk(
   await vereisGebruiker();
 
   const id = invoer.id?.trim() ?? "";
+  const inbreukType =
+    invoer.inbreukType === "EAO_CODES"
+      ? "EAO_CODES"
+      : "STANDAARD";
 
   const wetgevingId = verplichtTekstveld(
     invoer.wetgevingId,
@@ -239,6 +243,17 @@ export async function bewaarStandaardinbreuk(
   const inspecteurInfo = optioneelTekstveld(
     invoer.inspecteurInfo,
   );
+  const inspecteurInfoIngeschakeld =
+    Boolean(invoer.inspecteurInfoIngeschakeld);
+
+  if (
+    inspecteurInfoIngeschakeld &&
+    !inspecteurInfo
+  ) {
+    throw new Error(
+      "Vul info voor de inspecteur in of schakel deze functie uit.",
+    );
+  }
 
   if (
     inspecteurInfo &&
@@ -346,6 +361,7 @@ export async function bewaarStandaardinbreuk(
             },
             data: {
               geverifieerd,
+              inbreukType,
               wetgevingId,
               boekId,
               titelId,
@@ -368,6 +384,7 @@ export async function bewaarStandaardinbreuk(
               ),
 
               inspecteurInfo,
+              inspecteurInfoIngeschakeld,
 
               aanvulling: optioneelTekstveld(
                 invoer.aanvulling,
@@ -409,6 +426,7 @@ export async function bewaarStandaardinbreuk(
         return transactie.standaardinbreuk.create({
           data: {
             geverifieerd,
+            inbreukType,
             wetgevingId,
             boekId,
             titelId,
@@ -445,6 +463,7 @@ export async function bewaarStandaardinbreuk(
             ),
 
             inspecteurInfo,
+            inspecteurInfoIngeschakeld,
 
             aanvulling: optioneelTekstveld(
               invoer.aanvulling,

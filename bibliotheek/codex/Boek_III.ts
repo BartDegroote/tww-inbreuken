@@ -5,6 +5,7 @@ export const Boek_III: Standaardinbreuk[] = [
     id: "codex-boek-iii-titel-1-001",
 
     geverifieerd: false,
+    inbreukType: "STANDAARD",
 
     wetgevingId: "codex-welzijn",
     boekId: "boek-iii",
@@ -32,6 +33,7 @@ export const Boek_III: Standaardinbreuk[] = [
 
     toelichting:
       "Controleer steeds of de concrete situatie onder een meer specifieke bepaling valt.",
+    inspecteurInfoIngeschakeld: false,
 
     aanvulling: "",
 

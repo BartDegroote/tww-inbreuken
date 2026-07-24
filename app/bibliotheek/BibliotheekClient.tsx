@@ -46,6 +46,7 @@ function maakLegeInbreuk(): Standaardinbreuk {
     id: "",
 
     geverifieerd: false,
+    inbreukType: "STANDAARD",
 
     wetgevingId: "",
     boekId: "",
@@ -66,6 +67,7 @@ function maakLegeInbreuk(): Standaardinbreuk {
 
     toelichting: "",
     inspecteurInfo: "",
+    inspecteurInfoIngeschakeld: false,
 
     aanvulling: "",
     aanvullingOpmaak: [],

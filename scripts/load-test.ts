@@ -51,6 +51,7 @@ function maakWordInbreuken(scenario: Scenario): WordInbreuk[] {
   );
 
   return Array.from({ length: scenario.inbreuken }, (_, index) => ({
+    inbreukType: "STANDAARD",
     beschrijving: tekst(index + 1),
     inCasu: "Het betreft een synthetische vaststelling voor prestatietesten.",
     specifiekeElementen: ["Testelement één", "Testelement twee"],
