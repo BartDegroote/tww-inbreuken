@@ -723,37 +723,14 @@ export default function InspectieUitvoerenClient({
       standaardinbreuken.map((inbreuk) => [
         inbreuk.id,
         [
-          wetgevingNaamPerId.get(
-            inbreuk.wetgevingId,
-          ) ?? "",
-          boekNaamPerId.get(inbreuk.boekId) ?? "",
-          isVerborgenAfdeling(inbreuk.titelId)
-            ? ""
-            : (titelPerId.get(inbreuk.titelId)?.naam ?? ""),
-          isWelzijnswet(inbreuk.wetgevingId)
-            ? ""
-            : inbreuk.onderwerp,
-          inbreuk.omschrijving,
-          inbreuk.situering ?? "",
-          ...inbreuk.specifiekeElementen.map(
-            (element) => element.tekst,
-          ),
-          inbreuk.toelichting ?? "",
-          inbreuk.inspecteurInfo ?? "",
-          inbreuk.aanvulling ?? "",
-          inbreuk.wettelijkeVerwijzing,
+          inbreuk.onderwerp,
           ...inbreuk.kernwoorden,
         ]
           .join(" ")
-          .toLowerCase(),
+          .toLocaleLowerCase("nl-BE"),
       ]),
     );
-  }, [
-    standaardinbreuken,
-    wetgevingNaamPerId,
-    boekNaamPerId,
-    titelPerId,
-  ]);
+  }, [standaardinbreuken]);
 
   const geselecteerdeInbreuk = useMemo(
     () =>
@@ -2415,7 +2392,7 @@ export default function InspectieUitvoerenClient({
                         event.target.value,
                       )
                     }
-                    placeholder="Bijvoorbeeld: onthaal"
+                    placeholder="Onderwerp of kernwoord..."
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
                   />
                 </div>

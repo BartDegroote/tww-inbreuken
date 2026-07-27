@@ -252,22 +252,6 @@ export default function BibliotheekClient({
             (kernwoord) =>
               kernwoord.toLocaleLowerCase("nl-BE"),
           ),
-          omschrijving: inbreuk.omschrijving
-            .toLocaleLowerCase("nl-BE"),
-          situering: (inbreuk.situering ?? "")
-            .toLocaleLowerCase("nl-BE"),
-          specifiekeElementen:
-            inbreuk.specifiekeElementen
-              .map((element) => element.tekst)
-              .join(" ")
-              .toLocaleLowerCase("nl-BE"),
-          toelichting: (inbreuk.toelichting ?? "")
-            .toLocaleLowerCase("nl-BE"),
-          aanvulling: (inbreuk.aanvulling ?? "")
-            .toLocaleLowerCase("nl-BE"),
-          wettelijkeVerwijzing:
-            inbreuk.wettelijkeVerwijzing
-              .toLocaleLowerCase("nl-BE"),
         },
       ]),
     );
@@ -312,17 +296,7 @@ export default function BibliotheekClient({
         zoekindex.kernwoorden.some((kernwoord) =>
           kernwoord.includes(zoekterm),
         ) ||
-        zoekindex.onderwerp.includes(zoekterm) ||
-        zoekindex.omschrijving.includes(zoekterm) ||
-        zoekindex.situering.includes(zoekterm) ||
-        zoekindex.specifiekeElementen.includes(
-          zoekterm,
-        ) ||
-        zoekindex.toelichting.includes(zoekterm) ||
-        zoekindex.aanvulling.includes(zoekterm) ||
-        zoekindex.wettelijkeVerwijzing.includes(
-          zoekterm,
-        );
+        zoekindex.onderwerp.includes(zoekterm);
 
       return (
         voldoetAanWetgeving &&

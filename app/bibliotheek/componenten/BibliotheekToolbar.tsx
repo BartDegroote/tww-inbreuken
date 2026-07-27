@@ -327,7 +327,7 @@ export default function BibliotheekToolbar({
                 event.target.value,
               )
             }
-            placeholder="Zoeken..."
+            placeholder="Onderwerp of kernwoord..."
             className={veldStijl}
           />
         </label>
