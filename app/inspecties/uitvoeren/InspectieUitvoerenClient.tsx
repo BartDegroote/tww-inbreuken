@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -498,9 +499,7 @@ export default function InspectieUitvoerenClient({
   const [
     toonOntmoetePersonen,
     setToonOntmoetePersonen,
-  ] = useState(
-    initialOntmoetePersonen.length > 0,
-  );
+  ] = useState(false);
 
   const [
     ernstigArbeidsongeval,
@@ -508,6 +507,11 @@ export default function InspectieUitvoerenClient({
   ] = useState(
     initialOngevalsgegevens.ernstigArbeidsongeval,
   );
+
+  const [
+    toonOngevalsgegevens,
+    setToonOngevalsgegevens,
+  ] = useState(false);
 
   const [
     slachtofferVoornaam,
@@ -545,8 +549,54 @@ export default function InspectieUitvoerenClient({
       initialOngevalsgegevens.werkpostBezocht,
     );
 
+  const aantalVolledigOntmoetePersonen =
+    ontmoetePersonen.filter(
+      (persoon) =>
+        persoon.naam.trim() &&
+        persoon.functie.trim(),
+    ).length;
+  const ontmoetePersonenIngevuld =
+    aantalVolledigOntmoetePersonen > 0 &&
+    aantalVolledigOntmoetePersonen ===
+      ontmoetePersonen.length;
+  const ongevalsgegevensVolledig =
+    ernstigArbeidsongeval &&
+    Boolean(
+      slachtofferVoornaam.trim() &&
+        slachtofferNaam.trim() &&
+        ongevalsdatum &&
+        slachtofferWerkHervat !== null &&
+        (!slachtofferWerkHervat ||
+          werkhervattingsdatum) &&
+        werkpostBezocht !== null,
+    );
+
   const bewerkFormulierRef =
     useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (geselecteerdeId === null) {
+      return;
+    }
+
+    const oorspronkelijkeOverflow =
+      document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusId = window.requestAnimationFrame(
+      () => {
+        bewerkFormulierRef.current?.focus({
+          preventScroll: true,
+        });
+      },
+    );
+
+    return () => {
+      window.cancelAnimationFrame(focusId);
+      document.body.style.overflow =
+        oorspronkelijkeOverflow;
+    };
+  }, [geselecteerdeId]);
 
   const beschikbareBoeken = useMemo(() => {
     if (!wetgevingFilter) {
@@ -871,23 +921,6 @@ export default function InspectieUitvoerenClient({
     setFotos([]);
   }
 
-  function scrollNaarBewerkFormulier() {
-    if (
-      typeof window === "undefined" ||
-      !window.matchMedia("(max-width: 1023px)")
-        .matches
-    ) {
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      bewerkFormulierRef.current?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    });
-  }
-
   function huidigeOngevalsgegevens(): OngevalsgegevensInput {
     return {
       ernstigArbeidsongeval,
@@ -930,6 +963,31 @@ export default function InspectieUitvoerenClient({
         return nieuweWaarde;
       },
     );
+    setExportFout("");
+  }
+
+  function wisselOngevalsgegevensPaneel() {
+    if (!ernstigArbeidsongeval) {
+      setErnstigArbeidsongeval(true);
+      setToonOngevalsgegevens(true);
+    } else {
+      setToonOngevalsgegevens(
+        (huidigeWaarde) => !huidigeWaarde,
+      );
+    }
+
+    setExportFout("");
+  }
+
+  function verwijderOngevalsgegevensUitVerslag() {
+    setErnstigArbeidsongeval(false);
+    setToonOngevalsgegevens(false);
+    setExportFout("");
+  }
+
+  function sluitBewerkvenster() {
+    maakFormulierLeeg();
+    setGetoondeInspecteurInfo(null);
     setExportFout("");
   }
 
@@ -1018,6 +1076,7 @@ export default function InspectieUitvoerenClient({
 
     if (standaard.inbreukType === "EAO_CODES") {
       setErnstigArbeidsongeval(true);
+      setToonOngevalsgegevens(true);
     }
 
     setInbreuken((huidigeInbreuken) =>
@@ -1042,7 +1101,6 @@ export default function InspectieUitvoerenClient({
     setFotos([]);
     setExportFout("");
     setGetoondeInspecteurInfo(null);
-    scrollNaarBewerkFormulier();
   }
 
   function selecteerInbreuk(
@@ -1069,7 +1127,6 @@ export default function InspectieUitvoerenClient({
     setFotos(inbreuk.fotos);
     setExportFout("");
     setGetoondeInspecteurInfo(null);
-    scrollNaarBewerkFormulier();
   }
 
   function behandelFotos(
@@ -1237,9 +1294,11 @@ export default function InspectieUitvoerenClient({
 
     const actueel = synchroniseerFormulier(inbreuken);
     setInbreuken(actueel);
-    await slaDossierOp(actueel);
+    const opgeslagen = await slaDossierOp(actueel);
 
-    setExportFout("");
+    if (opgeslagen) {
+      sluitBewerkvenster();
+    }
   }
 
   async function verwijderInbreuk() {
@@ -1580,12 +1639,14 @@ export default function InspectieUitvoerenClient({
                 className={`flex min-h-20 items-center gap-3 rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300 ${
                   toonOntmoetePersonen
                     ? "border-blue-500 bg-blue-100 text-blue-950 shadow-sm"
+                    : ontmoetePersonenIngevuld
+                      ? "border-emerald-300 bg-emerald-50 text-slate-800 hover:border-blue-300 hover:bg-blue-50"
                     : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50"
                 }`}
               >
                 <span
                   aria-hidden="true"
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                  className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                     toonOntmoetePersonen
                       ? "bg-blue-600 text-white"
                       : "bg-blue-100 text-blue-700"
@@ -1604,51 +1665,75 @@ export default function InspectieUitvoerenClient({
                       d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm13 10v-2a4 4 0 0 0-3-3.87m-2-11.26a4 4 0 0 1 0 7.75"
                     />
                   </svg>
+
+                  {ontmoetePersonenIngevuld && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-emerald-600 text-white shadow-sm">
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        className="h-3 w-3"
+                      >
+                        <path
+                          d="m5 10 3 3 7-7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  )}
                 </span>
 
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block text-sm font-bold">
                     Ontmoete personen
                   </span>
                   <span className="mt-0.5 block text-xs opacity-75">
-                    {ontmoetePersonen.filter(
-                      (persoon) =>
-                        persoon.naam.trim() &&
-                        persoon.functie.trim(),
-                    ).length > 0
-                      ? `${
-                          ontmoetePersonen.filter(
-                            (persoon) =>
-                              persoon.naam.trim() &&
-                              persoon.functie.trim(),
-                          ).length
-                        } toegevoegd`
+                    {ontmoetePersonenIngevuld
+                      ? `${aantalVolledigOntmoetePersonen} toegevoegd`
                       : "Naam en functie"}
                   </span>
                 </span>
+
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className={`h-4 w-4 shrink-0 opacity-60 transition-transform ${
+                    toonOntmoetePersonen
+                      ? "rotate-180"
+                      : ""
+                  }`}
+                >
+                  <path
+                    d="m6 8 4 4 4-4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
 
               <button
                 type="button"
-                aria-pressed={
-                  ernstigArbeidsongeval
-                }
-                onClick={() => {
-                  setErnstigArbeidsongeval(
-                    (huidigeWaarde) =>
-                      !huidigeWaarde,
-                  );
-                  setExportFout("");
-                }}
+                aria-expanded={toonOngevalsgegevens}
+                aria-controls="ongevalsgegevens-paneel"
+                onClick={wisselOngevalsgegevensPaneel}
                 className={`flex min-h-20 items-center gap-3 rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-amber-300 ${
-                  ernstigArbeidsongeval
+                  toonOngevalsgegevens
                     ? "border-amber-500 bg-amber-100 text-amber-950 shadow-sm"
+                    : ongevalsgegevensVolledig
+                      ? "border-emerald-300 bg-emerald-50 text-slate-800 hover:border-amber-300 hover:bg-amber-50"
+                      : ernstigArbeidsongeval
+                        ? "border-amber-300 bg-amber-50 text-amber-950 hover:border-amber-400 hover:bg-amber-100"
                     : "border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50"
                 }`}
               >
                 <span
                   aria-hidden="true"
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                  className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
                     ernstigArbeidsongeval
                       ? "bg-amber-500 text-slate-950"
                       : "bg-amber-100 text-amber-700"
@@ -1667,18 +1752,57 @@ export default function InspectieUitvoerenClient({
                       d="M12 9v4m0 4h.01M10.3 3.7 2.8 17a2 2 0 0 0 1.74 3h14.92a2 2 0 0 0 1.74-3L13.7 3.7a2 2 0 0 0-3.4 0Z"
                     />
                   </svg>
+
+                  {ongevalsgegevensVolledig && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-emerald-600 text-white shadow-sm">
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        className="h-3 w-3"
+                      >
+                        <path
+                          d="m5 10 3 3 7-7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  )}
                 </span>
 
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block text-sm font-bold">
                     Ernstig arbeidsongeval
                   </span>
                   <span className="mt-0.5 block text-xs opacity-75">
-                    {ernstigArbeidsongeval
-                      ? "Opgenomen in verslag"
+                    {ongevalsgegevensVolledig
+                      ? "Gegevens volledig"
+                      : ernstigArbeidsongeval
+                        ? "Nog aan te vullen"
                       : "Toevoegen aan verslag"}
                   </span>
                 </span>
+
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className={`h-4 w-4 shrink-0 opacity-60 transition-transform ${
+                    toonOngevalsgegevens
+                      ? "rotate-180"
+                      : ""
+                  }`}
+                >
+                  <path
+                    d="m6 8 4 4 4-4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </button>
             </div>
           </div>
@@ -1828,24 +1952,38 @@ export default function InspectieUitvoerenClient({
             </section>
           )}
 
-          {ernstigArbeidsongeval && (
+          {ernstigArbeidsongeval &&
+            toonOngevalsgegevens && (
             <section
+              id="ongevalsgegevens-paneel"
               aria-labelledby="ongevalsgegevens-titel"
               className="mt-5 overflow-hidden rounded-xl border border-amber-300 bg-amber-50"
             >
-              <div className="border-b border-amber-200 px-4 py-3 sm:px-5">
-                <h2
-                  id="ongevalsgegevens-titel"
-                  className="font-bold text-amber-950"
+              <div className="flex flex-col gap-3 border-b border-amber-200 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+                <div>
+                  <h2
+                    id="ongevalsgegevens-titel"
+                    className="font-bold text-amber-950"
+                  >
+                    Gegevens ernstig arbeidsongeval
+                  </h2>
+                  <p className="mt-1 text-sm text-amber-800">
+                    Deze gegevens worden
+                    automatisch gebruikt in de
+                    EAO-inbreuk en het
+                    Word-verslag.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={
+                    verwijderOngevalsgegevensUitVerslag
+                  }
+                  className="min-h-10 shrink-0 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-semibold text-amber-900 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
                 >
-                  Gegevens ernstig arbeidsongeval
-                </h2>
-                <p className="mt-1 text-sm text-amber-800">
-                  Deze gegevens worden
-                  automatisch gebruikt in de
-                  EAO-inbreuk en het
-                  Word-verslag.
-                </p>
+                  Niet opnemen
+                </button>
               </div>
 
               <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
@@ -2390,33 +2528,59 @@ export default function InspectieUitvoerenClient({
               </div>
             </div>
 
-            <div
-              ref={bewerkFormulierRef}
-              className="min-w-0 scroll-mt-4 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_12px_38px_rgba(15,23,42,0.07)] sm:p-8"
-            >
-              <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
-                {geselecteerdeId === null
-                  ? "Selecteer eerst een standaardinbreuk"
-                  : "Inbreuk bewerken"}
-              </h2>
+            {geselecteerdeId !== null && (
+              <>
+                <div
+                  aria-hidden="true"
+                  className="fixed inset-0 z-40 bg-slate-950/45 backdrop-blur-[2px]"
+                />
 
-              {geselecteerdeId === null ? (
-                <div className="mt-6 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                  <p className="font-medium text-slate-700">
-                    Zoek hierboven een
-                    standaardinbreuk.
-                  </p>
+                <div
+                  ref={bewerkFormulierRef}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="inbreuk-bewerken-titel"
+                  tabIndex={-1}
+                  className="fixed inset-x-0 bottom-0 z-50 max-h-[calc(100dvh-0.5rem)] min-w-0 overflow-y-auto overscroll-contain rounded-t-3xl border border-white bg-slate-50 p-4 shadow-[0_-18px_60px_rgba(15,23,42,0.28)] outline-none sm:inset-6 sm:mx-auto sm:max-h-[calc(100dvh-3rem)] sm:max-w-5xl sm:rounded-3xl sm:p-8"
+                >
+                  <div className="sticky -top-4 z-20 -mx-4 -mt-4 mb-6 flex items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-4 py-4 shadow-sm backdrop-blur sm:-top-8 sm:-mx-8 sm:-mt-8 sm:px-8">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
+                        Inspectie
+                      </p>
+                      <h2
+                        id="inbreuk-bewerken-titel"
+                        className="truncate text-xl font-bold text-slate-950 sm:text-2xl"
+                      >
+                        Inbreuk bewerken
+                      </h2>
+                    </div>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Klik op “Toevoegen aan
-                    inspectie” om de inbreuk te
-                    registreren.
-                  </p>
-                </div>
-              ) : (
+                    <button
+                      type="button"
+                      onClick={sluitBewerkvenster}
+                      aria-label="Bewerkvenster sluiten"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 hover:text-slate-950"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className="h-5 w-5"
+                      >
+                        <path
+                          d="m6 6 12 12M18 6 6 18"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+
                 <form
                   onSubmit={bewaarWijzigingen}
-                  className="mt-8 space-y-8"
+                  className="space-y-8"
                 >
                   <section
                     aria-labelledby="bibliotheekinformatie-titel"
@@ -2880,15 +3044,24 @@ export default function InspectieUitvoerenClient({
 
                     <button
                       type="button"
+                      onClick={sluitBewerkvenster}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
+                    >
+                      Annuleren
+                    </button>
+
+                    <button
+                      type="button"
                       onClick={verwijderInbreuk}
-                      className="w-full rounded-lg border border-red-300 px-6 py-3 font-semibold text-red-700 hover:bg-red-50 sm:w-auto"
+                      className="w-full rounded-lg border border-red-300 px-6 py-3 font-semibold text-red-700 hover:bg-red-50 sm:ml-auto sm:w-auto"
                     >
                       Inbreuk verwijderen
                     </button>
                   </div>
                 </form>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </section>
         </div>
 
