@@ -882,11 +882,17 @@ export default function InspectieUitvoerenClient({
     zoektekstPerInbreukId,
   ]);
 
-  const zoekresultatenPerBoek =
+  const zoekresultatenPerBoekEnTitel =
     useMemo(() => {
       const boekVolgorde = new Map(
         boeken.map((boek, index) => [
           boek.id,
+          index,
+        ]),
+      );
+      const titelVolgorde = new Map(
+        titels.map((titel, index) => [
+          titel.id,
           index,
         ]),
       );
@@ -896,84 +902,71 @@ export default function InspectieUitvoerenClient({
           sleutel: string;
           boekNaam: string;
           boekId: string;
-          onderwerpen: Map<
-            string,
-            {
-              sleutel: string;
-              onderwerp: string;
-              inbreuken: Standaardinbreuk[];
-            }
-          >;
+          titelNaam: string;
+          titelId: string;
+          inbreuken: Standaardinbreuk[];
         }
       >();
 
       for (const inbreuk of zoekresultaten) {
-        const boekSleutel =
-          inbreuk.boekId;
-        let boekGroep =
-          groepen.get(boekSleutel);
-
-        if (!boekGroep) {
-          boekGroep = {
-            sleutel: boekSleutel,
-            boekId: inbreuk.boekId,
-            boekNaam:
-              boekNaamPerId.get(
-                inbreuk.boekId,
-              ) ?? "Zonder boek",
-            onderwerpen: new Map(),
-          };
-          groepen.set(boekSleutel, boekGroep);
-        }
-
-        const onderwerp =
-          inbreuk.onderwerp.trim() ||
-          "Zonder onderwerp";
-        const sleutel =
-          onderwerp.toLocaleLowerCase("nl-BE");
+        const sleutel = `${inbreuk.boekId}::${inbreuk.titelId}`;
         const bestaandeGroep =
-          boekGroep.onderwerpen.get(
-            sleutel,
-          );
+          groepen.get(sleutel);
 
         if (bestaandeGroep) {
-          bestaandeGroep.inbreuken.push(inbreuk);
+          bestaandeGroep.inbreuken.push(
+            inbreuk,
+          );
           continue;
         }
 
-        boekGroep.onderwerpen.set(sleutel, {
+        groepen.set(sleutel, {
           sleutel,
-          onderwerp,
+          boekId: inbreuk.boekId,
+          boekNaam:
+            boekNaamPerId.get(
+              inbreuk.boekId,
+            ) ?? "Zonder boek",
+          titelId: inbreuk.titelId,
+          titelNaam:
+            titelPerId.get(
+              inbreuk.titelId,
+            )?.naam ?? "Zonder titel",
           inbreuken: [inbreuk],
         });
       }
 
       return Array.from(groepen.values())
         .sort(
-          (eerste, tweede) =>
-            (boekVolgorde.get(
-              eerste.boekId,
-            ) ?? Number.MAX_SAFE_INTEGER) -
-            (boekVolgorde.get(
-              tweede.boekId,
-            ) ?? Number.MAX_SAFE_INTEGER),
-        )
-        .map((groep) => ({
-          ...groep,
-          onderwerpen: Array.from(
-            groep.onderwerpen.values(),
-          ).sort((eerste, tweede) =>
-            eerste.onderwerp.localeCompare(
-              tweede.onderwerp,
-              "nl-BE",
-              { numeric: true },
-            ),
-          ),
-        }));
+          (eerste, tweede) => {
+            const boekVerschil =
+              (boekVolgorde.get(
+                eerste.boekId,
+              ) ?? Number.MAX_SAFE_INTEGER) -
+              (boekVolgorde.get(
+                tweede.boekId,
+              ) ?? Number.MAX_SAFE_INTEGER);
+
+            if (boekVerschil !== 0) {
+              return boekVerschil;
+            }
+
+            return (
+              (titelVolgorde.get(
+                eerste.titelId,
+              ) ?? Number.MAX_SAFE_INTEGER) -
+              (titelVolgorde.get(
+                tweede.titelId,
+              ) ?? Number.MAX_SAFE_INTEGER)
+            );
+          },
+        );
     }, [
       zoekresultaten,
       boeken,
+      titels,
       boekNaamPerId,
+      titelPerId,
     ]);
 
   function maakFormulierLeeg() {
@@ -2690,31 +2683,31 @@ export default function InspectieUitvoerenClient({
                   </p>
                 ) : (
                   <div className="mt-3 space-y-3">
-                    {zoekresultatenPerBoek.map(
-                      (boekGroep) => {
-                        const aantalInbreuken =
-                          boekGroep.onderwerpen.reduce(
-                            (totaal, groep) =>
-                              totaal +
-                              groep.inbreuken.length,
-                            0,
-                          );
-                        const enigBoek =
-                          zoekresultatenPerBoek.length ===
+                    {zoekresultatenPerBoekEnTitel.map(
+                      (groep) => {
+                        const enigeGroep =
+                          zoekresultatenPerBoekEnTitel.length ===
                           1;
 
                         return (
                           <UitklapbareGroep
-                            key={boekGroep.sleutel}
-                            standaardOpen={enigBoek}
-                            className="group/boek overflow-hidden rounded-xl border border-slate-200 bg-white"
+                            key={groep.sleutel}
+                            standaardOpen={enigeGroep}
+                            className="group/indeling overflow-hidden rounded-xl border border-slate-200 bg-white"
                           >
                             <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 bg-slate-900 px-4 py-3 text-sm font-bold text-white outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400 sm:text-base">
                               <span className="min-w-0 flex-1">
-                                {boekGroep.boekNaam}
+                                {groep.boekNaam}
+                                <span
+                                  aria-hidden="true"
+                                  className="mx-1.5 text-slate-400"
+                                >
+                                  –
+                                </span>
+                                {groep.titelNaam}
                               </span>
                               <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-0.5 text-xs">
-                                {aantalInbreuken}
+                                {groep.inbreuken.length}
                               </span>
                               <svg
                                 aria-hidden="true"
@@ -2722,7 +2715,7 @@ export default function InspectieUitvoerenClient({
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="1.8"
-                                className="h-4 w-4 shrink-0 transition-transform group-open/boek:rotate-180"
+                                className="h-4 w-4 shrink-0 transition-transform group-open/indeling:rotate-180"
                               >
                                 <path
                                   d="m6 8 4 4 4-4"
@@ -2732,49 +2725,9 @@ export default function InspectieUitvoerenClient({
                               </svg>
                             </summary>
 
-                            <div className="space-y-2 bg-slate-50 p-2 sm:p-3">
-                              {boekGroep.onderwerpen.map(
-                                (groep) => (
-                                  <UitklapbareGroep
-                                    key={`${boekGroep.sleutel}-${groep.sleutel}`}
-                                    standaardOpen={
-                                      enigBoek &&
-                                      boekGroep
-                                        .onderwerpen
-                                        .length === 1
-                                    }
-                                    className="group/onderwerp overflow-hidden rounded-lg border border-slate-200 bg-white"
-                                  >
-                                    <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-4 py-3 font-semibold text-slate-900 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500">
-                                      <span className="min-w-0 flex-1">
-                                        {groep.onderwerp}
-                                      </span>
-                                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
-                                        {groep.inbreuken.length}
-                                      </span>
-                                      <svg
-                                        aria-hidden="true"
-                                        viewBox="0 0 20 20"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="1.8"
-                                        className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open/onderwerp:rotate-180"
-                                      >
-                                        <path
-                                          d="m6 8 4 4 4-4"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      </svg>
-                                    </summary>
-
-                                    <div className="space-y-3 border-t border-slate-100 bg-slate-50/70 p-2">
-                                      {groep.inbreuken.map(
-                                        maakZoekresultaatKaart,
-                                      )}
-                                    </div>
-                                  </UitklapbareGroep>
-                                ),
+                            <div className="space-y-3 border-t border-slate-700 bg-slate-50 p-2 sm:p-3">
+                              {groep.inbreuken.map(
+                                maakZoekresultaatKaart,
                               )}
                             </div>
                           </UitklapbareGroep>

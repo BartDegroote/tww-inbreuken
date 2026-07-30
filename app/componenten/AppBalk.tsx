@@ -54,7 +54,7 @@ export default function AppBalk({
   ];
 
   return (
-    <header className="rounded-2xl border border-white/80 bg-white/85 px-3 py-3 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
+    <header className="relative left-1/2 w-[calc(100vw-2rem)] max-w-screen-2xl -translate-x-1/2 rounded-2xl border border-white/80 bg-white/85 px-3 py-3 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur sm:w-[calc(100vw-3rem)] sm:px-5 lg:w-[calc(100vw-4rem)]">
       <div className="flex items-center justify-between gap-3">
         <TwwMerk href="/" compact />
         {rechts}

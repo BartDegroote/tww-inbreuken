@@ -25,25 +25,25 @@ export default function AppleIcon() {
         <div
           style={{
             position: "relative",
-            width: 92,
-            height: 108,
+            width: 118,
+            height: 140,
             display: "flex",
             flexDirection: "column",
-            gap: 15,
-            borderRadius: 14,
+            gap: 18,
+            borderRadius: 18,
             background: "white",
-            padding: "34px 19px 16px",
+            padding: "44px 24px 20px",
           }}
         >
           <div
             style={{
               position: "absolute",
-              top: -9,
-              left: 22,
-              width: 48,
-              height: 27,
-              borderRadius: 10,
-              border: "8px solid white",
+              top: -10,
+              left: 27,
+              width: 64,
+              height: 36,
+              borderRadius: 12,
+              border: "10px solid white",
               background: "#0f172a",
             }}
           />
@@ -52,9 +52,9 @@ export default function AppleIcon() {
               key={regel}
               style={{
                 width:
-                  regel === 2 ? 38 : 54,
-                height: 8,
-                borderRadius: 4,
+                  regel === 2 ? 48 : 70,
+                height: 10,
+                borderRadius: 5,
                 background: "#2563eb",
               }}
             />

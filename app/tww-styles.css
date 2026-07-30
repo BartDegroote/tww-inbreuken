@@ -5,6 +5,10 @@
   --foreground: #0f172a;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

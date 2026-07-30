@@ -14,8 +14,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "WebApp TWW",
+  applicationName: "WebApp TWW",
   description:
     "Inspecties, standaardinbreuken en professionele Word-verslaggeving.",
+  appleWebApp: {
+    capable: true,
+    title: "WebApp TWW",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
