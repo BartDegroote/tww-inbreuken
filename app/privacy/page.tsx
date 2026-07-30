@@ -5,7 +5,7 @@ export const metadata = { title: "Privacy · WebApp TWW" };
 export default function PrivacyPagina() {
   return (
     <main className="tww-canvas min-h-screen">
-      <div className="mx-auto max-w-3xl px-5 py-10 sm:px-8">
+      <div className="mx-auto max-w-3xl px-5 pb-10 pt-6 sm:px-8">
         <AppBalk />
         <article className="mt-5 rounded-2xl border border-white bg-white/95 p-7 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-9">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">Privacy en gegevensbescherming</h1>

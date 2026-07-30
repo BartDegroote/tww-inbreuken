@@ -13,14 +13,19 @@ const inspectie: WordInspectie = {
   inspectiedatum: "2026-07-24",
   inspecteur: "Bart Degroote",
   flow: "02/2026/2551/105",
-  ontmoetePersonen: [],
+  ontmoetePersonen: [
+    {
+      naam: "Jan Janssens",
+      functie: "Preventieadviseur HSE",
+    },
+  ],
   ernstigArbeidsongeval: {
     slachtofferVoornaam: "Bart",
     slachtofferNaam: "Degroote",
     ongevalsdatum: "2025-12-08",
     slachtofferWerkHervat: null,
     werkhervattingsdatum: "",
-    werkpostBezocht: null,
+    werkpostBezocht: false,
   },
   inbreuken: [
     {
@@ -59,24 +64,6 @@ const inspectie: WordInspectie = {
       aanvullingOpmaak: [],
       wettelijkeVerwijzing:
         "Dit is een overtreding op art. IV.2-5 van de codex over het welzijn op het werk.",
-    },
-    {
-      inbreukType: "EAO_CODES",
-      beschrijving:
-        "De werkgever heeft het omstandig verslag naar aanleiding van een ernstig arbeidsongeval, zoals gedefinieerd in artikel I.6-2 van de Codex over het Welzijn op het Werk, niet binnen de wettelijke termijn van 10 dagen overgemaakt aan de bevoegde ambtenaar.",
-      beschrijvingOpmaak: [],
-      inCasu: "",
-      specifiekeElementen: [],
-      specifiekeElementenAlsSituering: false,
-      fotos: [],
-      toelichting: "",
-      aanvulling: "",
-      aanvullingOpmaak: [],
-      wettelijkeVerwijzing:
-        "Dit is een overtreding op art. 94ter van de wet van 4 augustus 1996 betreffende het welzijn van de werknemers bij de uitvoering van hun werk.",
-      afwijkendeGebeurtenisCode: "41",
-      betrokkenVoorwerpCode: "07.01",
-      soortLetselCode: "013",
     },
   ],
 };

@@ -418,7 +418,9 @@ function maakOntmoetePersonenParagrafen(
   const geldigePersonen = personen
     .map((persoon) => ({
       naam: persoon.naam.trim(),
-      functie: persoon.functie.trim(),
+      functie: persoon.functie
+        .trim()
+        .toLocaleLowerCase("nl-BE"),
     }))
     .filter(
       (persoon) =>
@@ -1129,11 +1131,9 @@ function maakOngevalsParagrafen(
       : gegevens.slachtofferWerkHervat
         ? "Het slachtoffer heeft het werk inmiddels hervat."
         : "Het slachtoffer heeft het werk nog niet hervat.",
-    gegevens.werkpostBezocht === null
-      ? ""
-      : gegevens.werkpostBezocht
-        ? "Ook de werkpost waar het ongeval plaatsvond, werd bezocht."
-        : "De werkpost waar het ongeval plaatsvond, werd niet bezocht.",
+    gegevens.werkpostBezocht
+      ? "Ook de werkpost waar het ongeval plaatsvond, werd bezocht."
+      : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -1142,7 +1142,7 @@ function maakOngevalsParagrafen(
     new Paragraph({
       numbering: {
         reference:
-          INBREUK_NUMMERING_REFERENTIE,
+          VERSLAG_ONDERDELEN_NUMMERING_REFERENTIE,
         level: 0,
       },
       spacing: {

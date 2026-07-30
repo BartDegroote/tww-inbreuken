@@ -126,27 +126,27 @@ const aangepasteZoekgroepTitels =
   new Map<string, string>([
     [
       "boek-i-titel-2",
-      "I - 2. Welzijnsbeleid",
+      "Codex I-2. Welzijnsbeleid",
     ],
     [
       "boek-i-titel-4",
-      "I - 4. Gezondheidstoezicht",
+      "Codex I-4. Gezondheidstoezicht",
     ],
     [
       "boek-i-titel-6",
-      "I - 6. Maatregelen AO",
+      "Codex I-6. Maatregelen AO",
     ],
     [
       "boek-iii-titel-1",
-      "III - 1. Basiseisen arbeidsplaatsen",
+      "Codex III-1. Basiseisen arbeidsplaatsen",
     ],
     [
       "boek-iii-titel-2",
-      "III - 2. Elektrische installaties",
+      "Codex III-2. Elektrische installaties",
     ],
     [
       "boek-iii-titel-3",
-      "III - 3. Brandpreventie arbeidsplaatsen",
+      "Codex III-3. Brandpreventie arbeidsplaatsen",
     ],
   ]);
 
@@ -170,7 +170,7 @@ function maakZoekgroepTitel(
     "$1. ",
   );
 
-  return `${boekNummer} - ${compacteTitel}`;
+  return `Codex ${boekNummer}-${compacteTitel}`;
 }
 
 function UitklapbareGroep({
@@ -966,7 +966,14 @@ export default function InspectieUitvoerenClient({
       >();
 
       for (const inbreuk of zoekresultaten) {
-        const sleutel = `${inbreuk.boekId}::${inbreuk.titelId}`;
+        const isWelzijnswetInbreuk =
+          isWelzijnswet(
+            inbreuk.wetgevingId,
+          );
+        const sleutel =
+          isWelzijnswetInbreuk
+            ? `${inbreuk.wetgevingId}::welzijnswet`
+            : `${inbreuk.boekId}::${inbreuk.titelId}`;
         let groep =
           groepen.get(sleutel);
 
@@ -984,11 +991,14 @@ export default function InspectieUitvoerenClient({
             sleutel,
             boekId: inbreuk.boekId,
             titelId: inbreuk.titelId,
-            groepTitel: maakZoekgroepTitel(
-              boekNaam,
-              inbreuk.titelId,
-              titelNaam,
-            ),
+            groepTitel:
+              isWelzijnswetInbreuk
+                ? "Welzijnswet"
+                : maakZoekgroepTitel(
+                    boekNaam,
+                    inbreuk.titelId,
+                    titelNaam,
+                  ),
             onderwerpen: new Map(),
           };
           groepen.set(sleutel, groep);
@@ -1935,7 +1945,7 @@ export default function InspectieUitvoerenClient({
 
   return (
     <main className="tww-canvas min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 pb-36 pt-4 sm:px-6 sm:pb-32 sm:pt-6">
+      <div className="mx-auto max-w-7xl px-4 pb-36 pt-6 sm:px-6 sm:pb-32">
         <AppBalk />
 
         <header className="mt-5 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-6">
