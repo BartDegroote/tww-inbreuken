@@ -41,7 +41,7 @@ export default async function InspectiesPagina({ searchParams }: Props) {
   return (
     <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
-        <AppBalk terugLabel="Hoofdmenu" />
+        <AppBalk />
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

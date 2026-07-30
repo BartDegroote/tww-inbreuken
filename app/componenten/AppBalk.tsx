@@ -2,19 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
 
-import TwwMerk from "./TwwMerk";
-
-type AppBalkProps = {
-  terugHref?: string;
-  terugLabel?: string;
-  rechts?: ReactNode;
-};
-
-export default function AppBalk({
-  rechts,
-}: AppBalkProps) {
+export default function AppBalk() {
   const pathname = usePathname();
   const tabbladen = [
     {
@@ -54,15 +43,10 @@ export default function AppBalk({
   ];
 
   return (
-    <header className="relative left-1/2 w-[calc(100vw-2rem)] max-w-screen-2xl -translate-x-1/2 rounded-2xl border border-white/80 bg-white/85 px-3 py-3 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur sm:w-[calc(100vw-3rem)] sm:px-5 lg:w-[calc(100vw-4rem)]">
-      <div className="flex items-center justify-between gap-3">
-        <TwwMerk href="/" compact />
-        {rechts}
-      </div>
-
+    <header className="relative left-1/2 w-[calc(100vw-2rem)] max-w-screen-2xl -translate-x-1/2 rounded-xl border border-white/80 bg-white/85 p-1 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur sm:w-[calc(100vw-3rem)] lg:w-[calc(100vw-4rem)]">
       <nav
         aria-label="Hoofdnavigatie"
-        className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1"
+        className="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1"
       >
         {tabbladen.map((tabblad) => (
           <Link

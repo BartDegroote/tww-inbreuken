@@ -122,6 +122,57 @@ type EaoCodeVeldProps = {
   onChange: (code: string) => void;
 };
 
+const aangepasteZoekgroepTitels =
+  new Map<string, string>([
+    [
+      "boek-i-titel-2",
+      "I - 2. Welzijnsbeleid",
+    ],
+    [
+      "boek-i-titel-4",
+      "I - 4. Gezondheidstoezicht",
+    ],
+    [
+      "boek-i-titel-6",
+      "I - 6. Maatregelen AO",
+    ],
+    [
+      "boek-iii-titel-1",
+      "III - 1. Basiseisen arbeidsplaatsen",
+    ],
+    [
+      "boek-iii-titel-2",
+      "III - 2. Elektrische installaties",
+    ],
+    [
+      "boek-iii-titel-3",
+      "III - 3. Brandpreventie arbeidsplaatsen",
+    ],
+  ]);
+
+function maakZoekgroepTitel(
+  boekNaam: string,
+  titelId: string,
+  titelNaam: string,
+): string {
+  const aangepasteTitel =
+    aangepasteZoekgroepTitels.get(titelId);
+
+  if (aangepasteTitel) {
+    return aangepasteTitel;
+  }
+
+  const boekNummer =
+    boekNaam.split(" - ")[0]?.trim() ||
+    boekNaam;
+  const compacteTitel = titelNaam.replace(
+    /^(\d+)\s*-\s*/,
+    "$1. ",
+  );
+
+  return `${boekNummer} - ${compacteTitel}`;
+}
+
 function UitklapbareGroep({
   standaardOpen = false,
   className,
@@ -900,10 +951,9 @@ export default function InspectieUitvoerenClient({
         string,
         {
           sleutel: string;
-          boekNaam: string;
           boekId: string;
-          titelNaam: string;
           titelId: string;
+          groepTitel: string;
           inbreuken: Standaardinbreuk[];
         }
       >();
@@ -920,18 +970,24 @@ export default function InspectieUitvoerenClient({
           continue;
         }
 
+        const boekNaam =
+          boekNaamPerId.get(
+            inbreuk.boekId,
+          ) ?? "Zonder boek";
+        const titelNaam =
+          titelPerId.get(
+            inbreuk.titelId,
+          )?.naam ?? "Zonder titel";
+
         groepen.set(sleutel, {
           sleutel,
           boekId: inbreuk.boekId,
-          boekNaam:
-            boekNaamPerId.get(
-              inbreuk.boekId,
-            ) ?? "Zonder boek",
           titelId: inbreuk.titelId,
-          titelNaam:
-            titelPerId.get(
-              inbreuk.titelId,
-            )?.naam ?? "Zonder titel",
+          groepTitel: maakZoekgroepTitel(
+            boekNaam,
+            inbreuk.titelId,
+            titelNaam,
+          ),
           inbreuken: [inbreuk],
         });
       }
@@ -1837,7 +1893,7 @@ export default function InspectieUitvoerenClient({
   return (
     <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-7xl px-4 pb-36 pt-4 sm:px-6 sm:pb-32 sm:pt-6">
-        <AppBalk terugHref="/inspecties" terugLabel="Inspecties" />
+        <AppBalk />
 
         <header className="mt-5 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -2697,14 +2753,7 @@ export default function InspectieUitvoerenClient({
                           >
                             <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 bg-slate-900 px-4 py-3 text-sm font-bold text-white outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400 sm:text-base">
                               <span className="min-w-0 flex-1">
-                                {groep.boekNaam}
-                                <span
-                                  aria-hidden="true"
-                                  className="mx-1.5 text-slate-400"
-                                >
-                                  –
-                                </span>
-                                {groep.titelNaam}
+                                {groep.groepTitel}
                               </span>
                               <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-0.5 text-xs">
                                 {groep.inbreuken.length}

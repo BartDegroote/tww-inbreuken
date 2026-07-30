@@ -45,7 +45,7 @@ export default function NieuweInspectie() {
   return (
     <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-        <AppBalk terugLabel="Hoofdmenu" />
+        <AppBalk />
 
         <div className="mt-5 rounded-2xl border border-white bg-white/95 p-5 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-8">
           <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">

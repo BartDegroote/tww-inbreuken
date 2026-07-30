@@ -423,7 +423,7 @@ export default function BibliotheekClient({
   return (
     <main className="tww-canvas min-h-screen">
       <div className="mx-auto max-w-screen-2xl space-y-5 p-4 sm:p-6 lg:p-8">
-        <AppBalk terugLabel="Hoofdmenu" />
+        <AppBalk />
 
         <BibliotheekToolbar
           wetgevingen={startWetgevingen}
