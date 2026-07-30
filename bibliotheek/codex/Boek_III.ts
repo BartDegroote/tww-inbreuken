@@ -29,6 +29,7 @@ export const Boek_III: Standaardinbreuk[] = [
 
     specifiekeElementenIngeschakeld: false,
     specifiekeElementenAlsSituering: false,
+    eigenElementenToegestaan: false,
     specifiekeElementen: [],
 
     toelichting:

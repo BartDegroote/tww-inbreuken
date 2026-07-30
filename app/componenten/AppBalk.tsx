@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import TwwMerk from "./TwwMerk";
@@ -10,34 +13,79 @@ type AppBalkProps = {
 };
 
 export default function AppBalk({
-  terugHref = "/",
-  terugLabel = "Hoofdmenu",
   rechts,
 }: AppBalkProps) {
-  return (
-    <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/80 bg-white/80 px-4 py-3 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
-      <TwwMerk href="/" compact />
+  const pathname = usePathname();
+  const tabbladen = [
+    {
+      href: "/inspecties",
+      label: "Inspecties",
+      kortLabel: "Inspecties",
+      actief:
+        pathname === "/inspecties" ||
+        pathname.startsWith(
+          "/inspecties/uitvoeren",
+        ),
+    },
+    {
+      href: "/inspecties/nieuw",
+      label: "Nieuwe inspectie",
+      kortLabel: "Nieuw",
+      actief: pathname.startsWith(
+        "/inspecties/nieuw",
+      ),
+    },
+    {
+      href: "/bibliotheek",
+      label: "Bibliotheek",
+      kortLabel: "Bibliotheek",
+      actief: pathname.startsWith(
+        "/bibliotheek",
+      ),
+    },
+    {
+      href: "/instellingen",
+      label: "Instellingen",
+      kortLabel: "Instellingen",
+      actief: pathname.startsWith(
+        "/instellingen",
+      ),
+    },
+  ];
 
-      <div className="flex items-center gap-2">
+  return (
+    <header className="rounded-2xl border border-white/80 bg-white/85 px-3 py-3 shadow-[0_10px_35px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
+      <div className="flex items-center justify-between gap-3">
+        <TwwMerk href="/" compact />
         {rechts}
-        <Link
-          href={terugHref}
-          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            className="h-4 w-4"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="m15 18-6-6 6-6" />
-          </svg>
-          <span className="hidden sm:inline">{terugLabel}</span>
-          <span className="sm:hidden">Terug</span>
-        </Link>
       </div>
+
+      <nav
+        aria-label="Hoofdnavigatie"
+        className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1"
+      >
+        {tabbladen.map((tabblad) => (
+          <Link
+            key={tabblad.href}
+            href={tabblad.href}
+            aria-current={
+              tabblad.actief ? "page" : undefined
+            }
+            className={`flex min-h-10 min-w-0 items-center justify-center rounded-lg px-1 py-2 text-center text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:px-3 sm:text-sm ${
+              tabblad.actief
+                ? "bg-white text-blue-800 shadow-sm"
+                : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
+            }`}
+          >
+            <span className="sm:hidden">
+              {tabblad.kortLabel}
+            </span>
+            <span className="hidden sm:inline">
+              {tabblad.label}
+            </span>
+          </Link>
+        ))}
+      </nav>
     </header>
   );
 }

@@ -83,6 +83,8 @@ model InspectieInbreuk {
   specifiekeElementen               Json?
   geselecteerdeSpecifiekeElementIds String[]
   specifiekeElementenAlsSituering   Boolean         @default(false)
+  eigenElementenToegestaan          Boolean         @default(false)
+  vaststellingen                    Json?
   afwijkendeGebeurtenisCode         String?
   betrokkenVoorwerpCode             String?
   soortLetselCode                   String?
@@ -163,6 +165,7 @@ model Standaardinbreuk {
   // 3. Specifieke elementen
   specifiekeElementenIngeschakeld Boolean            @default(false)
   specifiekeElementenAlsSituering Boolean            @default(false)
+  eigenElementenToegestaan        Boolean            @default(false)
   specifiekeElementen             SpecifiekElement[]
 
   // 4. Toelichting / goede praktijk

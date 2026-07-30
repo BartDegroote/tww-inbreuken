@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@/app/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -9,6 +10,13 @@ import {
 } from "@/bibliotheek";
 import { vereisGebruiker } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+
+export type VaststellingInput = {
+  id: string;
+  tekst: string;
+  geselecteerdeSpecifiekeElementIds: string[];
+  eigenElementen: string[];
+};
 
 export type OpgeslagenInbreukInput = {
   id: string;
@@ -34,6 +42,8 @@ export type OpgeslagenInbreukInput = {
   specifiekeElementen: Array<{ id: string; tekst: string }>;
   geselecteerdeSpecifiekeElementIds: string[];
   specifiekeElementenAlsSituering: boolean;
+  eigenElementenToegestaan: boolean;
+  vaststellingen: VaststellingInput[];
   afwijkendeGebeurtenisCode: string;
   betrokkenVoorwerpCode: string;
   soortLetselCode: string;
@@ -113,6 +123,111 @@ function normaliseerOntmoetePersonen(
     });
 }
 
+function normaliseerVaststellingen(
+  inbreuk: OpgeslagenInbreukInput,
+): VaststellingInput[] {
+  if (inbreuk.inbreukType === "EAO_CODES") {
+    return [];
+  }
+
+  if (inbreuk.vaststellingen.length > 50) {
+    throw new Error(
+      "Je kunt maximaal 50 vaststellingen aan één inbreuk toevoegen.",
+    );
+  }
+
+  const beschikbareElementIds = new Set(
+    inbreuk.specifiekeElementen.map(
+      (element) => element.id,
+    ),
+  );
+
+  const vaststellingen =
+    inbreuk.vaststellingen.map(
+      (vaststelling, index) => {
+        const tekst =
+          vaststelling.tekst.trim();
+        const geselecteerdeSpecifiekeElementIds =
+          Array.from(
+            new Set(
+              vaststelling
+                .geselecteerdeSpecifiekeElementIds,
+            ),
+          ).filter((id) =>
+            beschikbareElementIds.has(id),
+          );
+        const eigenElementen = Array.from(
+          new Map(
+            vaststelling.eigenElementen
+              .map((element) => element.trim())
+              .filter(Boolean)
+              .map((element) => [
+                element.toLocaleLowerCase(
+                  "nl-BE",
+                ),
+                element,
+              ]),
+          ).values(),
+        );
+
+        if (
+          eigenElementen.length > 50 ||
+          eigenElementen.some(
+            (element) =>
+              element.length > 1_000,
+          )
+        ) {
+          throw new Error(
+            `Controleer de vrije elementen bij vaststelling ${index + 1}.`,
+          );
+        }
+
+        if (
+          eigenElementen.length > 0 &&
+          !inbreuk.eigenElementenToegestaan
+        ) {
+          throw new Error(
+            "Vrije elementen zijn voor deze standaardinbreuk niet ingeschakeld.",
+          );
+        }
+
+        if (
+          !tekst &&
+          geselecteerdeSpecifiekeElementIds.length ===
+            0 &&
+          eigenElementen.length === 0
+        ) {
+          throw new Error(
+            `Vul vaststelling ${index + 1} in of verwijder ze.`,
+          );
+        }
+
+        if (tekst.length > 5_000) {
+          throw new Error(
+            `Vaststelling ${index + 1} mag maximaal 5.000 tekens bevatten.`,
+          );
+        }
+
+        return {
+          id:
+            vaststelling.id.trim() ||
+            `vaststelling-${index + 1}`,
+          tekst,
+          geselecteerdeSpecifiekeElementIds,
+          eigenElementen,
+        };
+      },
+    );
+
+  if (vaststellingen.length === 0) {
+    throw new Error(
+      "Voeg minstens één vaststelling toe.",
+    );
+  }
+
+  return vaststellingen;
+}
+
 export async function maakInspectie(input: {
   onderneming: string;
   adres: string;
@@ -179,11 +294,7 @@ export async function bewaarInspectie(
     ongevalsgegevens.ernstigArbeidsongeval &&
     (!slachtofferVoornaam ||
       !slachtofferNaam ||
-      !ongevalsdatum ||
-      ongevalsgegevens.slachtofferWerkHervat === null ||
-      (ongevalsgegevens.slachtofferWerkHervat &&
-        !werkhervattingsdatum) ||
-      ongevalsgegevens.werkpostBezocht === null)
+      !ongevalsdatum)
   ) {
     throw new Error(
       "Vul alle gegevens over het ernstig arbeidsongeval in.",
@@ -197,7 +308,7 @@ export async function bewaarInspectie(
       !/^\d{4}-\d{2}-\d{2}$/.test(
         ongevalsdatum,
       ) ||
-      (ongevalsgegevens.slachtofferWerkHervat &&
+      (werkhervattingsdatum &&
         !/^\d{4}-\d{2}-\d{2}$/.test(
           werkhervattingsdatum,
         )))
@@ -263,6 +374,10 @@ export async function bewaarInspectie(
               "soort letsel",
             )
           : null;
+      const vaststellingen =
+        normaliseerVaststellingen(inbreuk);
+      const eersteVaststelling =
+        vaststellingen[0];
 
       if (
         inbreukType === "EAO_CODES" &&
@@ -273,32 +388,30 @@ export async function bewaarInspectie(
         );
       }
 
-      if (
-        inbreukType === "STANDAARD" &&
-        inbreuk.specifiekeElementenAlsSituering &&
-        inbreuk.geselecteerdeSpecifiekeElementIds.length === 0
-      ) {
-        throw new Error(
-          "Selecteer minstens één specifiek element dat als situering wordt gebruikt.",
-        );
-      }
-
       const data = {
         standaardinbreukId: inbreuk.standaardinbreukId || null,
         inbreukType,
         volgorde,
         beschrijving: inbreuk.beschrijving,
         beschrijvingOpmaak: inbreuk.beschrijvingOpmaak,
-        inCasu: inbreuk.inCasu,
+        inCasu:
+          eersteVaststelling?.tekst ??
+          inbreuk.inCasu,
         toelichting: inbreuk.toelichting,
         aanvulling: inbreuk.aanvulling,
         aanvullingOpmaak: inbreuk.aanvullingOpmaak,
         wettelijkeVerwijzing: inbreuk.wettelijkeVerwijzing,
         specifiekeElementen: inbreuk.specifiekeElementen,
         geselecteerdeSpecifiekeElementIds:
+          eersteVaststelling
+            ?.geselecteerdeSpecifiekeElementIds ??
           inbreuk.geselecteerdeSpecifiekeElementIds,
         specifiekeElementenAlsSituering:
           inbreuk.specifiekeElementenAlsSituering,
+        eigenElementenToegestaan:
+          inbreuk.eigenElementenToegestaan,
+        vaststellingen:
+          vaststellingen as Prisma.InputJsonValue,
         afwijkendeGebeurtenisCode,
         betrokkenVoorwerpCode,
         soortLetselCode,
@@ -353,7 +466,8 @@ export async function bewaarInspectie(
             : null,
         werkhervattingsdatum:
           ongevalsgegevens.ernstigArbeidsongeval &&
-          ongevalsgegevens.slachtofferWerkHervat
+          ongevalsgegevens.slachtofferWerkHervat === true &&
+          werkhervattingsdatum
             ? werkhervattingsdatum
             : null,
         werkpostBezocht:

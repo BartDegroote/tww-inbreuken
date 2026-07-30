@@ -670,6 +670,8 @@ function initialiseerFormulier(
         inbreuk.specifiekeElementenIngeschakeld &&
           inbreuk.specifiekeElementenAlsSituering,
       ),
+    eigenElementenToegestaan:
+      inbreuk.eigenElementenToegestaan ?? false,
     specifiekeElementen:
       inbreuk.specifiekeElementen ?? [],
   };
@@ -1014,6 +1016,10 @@ function InbreukFormulierInhoud({
           inbreukType === "EAO_CODES"
             ? false
             : huidig.specifiekeElementenAlsSituering,
+        eigenElementenToegestaan:
+          inbreukType === "EAO_CODES"
+            ? false
+            : huidig.eigenElementenToegestaan,
       };
     });
 
@@ -1133,6 +1139,23 @@ function InbreukFormulierInhoud({
         ...huidig,
         specifiekeElementenAlsSituering:
           alsSituering,
+      };
+    });
+
+    wisStatus();
+  }
+
+  function wijzigEigenElementenToegestaan(
+    toegestaan: boolean,
+  ): void {
+    setFormulier((huidig) => {
+      if (!huidig) {
+        return huidig;
+      }
+
+      return {
+        ...huidig,
+        eigenElementenToegestaan: toegestaan,
       };
     });
 
@@ -2022,26 +2045,48 @@ function InbreukFormulierInhoud({
                   </p>
                 </div>
 
-                <label className="inline-flex cursor-pointer items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={
-                      formulier
-                        .specifiekeElementenIngeschakeld
-                    }
-                    onChange={(event) =>
-                      wijzigSpecifiekeElementenIngeschakeld(
-                        event.target.checked,
-                      )
-                    }
-                    disabled={bezig}
-                    className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
+                <div className="flex flex-col items-start gap-2 sm:items-end">
+                  <label className="inline-flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={
+                        formulier
+                          .specifiekeElementenIngeschakeld
+                      }
+                      onChange={(event) =>
+                        wijzigSpecifiekeElementenIngeschakeld(
+                          event.target.checked,
+                        )
+                      }
+                      disabled={bezig}
+                      className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
 
-                  <span className="text-sm font-semibold text-slate-700">
-                    Ingeschakeld
-                  </span>
-                </label>
+                    <span className="text-sm font-semibold text-slate-700">
+                      Voorgedefinieerd
+                    </span>
+                  </label>
+
+                  <label className="inline-flex cursor-pointer items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={
+                        formulier.eigenElementenToegestaan
+                      }
+                      onChange={(event) =>
+                        wijzigEigenElementenToegestaan(
+                          event.target.checked,
+                        )
+                      }
+                      disabled={bezig}
+                      className="h-5 w-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+
+                    <span className="text-sm font-semibold text-slate-700">
+                      Vrije elementen ter plaatse
+                    </span>
+                  </label>
+                </div>
               </div>
 
               {formulier
@@ -2168,7 +2213,7 @@ function InbreukFormulierInhoud({
             <div className="space-y-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm font-medium text-slate-700">
-                  Situering van de inbreuk
+                  Vaststelling
                 </span>
 
                 {formulier.specifiekeElementenIngeschakeld && (
@@ -2199,7 +2244,7 @@ function InbreukFormulierInhoud({
                             : "text-slate-500 hover:text-slate-700"
                         } disabled:cursor-not-allowed disabled:opacity-50`}
                       >
-                        Onder situering
+                        Onder vaststelling
                       </button>
 
                       <button
@@ -2219,7 +2264,7 @@ function InbreukFormulierInhoud({
                             : "text-slate-500 hover:text-slate-700"
                         } disabled:cursor-not-allowed disabled:opacity-50`}
                       >
-                        Als situering
+                        Als vaststelling
                       </button>
                     </div>
                   </div>
@@ -2229,11 +2274,11 @@ function InbreukFormulierInhoud({
               {formulier.specifiekeElementenIngeschakeld &&
               formulier.specifiekeElementenAlsSituering ? (
                 <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-                  De gekozen elementen vormen tijdens de inspectie de situering.
+                  De gekozen elementen vormen tijdens de inspectie de vaststelling.
                 </div>
               ) : (
                 <textarea
-                  aria-label="Situering van de inbreuk"
+                  aria-label="Vaststelling"
                   value={
                     formulier.situering ?? ""
                   }

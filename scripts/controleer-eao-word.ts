@@ -18,11 +18,48 @@ const inspectie: WordInspectie = {
     slachtofferVoornaam: "Bart",
     slachtofferNaam: "Degroote",
     ongevalsdatum: "2025-12-08",
-    slachtofferWerkHervat: true,
-    werkhervattingsdatum: "2026-02-09",
-    werkpostBezocht: true,
+    slachtofferWerkHervat: null,
+    werkhervattingsdatum: "",
+    werkpostBezocht: null,
   },
   inbreuken: [
+    {
+      inbreukType: "STANDAARD",
+      beschrijving:
+        "De schriftelijke instructies voor het arbeidsmiddel waren onvolledig.",
+      beschrijvingOpmaak: [],
+      inCasu: "",
+      specifiekeElementen: [],
+      specifiekeElementenAlsSituering: false,
+      vaststellingen: [
+        {
+          tekst:
+            "Het betreft de hoogwerker in werkplaats A.",
+          specifiekeElementen: [
+            "De instructies vermelden de veiligheidsvoorzieningen niet.",
+          ],
+          eigenElementen: [
+            "De bedieningsinstructie was niet beschikbaar bij het arbeidsmiddel.",
+          ],
+        },
+        {
+          tekst:
+            "Het betreft de heftruck in de laadzone.",
+          specifiekeElementen: [],
+          eigenElementen: [
+            "De instructies waren alleen in een voor de bestuurder onbekende taal beschikbaar.",
+          ],
+        },
+      ],
+      fotos: [],
+      toelichting:
+        "De instructies moeten begrijpelijk en beschikbaar zijn voor de betrokken werknemers.",
+      aanvulling:
+        "U dient dit voor de volledige onderneming na te gaan.",
+      aanvullingOpmaak: [],
+      wettelijkeVerwijzing:
+        "Dit is een overtreding op art. IV.2-5 van de codex over het welzijn op het werk.",
+    },
     {
       inbreukType: "EAO_CODES",
       beschrijving:

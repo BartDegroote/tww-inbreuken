@@ -42,6 +42,7 @@ export type WordInbreuk = {
   inCasu: string;
   specifiekeElementen?: string[];
   specifiekeElementenAlsSituering?: boolean;
+  vaststellingen?: WordVaststelling[];
   fotos?: WordFoto[];
   toelichting: string;
   aanvulling: string;
@@ -52,13 +53,19 @@ export type WordInbreuk = {
   soortLetselCode?: string;
 };
 
+export type WordVaststelling = {
+  tekst: string;
+  specifiekeElementen: string[];
+  eigenElementen: string[];
+};
+
 export type WordOngevalsgegevens = {
   slachtofferVoornaam: string;
   slachtofferNaam: string;
   ongevalsdatum: string;
-  slachtofferWerkHervat: boolean;
+  slachtofferWerkHervat: boolean | null;
   werkhervattingsdatum: string;
-  werkpostBezocht: boolean;
+  werkpostBezocht: boolean | null;
 };
 
 export type WordOntmoetePersoon = {
@@ -670,11 +677,30 @@ function maakInbreukParagrafen(
     }),
   ];
 
-  voegSitueringToe(
-    kinderen,
-    inbreuk.inCasu,
-    inbreuk.specifiekeElementen,
-    inbreuk.specifiekeElementenAlsSituering,
+  const vaststellingen =
+    inbreuk.vaststellingen?.length
+      ? inbreuk.vaststellingen
+      : [
+          {
+            tekst: inbreuk.inCasu,
+            specifiekeElementen:
+              inbreuk.specifiekeElementen ?? [],
+            eigenElementen: [],
+          },
+        ];
+
+  vaststellingen.forEach(
+    (vaststelling) => {
+      voegSitueringToe(
+        kinderen,
+        vaststelling.tekst,
+        [
+          ...vaststelling.specifiekeElementen,
+          ...vaststelling.eigenElementen,
+        ],
+        inbreuk.specifiekeElementenAlsSituering,
+      );
+    },
   );
 
   kinderen.push(
@@ -1024,13 +1050,15 @@ function maakEaoInbreukOnderdelen(
   ];
 
   const werkhervatting =
-    gegevens.slachtofferWerkHervat
-      ? gegevens.werkhervattingsdatum
-        ? `Het slachtoffer heeft het werk pas op ${formatteerLangeDatumVoorWord(
-            gegevens.werkhervattingsdatum,
-          )} hervat.`
-        : "Het slachtoffer heeft het werk inmiddels hervat."
-      : "Het slachtoffer heeft het werk nog niet hervat.";
+    gegevens.slachtofferWerkHervat === null
+      ? ""
+      : gegevens.slachtofferWerkHervat
+        ? gegevens.werkhervattingsdatum
+          ? `Het slachtoffer heeft het werk pas op ${formatteerLangeDatumVoorWord(
+              gegevens.werkhervattingsdatum,
+            )} hervat.`
+          : "Het slachtoffer heeft het werk inmiddels hervat."
+        : "Het slachtoffer heeft het werk nog niet hervat.";
 
   const werkhervattingParagrafen: Paragraph[] =
     [];
@@ -1095,13 +1123,20 @@ function maakOngevalsParagrafen(
 
   const tekst = [
     "Het ernstig arbeidsongeval werd ter plaatse besproken en de voortgang van het actieplan werd geëvalueerd.",
-    gegevens.slachtofferWerkHervat
-      ? "Het slachtoffer heeft het werk inmiddels hervat."
-      : "Het slachtoffer heeft het werk nog niet hervat.",
-    gegevens.werkpostBezocht
-      ? "Ook de werkpost waar het ongeval plaatsvond, werd bezocht."
-      : "De werkpost waar het ongeval plaatsvond, werd niet bezocht.",
-  ].join(" ");
+    gegevens.slachtofferWerkHervat ===
+      null
+      ? ""
+      : gegevens.slachtofferWerkHervat
+        ? "Het slachtoffer heeft het werk inmiddels hervat."
+        : "Het slachtoffer heeft het werk nog niet hervat.",
+    gegevens.werkpostBezocht === null
+      ? ""
+      : gegevens.werkpostBezocht
+        ? "Ook de werkpost waar het ongeval plaatsvond, werd bezocht."
+        : "De werkpost waar het ongeval plaatsvond, werd niet bezocht.",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return [
     new Paragraph({

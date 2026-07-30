@@ -289,6 +289,10 @@ export async function bewaarStandaardinbreuk(
       invoer.specifiekeElementenAlsSituering,
     );
 
+  const eigenElementenToegestaan =
+    inbreukType === "STANDAARD" &&
+    Boolean(invoer.eigenElementenToegestaan);
+
   const geverifieerd = Boolean(
     invoer.geverifieerd,
   );
@@ -378,6 +382,7 @@ export async function bewaarStandaardinbreuk(
 
               specifiekeElementenIngeschakeld,
               specifiekeElementenAlsSituering,
+              eigenElementenToegestaan,
 
               toelichting: optioneelTekstveld(
                 invoer.toelichting,
@@ -443,6 +448,7 @@ export async function bewaarStandaardinbreuk(
 
             specifiekeElementenIngeschakeld,
             specifiekeElementenAlsSituering,
+            eigenElementenToegestaan,
 
             specifiekeElementen:
               specifiekeElementen.length > 0

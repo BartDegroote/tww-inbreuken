@@ -39,12 +39,13 @@ export type Standaardinbreuk = {
   omschrijving: string;
   omschrijvingOpmaak?: TekstSegment[];
 
-  // 2. Situering
+  // 2. Vaststelling
   situering?: string;
 
   // 3. Specifieke elementen
   specifiekeElementenIngeschakeld: boolean;
   specifiekeElementenAlsSituering: boolean;
+  eigenElementenToegestaan: boolean;
   specifiekeElementen: SpecifiekElement[];
 
   // 4. Toelichting

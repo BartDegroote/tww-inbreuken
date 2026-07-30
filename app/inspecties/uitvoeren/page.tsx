@@ -75,6 +75,8 @@ export default async function InspectieUitvoerenPagina({
             specifiekeElementen: true,
             geselecteerdeSpecifiekeElementIds: true,
             specifiekeElementenAlsSituering: true,
+            eigenElementenToegestaan: true,
+            vaststellingen: true,
             afwijkendeGebeurtenisCode: true,
             betrokkenVoorwerpCode: true,
             soortLetselCode: true,
@@ -109,6 +111,86 @@ export default async function InspectieUitvoerenPagina({
             typeof (element as { tekst?: unknown }).tekst === "string",
         )
       : [];
+    const standaardinbreuk =
+      standaardinbreuken.find(
+        (standaard) =>
+          standaard.id ===
+          inbreuk.standaardinbreukId,
+      );
+    const opgeslagenVaststellingen =
+      Array.isArray(inbreuk.vaststellingen)
+        ? inbreuk.vaststellingen
+            .filter(
+              (
+                vaststelling,
+              ): vaststelling is {
+                id: string;
+                tekst: string;
+                geselecteerdeSpecifiekeElementIds: string[];
+                eigenElementen: string[];
+              } =>
+                typeof vaststelling ===
+                  "object" &&
+                vaststelling !== null &&
+                !Array.isArray(vaststelling) &&
+                typeof (
+                  vaststelling as {
+                    id?: unknown;
+                  }
+                ).id === "string" &&
+                typeof (
+                  vaststelling as {
+                    tekst?: unknown;
+                  }
+                ).tekst === "string" &&
+                Array.isArray(
+                  (
+                    vaststelling as {
+                      geselecteerdeSpecifiekeElementIds?: unknown;
+                    }
+                  )
+                    .geselecteerdeSpecifiekeElementIds,
+                ) &&
+                Array.isArray(
+                  (
+                    vaststelling as {
+                      eigenElementen?: unknown;
+                    }
+                  ).eigenElementen,
+                ),
+            )
+            .map((vaststelling) => ({
+              id: vaststelling.id,
+              tekst: vaststelling.tekst,
+              geselecteerdeSpecifiekeElementIds:
+                vaststelling
+                  .geselecteerdeSpecifiekeElementIds
+                  .filter(
+                    (id): id is string =>
+                      typeof id === "string",
+                  ),
+              eigenElementen:
+                vaststelling.eigenElementen.filter(
+                  (
+                    element,
+                  ): element is string =>
+                    typeof element === "string",
+                ),
+            }))
+        : [];
+    const vaststellingen =
+      opgeslagenVaststellingen.length > 0
+        ? opgeslagenVaststellingen
+        : [
+            {
+              id: `${inbreuk.id}-vaststelling-1`,
+              tekst: inbreuk.inCasu,
+              geselecteerdeSpecifiekeElementIds:
+                inbreuk
+                  .geselecteerdeSpecifiekeElementIds,
+              eigenElementen: [],
+            },
+          ];
 
     return {
       id: inbreuk.id,
@@ -129,6 +211,12 @@ export default async function InspectieUitvoerenPagina({
         inbreuk.geselecteerdeSpecifiekeElementIds,
       specifiekeElementenAlsSituering:
         inbreuk.specifiekeElementenAlsSituering,
+      eigenElementenToegestaan:
+        inbreuk.eigenElementenToegestaan ||
+        standaardinbreuk
+          ?.eigenElementenToegestaan ||
+        false,
+      vaststellingen,
       afwijkendeGebeurtenisCode:
         inbreuk.afwijkendeGebeurtenisCode ?? "",
       betrokkenVoorwerpCode:

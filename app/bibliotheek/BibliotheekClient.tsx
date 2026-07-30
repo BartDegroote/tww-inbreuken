@@ -63,6 +63,7 @@ function maakLegeInbreuk(): Standaardinbreuk {
 
     specifiekeElementenIngeschakeld: false,
     specifiekeElementenAlsSituering: false,
+    eigenElementenToegestaan: false,
     specifiekeElementen: [],
 
     toelichting: "",

@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 
 import {
@@ -13,6 +14,7 @@ import {
   type OntmoetePersoonInput,
   type OngevalsgegevensInput,
   type OpgeslagenInbreukInput,
+  type VaststellingInput,
 } from "@/app/inspecties/actions";
 import AppBalk from "@/app/componenten/AppBalk";
 
@@ -88,6 +90,8 @@ export type Inbreuk = {
   specifiekeElementen: SpecifiekElementKeuze[];
   geselecteerdeSpecifiekeElementIds: string[];
   specifiekeElementenAlsSituering: boolean;
+  eigenElementenToegestaan: boolean;
+  vaststellingen: VaststellingInput[];
   afwijkendeGebeurtenisCode: string;
   betrokkenVoorwerpCode: string;
   soortLetselCode: string;
@@ -117,6 +121,31 @@ type EaoCodeVeldProps = {
   opties: readonly EaoCodeOptie[];
   onChange: (code: string) => void;
 };
+
+function UitklapbareGroep({
+  standaardOpen = false,
+  className,
+  children,
+}: {
+  standaardOpen?: boolean;
+  className: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] =
+    useState(standaardOpen);
+
+  return (
+    <details
+      open={open}
+      onToggle={(event) =>
+        setOpen(event.currentTarget.open)
+      }
+      className={className}
+    >
+      {children}
+    </details>
+  );
+}
 
 function EaoCodeVeld({
   id,
@@ -372,6 +401,17 @@ function maakTijdelijkId(): string {
     .slice(2)}`;
 }
 
+function maakVaststelling(
+  tekst = "",
+): VaststellingInput {
+  return {
+    id: maakTijdelijkId(),
+    tekst,
+    geselecteerdeSpecifiekeElementIds: [],
+    eigenElementen: [],
+  };
+}
+
 function maakCompacteWettelijkeVerwijzing(
   wetgevingNaam: string,
   wettelijkeVerwijzing: string,
@@ -428,8 +468,8 @@ export default function InspectieUitvoerenClient({
   const [beschrijving, setBeschrijving] =
     useState("");
 
-  const [inCasu, setInCasu] =
-    useState("");
+  const [vaststellingen, setVaststellingen] =
+    useState<VaststellingInput[]>([]);
 
   const [
     wettelijkeVerwijzing,
@@ -440,11 +480,6 @@ export default function InspectieUitvoerenClient({
     useState<InspectieFoto[]>([]);
 
   const [opslagStatus, setOpslagStatus] = useState("");
-
-  const [
-    geselecteerdeSpecifiekeElementIds,
-    setGeselecteerdeSpecifiekeElementIds,
-  ] = useState<string[]>([]);
 
   const [
     afwijkendeGebeurtenisCode,
@@ -564,11 +599,7 @@ export default function InspectieUitvoerenClient({
     Boolean(
       slachtofferVoornaam.trim() &&
         slachtofferNaam.trim() &&
-        ongevalsdatum &&
-        slachtofferWerkHervat !== null &&
-        (!slachtofferWerkHervat ||
-          werkhervattingsdatum) &&
-        werkpostBezocht !== null,
+        ongevalsdatum,
     );
 
   const bewerkFormulierRef =
@@ -851,47 +882,105 @@ export default function InspectieUitvoerenClient({
     zoektekstPerInbreukId,
   ]);
 
-  const zoekresultatenPerOnderwerp =
+  const zoekresultatenPerBoek =
     useMemo(() => {
+      const boekVolgorde = new Map(
+        boeken.map((boek, index) => [
+          boek.id,
+          index,
+        ]),
+      );
       const groepen = new Map<
         string,
         {
           sleutel: string;
-          onderwerp: string;
-          inbreuken: Standaardinbreuk[];
+          boekNaam: string;
+          boekId: string;
+          onderwerpen: Map<
+            string,
+            {
+              sleutel: string;
+              onderwerp: string;
+              inbreuken: Standaardinbreuk[];
+            }
+          >;
         }
       >();
 
       for (const inbreuk of zoekresultaten) {
+        const boekSleutel =
+          inbreuk.boekId;
+        let boekGroep =
+          groepen.get(boekSleutel);
+
+        if (!boekGroep) {
+          boekGroep = {
+            sleutel: boekSleutel,
+            boekId: inbreuk.boekId,
+            boekNaam:
+              boekNaamPerId.get(
+                inbreuk.boekId,
+              ) ?? "Zonder boek",
+            onderwerpen: new Map(),
+          };
+          groepen.set(boekSleutel, boekGroep);
+        }
+
         const onderwerp =
           inbreuk.onderwerp.trim() ||
           "Zonder onderwerp";
         const sleutel =
           onderwerp.toLocaleLowerCase("nl-BE");
         const bestaandeGroep =
-          groepen.get(sleutel);
+          boekGroep.onderwerpen.get(
+            sleutel,
+          );
 
         if (bestaandeGroep) {
           bestaandeGroep.inbreuken.push(inbreuk);
           continue;
         }
 
-        groepen.set(sleutel, {
+        boekGroep.onderwerpen.set(sleutel, {
           sleutel,
           onderwerp,
           inbreuken: [inbreuk],
         });
       }
 
-      return Array.from(groepen.values());
-    }, [zoekresultaten]);
+      return Array.from(groepen.values())
+        .sort(
+          (eerste, tweede) =>
+            (boekVolgorde.get(
+              eerste.boekId,
+            ) ?? Number.MAX_SAFE_INTEGER) -
+            (boekVolgorde.get(
+              tweede.boekId,
+            ) ?? Number.MAX_SAFE_INTEGER),
+        )
+        .map((groep) => ({
+          ...groep,
+          onderwerpen: Array.from(
+            groep.onderwerpen.values(),
+          ).sort((eerste, tweede) =>
+            eerste.onderwerp.localeCompare(
+              tweede.onderwerp,
+              "nl-BE",
+              { numeric: true },
+            ),
+          ),
+        }));
+    }, [
+      zoekresultaten,
+      boeken,
+      boekNaamPerId,
+    ]);
 
   function maakFormulierLeeg() {
     setGeselecteerdeId(null);
     setBeschrijving("");
-    setInCasu("");
+    setVaststellingen([]);
     setWettelijkeVerwijzing("");
-    setGeselecteerdeSpecifiekeElementIds([]);
     setAfwijkendeGebeurtenisCode("");
     setBetrokkenVoorwerpCode("");
     setSoortLetselCode("");
@@ -1045,6 +1134,15 @@ export default function InspectieUitvoerenClient({
       geselecteerdeSpecifiekeElementIds: [],
       specifiekeElementenAlsSituering:
         standaard.specifiekeElementenAlsSituering,
+      eigenElementenToegestaan:
+        standaard.eigenElementenToegestaan,
+      vaststellingen: [
+        maakVaststelling(
+          standaard.specifiekeElementenAlsSituering
+            ? ""
+            : standaard.situering ?? "",
+        ),
+      ],
       afwijkendeGebeurtenisCode: "",
       betrokkenVoorwerpCode: "",
       soortLetselCode: "",
@@ -1067,11 +1165,12 @@ export default function InspectieUitvoerenClient({
     setBeschrijving(
       nieuweInbreuk.beschrijving,
     );
-    setInCasu(nieuweInbreuk.inCasu);
+    setVaststellingen(
+      nieuweInbreuk.vaststellingen,
+    );
     setWettelijkeVerwijzing(
       nieuweInbreuk.wettelijkeVerwijzing,
     );
-    setGeselecteerdeSpecifiekeElementIds([]);
     setAfwijkendeGebeurtenisCode("");
     setBetrokkenVoorwerpCode("");
     setSoortLetselCode("");
@@ -1085,12 +1184,22 @@ export default function InspectieUitvoerenClient({
   ) {
     setGeselecteerdeId(inbreuk.id);
     setBeschrijving(inbreuk.beschrijving);
-    setInCasu(inbreuk.inCasu);
+    setVaststellingen(
+      inbreuk.vaststellingen.map(
+        (vaststelling) => ({
+          ...vaststelling,
+          geselecteerdeSpecifiekeElementIds: [
+            ...vaststelling
+              .geselecteerdeSpecifiekeElementIds,
+          ],
+          eigenElementen: [
+            ...vaststelling.eigenElementen,
+          ],
+        }),
+      ),
+    );
     setWettelijkeVerwijzing(
       inbreuk.wettelijkeVerwijzing,
-    );
-    setGeselecteerdeSpecifiekeElementIds(
-      inbreuk.geselecteerdeSpecifiekeElementIds,
     );
     setAfwijkendeGebeurtenisCode(
       inbreuk.afwijkendeGebeurtenisCode,
@@ -1151,6 +1260,10 @@ export default function InspectieUitvoerenClient({
             inbreuk.geselecteerdeSpecifiekeElementIds,
           specifiekeElementenAlsSituering:
             inbreuk.specifiekeElementenAlsSituering,
+          eigenElementenToegestaan:
+            inbreuk.eigenElementenToegestaan,
+          vaststellingen:
+            inbreuk.vaststellingen,
           afwijkendeGebeurtenisCode:
             inbreuk.afwijkendeGebeurtenisCode,
           betrokkenVoorwerpCode:
@@ -1211,16 +1324,149 @@ export default function InspectieUitvoerenClient({
   }
 
   function wijzigSpecifiekElement(
+    vaststellingId: string,
     elementId: string,
     geselecteerd: boolean,
   ) {
-    setGeselecteerdeSpecifiekeElementIds(
-      (huidigeIds) =>
-        geselecteerd
-          ? [...new Set([...huidigeIds, elementId])]
-          : huidigeIds.filter(
-              (id) => id !== elementId,
-            ),
+    setVaststellingen(
+      (huidigeVaststellingen) =>
+        huidigeVaststellingen.map(
+          (vaststelling) =>
+            vaststelling.id === vaststellingId
+              ? {
+                  ...vaststelling,
+                  geselecteerdeSpecifiekeElementIds:
+                    geselecteerd
+                      ? [
+                          ...new Set([
+                            ...vaststelling
+                              .geselecteerdeSpecifiekeElementIds,
+                            elementId,
+                          ]),
+                        ]
+                      : vaststelling
+                          .geselecteerdeSpecifiekeElementIds
+                          .filter(
+                            (id) =>
+                              id !== elementId,
+                          ),
+                }
+              : vaststelling,
+        ),
+    );
+    setExportFout("");
+  }
+
+  function wijzigVaststellingTekst(
+    vaststellingId: string,
+    tekst: string,
+  ) {
+    setVaststellingen(
+      (huidigeVaststellingen) =>
+        huidigeVaststellingen.map(
+          (vaststelling) =>
+            vaststelling.id === vaststellingId
+              ? { ...vaststelling, tekst }
+              : vaststelling,
+        ),
+    );
+    setExportFout("");
+  }
+
+  function voegVaststellingToe() {
+    setVaststellingen(
+      (huidigeVaststellingen) => [
+        ...huidigeVaststellingen,
+        maakVaststelling(),
+      ],
+    );
+    setExportFout("");
+  }
+
+  function verwijderVaststelling(
+    vaststellingId: string,
+  ) {
+    setVaststellingen(
+      (huidigeVaststellingen) =>
+        huidigeVaststellingen.filter(
+          (vaststelling) =>
+            vaststelling.id !== vaststellingId,
+        ),
+    );
+    setExportFout("");
+  }
+
+  function wijzigEigenElement(
+    vaststellingId: string,
+    index: number,
+    tekst: string,
+  ) {
+    setVaststellingen(
+      (huidigeVaststellingen) =>
+        huidigeVaststellingen.map(
+          (vaststelling) => {
+            if (
+              vaststelling.id !==
+              vaststellingId
+            ) {
+              return vaststelling;
+            }
+
+            const eigenElementen = [
+              ...vaststelling.eigenElementen,
+            ];
+            eigenElementen[index] = tekst;
+
+            return {
+              ...vaststelling,
+              eigenElementen,
+            };
+          },
+        ),
+    );
+    setExportFout("");
+  }
+
+  function voegEigenElementToe(
+    vaststellingId: string,
+  ) {
+    setVaststellingen(
+      (huidigeVaststellingen) =>
+        huidigeVaststellingen.map(
+          (vaststelling) =>
+            vaststelling.id === vaststellingId
+              ? {
+                  ...vaststelling,
+                  eigenElementen: [
+                    ...vaststelling.eigenElementen,
+                    "",
+                  ],
+                }
+              : vaststelling,
+        ),
+    );
+    setExportFout("");
+  }
+
+  function verwijderEigenElement(
+    vaststellingId: string,
+    index: number,
+  ) {
+    setVaststellingen(
+      (huidigeVaststellingen) =>
+        huidigeVaststellingen.map(
+          (vaststelling) =>
+            vaststelling.id === vaststellingId
+              ? {
+                  ...vaststelling,
+                  eigenElementen:
+                    vaststelling.eigenElementen.filter(
+                      (_, elementIndex) =>
+                        elementIndex !== index,
+                    ),
+                }
+              : vaststelling,
+        ),
     );
     setExportFout("");
   }
@@ -1248,9 +1494,14 @@ export default function InspectieUitvoerenClient({
             beschrijvingGewijzigd
               ? platteSegmenten(beschrijving)
               : inbreuk.beschrijvingOpmaak,
-          inCasu,
+          inCasu:
+            vaststellingen[0]?.tekst ?? "",
           wettelijkeVerwijzing,
-          geselecteerdeSpecifiekeElementIds,
+          geselecteerdeSpecifiekeElementIds:
+            vaststellingen[0]
+              ?.geselecteerdeSpecifiekeElementIds ??
+            [],
+          vaststellingen,
           afwijkendeGebeurtenisCode,
           betrokkenVoorwerpCode,
           soortLetselCode,
@@ -1319,11 +1570,7 @@ export default function InspectieUitvoerenClient({
       ernstigArbeidsongeval &&
       (!slachtofferVoornaam.trim() ||
         !slachtofferNaam.trim() ||
-        !ongevalsdatum ||
-        werkHervat === null ||
-        (werkHervat &&
-          !werkhervattingsdatum) ||
-        werkpostIsBezocht === null)
+        !ongevalsdatum)
     ) {
       setExportFout(
         "Vul alle gegevens over het ernstig arbeidsongeval in.",
@@ -1383,6 +1630,25 @@ export default function InspectieUitvoerenClient({
                   .map((element) => element.tekst),
               specifiekeElementenAlsSituering:
                 inbreuk.specifiekeElementenAlsSituering,
+              vaststellingen:
+                inbreuk.vaststellingen.map(
+                  (vaststelling) => ({
+                    tekst: vaststelling.tekst,
+                    specifiekeElementen:
+                      inbreuk.specifiekeElementen
+                        .filter((element) =>
+                          vaststelling
+                            .geselecteerdeSpecifiekeElementIds
+                            .includes(element.id),
+                        )
+                        .map(
+                          (element) =>
+                            element.tekst,
+                        ),
+                    eigenElementen:
+                      vaststelling.eigenElementen,
+                  }),
+                ),
               fotos: await maakWordFotos(
                 inbreuk.fotos,
               ),
@@ -1414,9 +1680,7 @@ export default function InspectieUitvoerenClient({
           huidigeOntmoetePersonen(),
         inbreuken: wordInbreuken,
         ernstigArbeidsongeval:
-          ernstigArbeidsongeval &&
-          werkHervat !== null &&
-          werkpostIsBezocht !== null
+          ernstigArbeidsongeval
             ? {
                 slachtofferVoornaam,
                 slachtofferNaam,
@@ -1585,23 +1849,21 @@ export default function InspectieUitvoerenClient({
         <header className="mt-5 rounded-2xl border border-white bg-white/95 p-4 shadow-[0_14px_45px_rgba(15,23,42,0.07)] sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="min-w-0">
-              <h1 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-                Inspectie uitvoeren
-              </h1>
-
-              <p className="mt-1 text-slate-600">
-                Zoek een standaardinbreuk en voeg
-                de concrete vaststelling toe.
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700">
+                Inspecteur
               </p>
+              <h1 className="mt-1 text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
+                {inspecteur || "Niet ingevuld"}
+              </h1>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[44rem]">
-              <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-5 py-4">
-                <p className="text-sm text-blue-700">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:min-w-[40rem]">
+              <div className="col-span-2 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-4 py-3 sm:col-span-1">
+                <p className="text-xs text-blue-700">
                   Flow
                 </p>
 
-                <p className="text-xl font-bold text-blue-950">
+                <p className="text-lg font-bold text-blue-950">
                   {flow || "Niet ingevuld"}
                 </p>
               </div>
@@ -1613,7 +1875,7 @@ export default function InspectieUitvoerenClient({
                 }
                 aria-controls="ontmoete-personen-paneel"
                 onClick={wisselOntmoetePersonenPaneel}
-                className={`flex min-h-20 items-center gap-3 rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                className={`flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-blue-300 ${
                   toonOntmoetePersonen
                     ? "border-blue-500 bg-blue-100 text-blue-950 shadow-sm"
                     : ontmoetePersonenIngevuld
@@ -1698,7 +1960,7 @@ export default function InspectieUitvoerenClient({
                 aria-expanded={toonOngevalsgegevens}
                 aria-controls="ongevalsgegevens-paneel"
                 onClick={wisselOngevalsgegevensPaneel}
-                className={`flex min-h-20 items-center gap-3 rounded-xl border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-amber-300 ${
+                className={`flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-amber-300 ${
                   toonOngevalsgegevens
                     ? "border-amber-500 bg-amber-100 text-amber-950 shadow-sm"
                     : ongevalsgegevensVolledig
@@ -1755,7 +2017,7 @@ export default function InspectieUitvoerenClient({
                   </span>
                   <span className="mt-0.5 block text-xs opacity-75">
                     {ongevalsgegevensVolledig
-                      ? "Gegevens volledig"
+                      ? "Basisgegevens ingevuld"
                       : ernstigArbeidsongeval
                         ? "Nog aan te vullen"
                       : "Toevoegen aan verslag"}
@@ -1784,9 +2046,9 @@ export default function InspectieUitvoerenClient({
             </div>
           </div>
 
-          <dl className="mt-6 grid gap-4 border-t border-slate-200 pt-5 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <dt className="text-sm text-slate-500">
+          <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-slate-200 pt-4 sm:grid-cols-3">
+            <div className="min-w-0">
+              <dt className="text-xs text-slate-500">
                 Onderneming
               </dt>
 
@@ -1795,8 +2057,8 @@ export default function InspectieUitvoerenClient({
               </dd>
             </div>
 
-            <div>
-              <dt className="text-sm text-slate-500">
+            <div className="order-last col-span-2 min-w-0 sm:order-none sm:col-span-1">
+              <dt className="text-xs text-slate-500">
                 Adres
               </dt>
 
@@ -1805,8 +2067,8 @@ export default function InspectieUitvoerenClient({
               </dd>
             </div>
 
-            <div>
-              <dt className="text-sm text-slate-500">
+            <div className="min-w-0">
+              <dt className="text-xs text-slate-500">
                 Inspectiedatum
               </dt>
 
@@ -1815,15 +2077,6 @@ export default function InspectieUitvoerenClient({
               </dd>
             </div>
 
-            <div>
-              <dt className="text-sm text-slate-500">
-                Inspecteur
-              </dt>
-
-              <dd className="break-words font-medium text-slate-900">
-                {inspecteur || "Niet ingevuld"}
-              </dd>
-            </div>
           </dl>
 
           {toonOntmoetePersonen && (
@@ -2020,8 +2273,14 @@ export default function InspectieUitvoerenClient({
                   <legend className="text-sm font-semibold text-slate-700">
                     Slachtoffer opnieuw aan het werk?
                   </legend>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {[true, false].map((waarde) => (
+                  <div className="mt-2 grid grid-cols-3 gap-2">
+                    {(
+                      [
+                        null,
+                        true,
+                        false,
+                      ] as const
+                    ).map((waarde) => (
                       <label
                         key={String(waarde)}
                         className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
@@ -2045,7 +2304,11 @@ export default function InspectieUitvoerenClient({
                           }
                           className="h-4 w-4 accent-amber-600"
                         />
-                        {waarde ? "Ja" : "Nee"}
+                        {waarde === null
+                          ? "Open"
+                          : waarde
+                            ? "Ja"
+                            : "Nee"}
                       </label>
                     ))}
                   </div>
@@ -2065,7 +2328,6 @@ export default function InspectieUitvoerenClient({
                         )
                       }
                       className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
-                      required
                     />
                   </label>
                 )}
@@ -2080,8 +2342,14 @@ export default function InspectieUitvoerenClient({
                   <legend className="text-sm font-semibold text-slate-700">
                     Werkpost van het ongeval bezocht?
                   </legend>
-                  <div className="mt-2 grid max-w-sm grid-cols-2 gap-2">
-                    {[true, false].map((waarde) => (
+                  <div className="mt-2 grid max-w-md grid-cols-3 gap-2">
+                    {(
+                      [
+                        null,
+                        true,
+                        false,
+                      ] as const
+                    ).map((waarde) => (
                       <label
                         key={String(waarde)}
                         className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
@@ -2103,7 +2371,11 @@ export default function InspectieUitvoerenClient({
                           }
                           className="h-4 w-4 accent-amber-600"
                         />
-                        {waarde ? "Ja" : "Nee"}
+                        {waarde === null
+                          ? "Open"
+                          : waarde
+                            ? "Ja"
+                            : "Nee"}
                       </label>
                     ))}
                   </div>
@@ -2417,90 +2689,99 @@ export default function InspectieUitvoerenClient({
                     gevonden.
                   </p>
                 ) : (
-                  <>
-                    <div className="mt-3 hidden space-y-3 sm:block">
-                      {zoekresultaten.map(
-                        maakZoekresultaatKaart,
-                      )}
-                    </div>
+                  <div className="mt-3 space-y-3">
+                    {zoekresultatenPerBoek.map(
+                      (boekGroep) => {
+                        const aantalInbreuken =
+                          boekGroep.onderwerpen.reduce(
+                            (totaal, groep) =>
+                              totaal +
+                              groep.inbreuken.length,
+                            0,
+                          );
+                        const enigBoek =
+                          zoekresultatenPerBoek.length ===
+                          1;
 
-                    <div className="mt-3 sm:hidden">
-                      {zoekresultatenPerOnderwerp.length ===
-                      1 ? (
-                        <section
-                          aria-labelledby="enig-onderwerp-resultaten"
-                        >
-                          <div className="mb-2 flex min-h-11 items-center justify-between gap-3 rounded-lg bg-slate-100 px-4 py-2.5">
-                            <h3
-                              id="enig-onderwerp-resultaten"
-                              className="min-w-0 truncate font-semibold text-slate-900"
-                            >
-                              {
-                                zoekresultatenPerOnderwerp[0]
-                                  .onderwerp
-                              }
-                            </h3>
-                            <span className="shrink-0 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-500">
-                              {
-                                zoekresultatenPerOnderwerp[0]
-                                  .inbreuken.length
-                              }
-                            </span>
-                          </div>
-
-                          <div className="space-y-3">
-                            {zoekresultatenPerOnderwerp[0].inbreuken.map(
-                              maakZoekresultaatKaart,
-                            )}
-                          </div>
-                        </section>
-                      ) : (
-                        <div className="space-y-2">
-                          {zoekresultatenPerOnderwerp.map(
-                            (groep) => (
-                              <details
-                                key={groep.sleutel}
-                                name="zoekresultaten-onderwerpen"
-                                className="group overflow-hidden rounded-lg border border-slate-200 bg-white"
+                        return (
+                          <UitklapbareGroep
+                            key={boekGroep.sleutel}
+                            standaardOpen={enigBoek}
+                            className="group/boek overflow-hidden rounded-xl border border-slate-200 bg-white"
+                          >
+                            <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 bg-slate-900 px-4 py-3 text-sm font-bold text-white outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400 sm:text-base">
+                              <span className="min-w-0 flex-1">
+                                {boekGroep.boekNaam}
+                              </span>
+                              <span className="shrink-0 rounded-full bg-white/15 px-2.5 py-0.5 text-xs">
+                                {aantalInbreuken}
+                              </span>
+                              <svg
+                                aria-hidden="true"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                className="h-4 w-4 shrink-0 transition-transform group-open/boek:rotate-180"
                               >
-                                <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-4 py-3 font-semibold text-slate-900 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500">
-                                  <span className="min-w-0 flex-1 truncate">
-                                    {groep.onderwerp}
-                                  </span>
-                                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
-                                    {
-                                      groep.inbreuken
-                                        .length
-                                    }
-                                  </span>
-                                  <svg
-                                    aria-hidden="true"
-                                    viewBox="0 0 20 20"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.8"
-                                    className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180"
-                                  >
-                                    <path
-                                      d="m6 8 4 4 4-4"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                </summary>
+                                <path
+                                  d="m6 8 4 4 4-4"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </summary>
 
-                                <div className="space-y-3 border-t border-slate-100 bg-slate-50/70 p-2">
-                                  {groep.inbreuken.map(
-                                    maakZoekresultaatKaart,
-                                  )}
-                                </div>
-                              </details>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </>
+                            <div className="space-y-2 bg-slate-50 p-2 sm:p-3">
+                              {boekGroep.onderwerpen.map(
+                                (groep) => (
+                                  <UitklapbareGroep
+                                    key={`${boekGroep.sleutel}-${groep.sleutel}`}
+                                    standaardOpen={
+                                      enigBoek &&
+                                      boekGroep
+                                        .onderwerpen
+                                        .length === 1
+                                    }
+                                    className="group/onderwerp overflow-hidden rounded-lg border border-slate-200 bg-white"
+                                  >
+                                    <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 px-4 py-3 font-semibold text-slate-900 outline-none marker:content-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500">
+                                      <span className="min-w-0 flex-1">
+                                        {groep.onderwerp}
+                                      </span>
+                                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-500">
+                                        {groep.inbreuken.length}
+                                      </span>
+                                      <svg
+                                        aria-hidden="true"
+                                        viewBox="0 0 20 20"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.8"
+                                        className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open/onderwerp:rotate-180"
+                                      >
+                                        <path
+                                          d="m6 8 4 4 4-4"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                        />
+                                      </svg>
+                                    </summary>
+
+                                    <div className="space-y-3 border-t border-slate-100 bg-slate-50/70 p-2">
+                                      {groep.inbreuken.map(
+                                        maakZoekresultaatKaart,
+                                      )}
+                                    </div>
+                                  </UitklapbareGroep>
+                                ),
+                              )}
+                            </div>
+                          </UitklapbareGroep>
+                        );
+                      },
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -2816,7 +3097,7 @@ export default function InspectieUitvoerenClient({
                     aria-labelledby="inspectievaststelling-titel"
                     className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
                   >
-                    <div className="mb-6 flex items-start gap-4">
+                    <div className="flex items-start gap-4">
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
                         <svg
                           aria-hidden="true"
@@ -2844,115 +3125,208 @@ export default function InspectieUitvoerenClient({
                           id="inspectievaststelling-titel"
                           className="text-lg font-bold text-slate-900"
                         >
-                          Situering
+                          Vaststellingen
                         </h3>
-
                         <p className="mt-1 text-sm leading-6 text-slate-600">
-                          {geselecteerdeInbreuk
-                            ?.specifiekeElementenAlsSituering
-                            ? "Selecteer de elementen die samen de situering vormen."
-                            : "Beschrijf de concrete situering zoals vastgesteld tijdens de inspectie."}
+                          Voeg per concrete situatie de tekst en eventuele elementen toe.
                         </p>
                       </div>
                     </div>
 
-                    {geselecteerdeInbreuk
-                      ?.specifiekeElementenAlsSituering ? (
-                      <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-800">
-                        De geselecteerde elementen vormen samen de situering.
-                      </div>
-                    ) : (
-                      <div>
-                        <label
-                          htmlFor="inCasu"
-                          className="block text-sm font-semibold text-slate-700"
-                        >
-                          Situering
-                        </label>
+                    <div className="mt-5 space-y-4">
+                      {vaststellingen.map(
+                        (vaststelling, index) => {
+                          const geselecteerdAantal =
+                            vaststelling
+                              .geselecteerdeSpecifiekeElementIds
+                              .length +
+                            vaststelling.eigenElementen.filter(
+                              (element) =>
+                                element.trim(),
+                            ).length;
 
-                        <textarea
-                          id="inCasu"
-                          value={inCasu}
-                          onChange={(event) =>
-                            setInCasu(
-                              event.target.value,
-                            )
-                          }
-                          rows={7}
-                          placeholder="Beschrijf de situering tijdens de inspectie."
-                          required
-                          className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-7 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
-                        />
+                          return (
+                            <article
+                              key={vaststelling.id}
+                              className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5"
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <h4 className="text-sm font-bold text-slate-900">
+                                  Vaststelling {index + 1}
+                                </h4>
 
-                        <p className="mt-2 text-sm text-slate-500">
-                          Vermeld feitelijke, controleerbare elementen en de plaats waarop de situering betrekking heeft.
-                        </p>
-                      </div>
-                    )}
-
-                    {geselecteerdeInbreuk &&
-                      geselecteerdeInbreuk
-                        .specifiekeElementen.length > 0 && (
-                        <div className="mt-6 border-t border-slate-200 pt-6">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                              <h4 className="text-sm font-bold text-slate-800">
-                                Specifieke elementen
-                              </h4>
-                              <p className="mt-1 text-sm leading-6 text-slate-500">
-                                Duid aan welke vooraf gedefinieerde vaststellingen in deze inbreuk moeten worden opgenomen.
-                              </p>
-                            </div>
-
-                            <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-                              {
-                                geselecteerdeSpecifiekeElementIds.length
-                              }{" "}
-                              geselecteerd
-                            </span>
-                          </div>
-
-                          <div className="mt-4 grid gap-3">
-                            {geselecteerdeInbreuk.specifiekeElementen.map(
-                              (element) => {
-                                const isGeselecteerd =
-                                  geselecteerdeSpecifiekeElementIds.includes(
-                                    element.id,
-                                  );
-
-                                return (
-                                  <label
-                                    key={element.id}
-                                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
-                                      isGeselecteerd
-                                        ? "border-blue-300 bg-blue-50 ring-2 ring-blue-100"
-                                        : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white"
-                                    }`}
+                                {vaststellingen.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      verwijderVaststelling(
+                                        vaststelling.id,
+                                      )
+                                    }
+                                    className="text-xs font-semibold text-red-600 transition hover:text-red-800"
                                   >
-                                    <input
-                                      type="checkbox"
-                                      checked={
-                                        isGeselecteerd
-                                      }
-                                      onChange={(event) =>
-                                        wijzigSpecifiekElement(
-                                          element.id,
-                                          event.target.checked,
-                                        )
-                                      }
-                                      className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                                    />
+                                    Verwijderen
+                                  </button>
+                                )}
+                              </div>
 
-                                    <span className="text-sm font-medium leading-6 text-slate-800">
-                                      {element.tekst}
-                                    </span>
-                                  </label>
-                                );
-                              },
-                            )}
-                          </div>
-                        </div>
+                              {geselecteerdeInbreuk
+                                ?.specifiekeElementenAlsSituering ? (
+                                <p className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm leading-6 text-blue-800">
+                                  De gekozen elementen vormen deze vaststelling.
+                                </p>
+                              ) : (
+                                <label className="mt-3 block">
+                                  <span className="sr-only">
+                                    Tekst vaststelling {index + 1}
+                                  </span>
+                                  <textarea
+                                    value={vaststelling.tekst}
+                                    onChange={(event) =>
+                                      wijzigVaststellingTekst(
+                                        vaststelling.id,
+                                        event.target.value,
+                                      )
+                                    }
+                                    rows={4}
+                                    placeholder="Beschrijf wat concreet werd vastgesteld."
+                                    required
+                                    className="w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-7 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
+                                  />
+                                </label>
+                              )}
+
+                              {geselecteerdeInbreuk &&
+                                geselecteerdeInbreuk
+                                  .specifiekeElementen.length >
+                                  0 && (
+                                  <div className="mt-4 border-t border-slate-200 pt-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <p className="text-sm font-bold text-slate-800">
+                                        Voorgedefinieerde elementen
+                                      </p>
+                                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                                        {geselecteerdAantal} gekozen
+                                      </span>
+                                    </div>
+
+                                    <div className="mt-3 grid gap-2">
+                                      {geselecteerdeInbreuk.specifiekeElementen.map(
+                                        (element) => {
+                                          const isGeselecteerd =
+                                            vaststelling
+                                              .geselecteerdeSpecifiekeElementIds
+                                              .includes(
+                                                element.id,
+                                              );
+
+                                          return (
+                                            <label
+                                              key={element.id}
+                                              className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 transition ${
+                                                isGeselecteerd
+                                                  ? "border-blue-300 bg-blue-50"
+                                                  : "border-slate-200 bg-white hover:border-slate-300"
+                                              }`}
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={isGeselecteerd}
+                                                onChange={(event) =>
+                                                  wijzigSpecifiekElement(
+                                                    vaststelling.id,
+                                                    element.id,
+                                                    event.target.checked,
+                                                  )
+                                                }
+                                                className="mt-0.5 h-5 w-5 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                              />
+                                              <span className="text-sm font-medium leading-6 text-slate-800">
+                                                {element.tekst}
+                                              </span>
+                                            </label>
+                                          );
+                                        },
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                              {geselecteerdeInbreuk
+                                ?.eigenElementenToegestaan && (
+                                <div className="mt-4 border-t border-slate-200 pt-4">
+                                  <div className="space-y-2">
+                                    {vaststelling.eigenElementen.map(
+                                      (element, elementIndex) => (
+                                        <div
+                                          key={`${vaststelling.id}-eigen-${elementIndex}`}
+                                          className="flex items-center gap-2"
+                                        >
+                                          <span
+                                            aria-hidden="true"
+                                            className="text-slate-900"
+                                          >
+                                            ▪
+                                          </span>
+                                          <input
+                                            type="text"
+                                            value={element}
+                                            maxLength={1000}
+                                            onChange={(event) =>
+                                              wijzigEigenElement(
+                                                vaststelling.id,
+                                                elementIndex,
+                                                event.target.value,
+                                              )
+                                            }
+                                            placeholder="Eigen element ter plaatse"
+                                            className="min-h-10 min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+                                          />
+                                          <button
+                                            type="button"
+                                            aria-label={`Verwijder vrij element ${elementIndex + 1}`}
+                                            onClick={() =>
+                                              verwijderEigenElement(
+                                                vaststelling.id,
+                                                elementIndex,
+                                              )
+                                            }
+                                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                                          >
+                                            ×
+                                          </button>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      voegEigenElementToe(
+                                        vaststelling.id,
+                                      )
+                                    }
+                                    className="mt-3 text-sm font-semibold text-blue-700 transition hover:text-blue-900"
+                                  >
+                                    + Eigen element toevoegen
+                                  </button>
+                                </div>
+                              )}
+                            </article>
+                          );
+                        },
                       )}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={voegVaststellingToe}
+                      className="mt-4 inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
+                    >
+                      <span aria-hidden="true">+</span>
+                      Nieuwe vaststelling
+                    </button>
                   </section>
                   )}
 
@@ -3004,7 +3378,7 @@ export default function InspectieUitvoerenClient({
                       uitsluitend bij deze
                       concrete inbreuk. In het
                       Word-verslag worden ze
-                      onder de situering geplaatst
+                      onder de vaststellingen geplaatst
                       met een vaste hoogte van
                       5 cm.
                     </p>
