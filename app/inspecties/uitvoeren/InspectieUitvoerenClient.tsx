@@ -40,6 +40,7 @@ import {
   type WordFoto,
   type WordInbreuk,
 } from "@/lib/word-export";
+import { MAX_FOTOS_PER_INBREUK } from "@/lib/inspectie-limieten";
 import { sorteerInbreukenJuridisch } from "@/lib/juridische-sortering";
 
 type WetgevingOptie = {
@@ -1324,13 +1325,42 @@ export default function InspectieUitvoerenClient({
       return;
     }
 
-    setFotos(
-      Array.from(bestanden).map((bestand) => ({
+    const nieuweFotos = Array.from(bestanden).map((bestand) => ({
         id: maakTijdelijkId(),
         naam: bestand.name,
         bestand,
-      })),
+      }));
+    const beschikbarePlaatsen =
+      MAX_FOTOS_PER_INBREUK - fotos.length;
+
+    if (beschikbarePlaatsen <= 0) {
+      setExportFout(
+        `Je kunt maximaal ${MAX_FOTOS_PER_INBREUK} foto’s aan één inbreuk koppelen.`,
+      );
+      return;
+    }
+
+    if (nieuweFotos.length > beschikbarePlaatsen) {
+      setExportFout(
+        `Er werden alleen ${beschikbarePlaatsen} foto${beschikbarePlaatsen === 1 ? "" : "’s"} toegevoegd. Per inbreuk zijn maximaal ${MAX_FOTOS_PER_INBREUK} foto’s mogelijk.`,
+      );
+    } else {
+      setExportFout("");
+    }
+
+    setFotos([
+      ...fotos,
+      ...nieuweFotos.slice(0, beschikbarePlaatsen),
+    ]);
+  }
+
+  function verwijderFoto(fotoId: string) {
+    setFotos((huidigeFotos) =>
+      huidigeFotos.filter(
+        (foto) => foto.id !== fotoId,
+      ),
     );
+    setExportFout("");
   }
 
   async function slaDossierOp(teBewaren = synchroniseerFormulier(inbreuken)) {
@@ -1386,27 +1416,33 @@ export default function InspectieUitvoerenClient({
 
       const opgeslagen = await Promise.all(
         gesorteerdeInbreuken.map(async (inbreuk) => {
-          const opgeslagenFotos = await Promise.all(
-            inbreuk.fotos.map(async (foto) => {
-              if (!foto.bestand) {
-                return foto;
-              }
+          const opgeslagenFotos: InspectieFoto[] = [];
 
-              const formData = new FormData();
-              formData.set("foto", await maakCompacteUpload(foto.bestand));
-              const response = await fetch(
-                `/api/inspecties/${inspectieId}/inbreuken/${inbreuk.id}/fotos`,
-                { method: "POST", body: formData },
-              );
+          for (const foto of inbreuk.fotos) {
+            if (!foto.bestand) {
+              opgeslagenFotos.push(foto);
+              continue;
+            }
 
-              if (!response.ok) {
-                const resultaat = (await response.json()) as { fout?: string };
-                throw new Error(resultaat.fout ?? "Foto opslaan mislukt.");
-              }
+            const formData = new FormData();
+            formData.set(
+              "foto",
+              await maakCompacteUpload(foto.bestand),
+            );
+            const response = await fetch(
+              `/api/inspecties/${inspectieId}/inbreuken/${inbreuk.id}/fotos`,
+              { method: "POST", body: formData },
+            );
 
-              return (await response.json()) as InspectieFoto;
-            }),
-          );
+            if (!response.ok) {
+              const resultaat = (await response.json()) as { fout?: string };
+              throw new Error(resultaat.fout ?? "Foto opslaan mislukt.");
+            }
+
+            opgeslagenFotos.push(
+              (await response.json()) as InspectieFoto,
+            );
+          }
 
           return { ...inbreuk, fotos: opgeslagenFotos };
         }),
@@ -3300,8 +3336,7 @@ export default function InspectieUitvoerenClient({
                                       )
                                     }
                                     rows={4}
-                                    placeholder="Beschrijf wat concreet werd vastgesteld."
-                                    required
+                                    placeholder="Optioneel: beschrijf wat concreet werd vastgesteld."
                                     className="w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 leading-7 text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                                   />
                                 </label>
@@ -3469,14 +3504,26 @@ export default function InspectieUitvoerenClient({
                           Geselecteerde foto’s:
                         </p>
 
-                        <ul className="mt-2 space-y-1 text-sm text-slate-600">
+                        <ul className="mt-2 space-y-2 text-sm text-slate-600">
                           {fotos.map(
                             (foto, index) => (
                               <li
                                 key={`${foto.id}-${index}`}
-                                className="break-all"
+                                className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2"
                               >
-                                {foto.naam}
+                                <span className="min-w-0 break-all">
+                                  {foto.naam}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    verwijderFoto(foto.id)
+                                  }
+                                  aria-label={`Verwijder foto ${foto.naam}`}
+                                  className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-800"
+                                >
+                                  Verwijderen
+                                </button>
                               </li>
                             ),
                           )}
@@ -3485,13 +3532,11 @@ export default function InspectieUitvoerenClient({
                     )}
 
                     <p className="mt-2 text-sm text-slate-500">
-                      Deze foto’s horen
+                      Voeg maximaal twee foto’s toe. Deze foto’s horen
                       uitsluitend bij deze
                       concrete inbreuk. In het
                       Word-verslag worden ze
-                      onder de vaststellingen geplaatst
-                      met een vaste hoogte van
-                      5 cm.
+                      naast elkaar onder de vaststellingen geplaatst.
                     </p>
                     </div>
                   </section>

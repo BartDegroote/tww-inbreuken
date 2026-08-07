@@ -4,8 +4,34 @@ import { Packer } from "docx";
 
 import {
   maakWordDocument,
+  type WordFoto,
   type WordInspectie,
 } from "../lib/word-export";
+
+function maakControleFoto(
+  naam: string,
+  basis64: string,
+): WordFoto {
+  return {
+    naam,
+    data: new Uint8Array(
+      Buffer.from(basis64, "base64"),
+    ),
+    breedte: 400,
+    hoogte: 300,
+  };
+}
+
+const controleFotos = [
+  maakControleFoto(
+    "foto-1.png",
+    "iVBORw0KGgoAAAANSUhEUgAAACgAAAAeCAIAAADRv8uKAAAALklEQVR42u3NMQEAMAgAIF0Ve5nSgIvg6QMFyOqJCy+OiMVisVgsFovFYrF49wHTKwFxuzAm7gAAAABJRU5ErkJggg==",
+  ),
+  maakControleFoto(
+    "foto-2.png",
+    "iVBORw0KGgoAAAANSUhEUgAAACgAAAAeCAIAAADRv8uKAAAALklEQVR42u3NMQEAMAgAIF0Ca9rF0Ivg6QMFyJqOCy+OiMVisVgsFovFYrF49wErBQFBngAtoAAAAABJRU5ErkJggg==",
+  ),
+];
 
 const inspectie: WordInspectie = {
   onderneming: "VOORBEELD",
@@ -56,7 +82,7 @@ const inspectie: WordInspectie = {
           ],
         },
       ],
-      fotos: [],
+      fotos: controleFotos,
       toelichting:
         "De instructies moeten begrijpelijk en beschikbaar zijn voor de betrokken werknemers.",
       aanvulling:
@@ -64,6 +90,28 @@ const inspectie: WordInspectie = {
       aanvullingOpmaak: [],
       wettelijkeVerwijzing:
         "Dit is een overtreding op art. IV.2-5 van de codex over het welzijn op het werk.",
+    },
+    {
+      inbreukType: "STANDAARD",
+      beschrijving:
+        "Deze inbreuk werd zonder afzonderlijke vaststelling verwerkt.",
+      beschrijvingOpmaak: [],
+      inCasu: "",
+      specifiekeElementen: [],
+      specifiekeElementenAlsSituering: false,
+      vaststellingen: [
+        {
+          tekst: "",
+          specifiekeElementen: [],
+          eigenElementen: [],
+        },
+      ],
+      fotos: [],
+      toelichting: "",
+      aanvulling: "",
+      aanvullingOpmaak: [],
+      wettelijkeVerwijzing:
+        "Dit is een overtreding op art. IV.2-6 van de codex over het welzijn op het werk.",
     },
   ],
 };

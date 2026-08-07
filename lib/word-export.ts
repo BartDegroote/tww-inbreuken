@@ -3,6 +3,7 @@ import {
   type InbreukType,
   type TekstSegment,
 } from "@/bibliotheek";
+import { MAX_FOTOS_PER_INBREUK } from "@/lib/inspectie-limieten";
 
 import {
   AlignmentType,
@@ -94,6 +95,11 @@ const AFSTAND_NA_WETTELIJKE_VERWIJZING = 360;
 
 // ImageRun gebruikt pixels. 5 cm bij 96 dpi is ongeveer 189 px.
 const FOTO_HOOGTE_PX = 189;
+// De beschikbare regelbreedte na de inspringing is ongeveer 609 px.
+// Voor twee foto's blijft een kleine ruimte van exact drie spaties vrij.
+const FOTO_REGELBREEDTE_PX = 609;
+const FOTO_TUSSENRUIMTE_PX = 12;
+const FOTO_TUSSENRUIMTE = "   ";
 
 // De nummers en opsommingstekens beginnen links van de tekst.
 // Alle vervolgregels beginnen exact op dezelfde positie als de hoofdtekst.
@@ -605,35 +611,69 @@ function maakFotoParagrafen(
     return [];
   }
 
-  return fotos.map((foto) => {
-    const verhouding =
+  const getoondeFotos = fotos.slice(
+    0,
+    MAX_FOTOS_PER_INBREUK,
+  );
+  const verhoudingen = getoondeFotos.map(
+    (foto) =>
       foto.hoogte > 0 &&
       foto.breedte > 0
         ? foto.breedte / foto.hoogte
-        : 1;
-
-    const berekendeBreedte = Math.max(
-      1,
-      Math.round(
-        FOTO_HOOGTE_PX * verhouding,
-      ),
+        : 1,
+  );
+  const beschikbareFotobreedte =
+    FOTO_REGELBREEDTE_PX -
+    (getoondeFotos.length > 1
+      ? FOTO_TUSSENRUIMTE_PX
+      : 0);
+  const gezamenlijkeVerhouding =
+    verhoudingen.reduce(
+      (totaal, verhouding) =>
+        totaal + verhouding,
+      0,
     );
+  // Beide foto's krijgen exact dezelfde hoogte en blijven samen op één regel.
+  const fotoHoogte = Math.max(
+    1,
+    Math.min(
+      FOTO_HOOGTE_PX,
+      Math.floor(
+        beschikbareFotobreedte /
+          Math.max(
+            gezamenlijkeVerhouding,
+            1,
+          ),
+      ),
+    ),
+  );
+  const afbeeldingRuns = getoondeFotos.flatMap(
+    (foto, index) => {
+      const breedte = Math.max(
+        1,
+        Math.round(
+          fotoHoogte * verhoudingen[index],
+        ),
+      );
+      const runs: Array<ImageRun | TextRun> = [];
 
-    return new Paragraph({
-      indent: {
-        left: TEKST_INSPrONG,
-      },
-      spacing: {
-        before: 50,
-        after: 140,
-      },
-      children: [
+      if (index > 0) {
+        runs.push(
+          new TextRun({
+            text: FOTO_TUSSENRUIMTE,
+            size: HOOFDTEKST_GROOTTE,
+            font: LETTERTYPE,
+          }),
+        );
+      }
+
+      runs.push(
         new ImageRun({
           data: foto.data,
           type: "png",
           transformation: {
-            width: berekendeBreedte,
-            height: FOTO_HOOGTE_PX,
+            width: breedte,
+            height: fotoHoogte,
           },
           altText: {
             title: foto.naam,
@@ -641,9 +681,24 @@ function maakFotoParagrafen(
             name: foto.naam,
           },
         }),
-      ],
-    });
-  });
+      );
+
+      return runs;
+    },
+  );
+
+  return [
+    new Paragraph({
+      indent: {
+        left: TEKST_INSPrONG,
+      },
+      spacing: {
+        before: 50,
+        after: 140,
+      },
+      children: afbeeldingRuns,
+    }),
+  ];
 }
 
 function maakInbreukParagrafen(

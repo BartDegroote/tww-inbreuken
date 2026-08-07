@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { huidigeGebruiker } from "@/lib/auth";
+import { MAX_FOTOS_PER_INBREUK } from "@/lib/inspectie-limieten";
 import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
@@ -26,11 +27,28 @@ export async function POST(request: Request, context: RouteContext) {
       inspectieId,
       inspectie: { gebruikerId: gebruiker.id },
     },
-    select: { id: true },
+    select: {
+      id: true,
+      _count: {
+        select: { fotos: true },
+      },
+    },
   });
 
   if (!inbreuk) {
     return NextResponse.json({ fout: "Inbreuk niet gevonden." }, { status: 404 });
+  }
+
+  if (
+    inbreuk._count.fotos >=
+    MAX_FOTOS_PER_INBREUK
+  ) {
+    return NextResponse.json(
+      {
+        fout: `Je kunt maximaal ${MAX_FOTOS_PER_INBREUK} foto’s aan één inbreuk koppelen.`,
+      },
+      { status: 409 },
+    );
   }
 
   const formData = await request.formData();

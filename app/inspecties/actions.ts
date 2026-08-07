@@ -9,6 +9,7 @@ import {
   type InbreukType,
 } from "@/bibliotheek";
 import { vereisGebruiker } from "@/lib/auth";
+import { MAX_FOTOS_PER_INBREUK } from "@/lib/inspectie-limieten";
 import { prisma } from "@/lib/prisma";
 
 export type VaststellingInput = {
@@ -197,9 +198,7 @@ function normaliseerVaststellingen(
             0 &&
           eigenElementen.length === 0
         ) {
-          throw new Error(
-            `Vul vaststelling ${index + 1} in of verwijder ze.`,
-          );
+          return null;
         }
 
         if (tekst.length > 5_000) {
@@ -217,13 +216,12 @@ function normaliseerVaststellingen(
           eigenElementen,
         };
       },
+    ).filter(
+      (
+        vaststelling,
+      ): vaststelling is VaststellingInput =>
+        vaststelling !== null,
     );
-
-  if (vaststellingen.length === 0) {
-    throw new Error(
-      "Voeg minstens één vaststelling toe.",
-    );
-  }
 
   return vaststellingen;
 }
@@ -346,6 +344,17 @@ export async function bewaarInspectie(
     });
 
     for (const [volgorde, inbreuk] of inbreuken.entries()) {
+      if (
+        inbreuk.bewaardeFotoIds.length >
+          MAX_FOTOS_PER_INBREUK ||
+        new Set(inbreuk.bewaardeFotoIds).size !==
+          inbreuk.bewaardeFotoIds.length
+      ) {
+        throw new Error(
+          `Je kunt maximaal ${MAX_FOTOS_PER_INBREUK} foto’s aan één inbreuk koppelen.`,
+        );
+      }
+
       const inbreukType: InbreukType =
         inbreuk.inbreukType === "EAO_CODES"
           ? "EAO_CODES"
@@ -395,8 +404,7 @@ export async function bewaarInspectie(
         beschrijving: inbreuk.beschrijving,
         beschrijvingOpmaak: inbreuk.beschrijvingOpmaak,
         inCasu:
-          eersteVaststelling?.tekst ??
-          inbreuk.inCasu,
+          eersteVaststelling?.tekst ?? "",
         toelichting: inbreuk.toelichting,
         aanvulling: inbreuk.aanvulling,
         aanvullingOpmaak: inbreuk.aanvullingOpmaak,
@@ -405,7 +413,7 @@ export async function bewaarInspectie(
         geselecteerdeSpecifiekeElementIds:
           eersteVaststelling
             ?.geselecteerdeSpecifiekeElementIds ??
-          inbreuk.geselecteerdeSpecifiekeElementIds,
+          [],
         specifiekeElementenAlsSituering:
           inbreuk.specifiekeElementenAlsSituering,
         eigenElementenToegestaan:
