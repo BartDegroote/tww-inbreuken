@@ -41,8 +41,14 @@ const inspectie: WordInspectie = {
   flow: "02/2026/2551/105",
   ontmoetePersonen: [
     {
+      aanspreking: "HEER",
       naam: "Jan Janssens",
       functie: "Preventieadviseur HSE",
+    },
+    {
+      aanspreking: "MEVROUW",
+      naam: "Johanna Pannelat",
+      functie: "Zaakvoerder",
     },
   ],
   ernstigArbeidsongeval: {

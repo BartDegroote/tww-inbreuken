@@ -234,20 +234,38 @@ export default async function InspectieUitvoerenPagina({
   const initialOntmoetePersonen = Array.isArray(
     inspectie.ontmoetePersonen,
   )
-    ? inspectie.ontmoetePersonen.filter(
-        (
-          persoon,
-        ): persoon is {
-          naam: string;
-          functie: string;
-        } =>
-          typeof persoon === "object" &&
-          persoon !== null &&
-          !Array.isArray(persoon) &&
-          typeof (persoon as { naam?: unknown })
-            .naam === "string" &&
-          typeof (persoon as { functie?: unknown })
-            .functie === "string",
+    ? inspectie.ontmoetePersonen.flatMap(
+        (persoon) => {
+          if (
+            typeof persoon !== "object" ||
+            persoon === null ||
+            Array.isArray(persoon)
+          ) {
+            return [];
+          }
+
+          const naam = persoon.naam;
+          const functie = persoon.functie;
+
+          if (
+            typeof naam !== "string" ||
+            typeof functie !== "string"
+          ) {
+            return [];
+          }
+
+          const aanspreking:
+            | "HEER"
+            | "MEVROUW"
+            | "" =
+            persoon.aanspreking === "HEER"
+              ? "HEER"
+              : persoon.aanspreking === "MEVROUW"
+                ? "MEVROUW"
+                : "";
+
+          return [{ aanspreking, naam, functie }];
+        },
       )
     : [];
 

@@ -70,6 +70,7 @@ export type WordOngevalsgegevens = {
 };
 
 export type WordOntmoetePersoon = {
+  aanspreking?: "HEER" | "MEVROUW" | "";
   naam: string;
   functie: string;
 };
@@ -422,12 +423,22 @@ function maakOntmoetePersonenParagrafen(
   personen: WordOntmoetePersoon[] = [],
 ): Paragraph[] {
   const geldigePersonen = personen
-    .map((persoon) => ({
-      naam: persoon.naam.trim(),
-      functie: persoon.functie
-        .trim()
-        .toLocaleLowerCase("nl-BE"),
-    }))
+    .map((persoon) => {
+      const aanspreking =
+        persoon.aanspreking === "HEER"
+          ? "de heer"
+          : persoon.aanspreking === "MEVROUW"
+            ? "mevrouw"
+            : "";
+
+      return {
+        aanspreking,
+        naam: persoon.naam.trim(),
+        functie: persoon.functie
+          .trim()
+          .toLocaleLowerCase("nl-BE"),
+      };
+    })
     .filter(
       (persoon) =>
         persoon.naam.length > 0 &&
@@ -454,7 +465,7 @@ function maakOntmoetePersonenParagrafen(
           alignment: AlignmentType.JUSTIFIED,
           children: [
             new TextRun({
-              text: `${persoon.naam}, ${persoon.functie}`,
+              text: `${persoon.aanspreking ? `${persoon.aanspreking} ` : ""}${persoon.naam}, ${persoon.functie}`,
               size: HOOFDTEKST_GROOTTE,
               font: LETTERTYPE,
             }),

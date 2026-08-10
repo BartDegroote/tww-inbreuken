@@ -10,7 +10,9 @@ import {
 } from "react";
 
 import {
+  bewaarOntmoetePersonen,
   bewaarInspectie,
+  type Aanspreking,
   type OntmoetePersoonInput,
   type OngevalsgegevensInput,
   type OpgeslagenInbreukInput,
@@ -532,6 +534,8 @@ export default function InspectieUitvoerenClient({
     useState<InspectieFoto[]>([]);
 
   const [opslagStatus, setOpslagStatus] = useState("");
+  const [persoonToevoegenBezig, setPersoonToevoegenBezig] =
+    useState(false);
 
   const [
     afwijkendeGebeurtenisCode,
@@ -578,6 +582,7 @@ export default function InspectieUitvoerenClient({
   ] = useState<OntmoetePersoonRij[]>(() =>
     initialOntmoetePersonen.map((persoon) => ({
       id: maakTijdelijkId(),
+      aanspreking: persoon.aanspreking,
       naam: persoon.naam,
       functie: persoon.functie,
     })),
@@ -639,6 +644,7 @@ export default function InspectieUitvoerenClient({
   const aantalVolledigOntmoetePersonen =
     ontmoetePersonen.filter(
       (persoon) =>
+        Boolean(persoon.aanspreking) &&
         persoon.naam.trim() &&
         persoon.functie.trim(),
     ).length;
@@ -1106,7 +1112,8 @@ export default function InspectieUitvoerenClient({
 
   function huidigeOntmoetePersonen(): OntmoetePersoonInput[] {
     return ontmoetePersonen.map(
-      ({ naam, functie }) => ({
+      ({ aanspreking, naam, functie }) => ({
+        aanspreking,
         naam,
         functie,
       }),
@@ -1125,6 +1132,7 @@ export default function InspectieUitvoerenClient({
           setOntmoetePersonen([
             {
               id: maakTijdelijkId(),
+              aanspreking: "",
               naam: "",
               functie: "",
             },
@@ -1177,15 +1185,70 @@ export default function InspectieUitvoerenClient({
     setExportFout("");
   }
 
-  function voegOntmoetePersoonToe() {
-    setOntmoetePersonen((huidigePersonen) => [
-      ...huidigePersonen,
-      {
-        id: maakTijdelijkId(),
-        naam: "",
-        functie: "",
-      },
-    ]);
+  function wijzigAanspreking(
+    id: string,
+    aanspreking: Aanspreking,
+  ) {
+    setOntmoetePersonen((huidigePersonen) =>
+      huidigePersonen.map((persoon) =>
+        persoon.id === id
+          ? { ...persoon, aanspreking }
+          : persoon,
+      ),
+    );
+    setExportFout("");
+  }
+
+  async function voegOntmoetePersoonToe() {
+    const huidigePersonen =
+      huidigeOntmoetePersonen();
+    const onvolledigePersoon =
+      huidigePersonen.some(
+        (persoon) =>
+          !persoon.aanspreking ||
+          !persoon.naam.trim() ||
+          !persoon.functie.trim(),
+      );
+
+    if (onvolledigePersoon) {
+      setExportFout(
+        "Kies eerst de aanspreking en vul de naam en functie van de huidige persoon in.",
+      );
+      return;
+    }
+
+    setPersoonToevoegenBezig(true);
+    setOpslagStatus("Personen opslaan...");
+    setExportFout("");
+
+    try {
+      await bewaarOntmoetePersonen(
+        inspectieId,
+        huidigePersonen,
+      );
+      setOntmoetePersonen(
+        (bestaandePersonen) => [
+          ...bestaandePersonen,
+          {
+            id: maakTijdelijkId(),
+            aanspreking: "",
+            naam: "",
+            functie: "",
+          },
+        ],
+      );
+      setOpslagStatus("Personen opgeslagen");
+    } catch (error) {
+      console.error(error);
+      setOpslagStatus("Opslaan mislukt");
+      setExportFout(
+        error instanceof Error
+          ? error.message
+          : "De personen konden niet worden opgeslagen.",
+      );
+    } finally {
+      setPersoonToevoegenBezig(false);
+    }
   }
 
   function verwijderOntmoetePersoon(id: string) {
@@ -2245,19 +2308,24 @@ export default function InspectieUitvoerenClient({
                     Personen ontmoet tijdens het inspectiebezoek
                   </h2>
                   <p className="mt-1 text-sm text-blue-800">
-                    Naam en functie verschijnen onder onderdeel 1 van het Word-verslag.
+                    Aanspreking, naam en functie verschijnen onder onderdeel 1 van het Word-verslag.
                   </p>
                 </div>
 
                 <button
                   type="button"
-                  onClick={voegOntmoetePersoonToe}
+                  onClick={() =>
+                    void voegOntmoetePersoonToe()
+                  }
                   disabled={
-                    ontmoetePersonen.length >= 50
+                    ontmoetePersonen.length >= 50 ||
+                    persoonToevoegenBezig
                   }
                   className="min-h-10 shrink-0 rounded-lg border border-blue-300 bg-white px-4 py-2 text-sm font-bold text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  + Persoon toevoegen
+                  {persoonToevoegenBezig
+                    ? "Personen opslaan..."
+                    : "+ Persoon toevoegen"}
                 </button>
               </div>
 
@@ -2273,25 +2341,72 @@ export default function InspectieUitvoerenClient({
                         key={persoon.id}
                         className="grid gap-3 rounded-lg border border-blue-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
                       >
-                        <label className="block min-w-0">
+                        <div className="block min-w-0">
                           <span className="text-sm font-semibold text-slate-700">
-                            Naam persoon {index + 1}
+                            Aanspreking persoon {index + 1}
                           </span>
-                          <input
-                            type="text"
-                            value={persoon.naam}
-                            maxLength={150}
-                            onChange={(event) =>
-                              wijzigOntmoetePersoon(
-                                persoon.id,
-                                "naam",
-                                event.target.value,
-                              )
-                            }
-                            autoComplete="off"
-                            className="mt-2 min-h-11 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-base outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
-                          />
-                        </label>
+
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            {(
+                              [
+                                ["HEER", "♂", "De heer"],
+                                ["MEVROUW", "♀", "Mevrouw"],
+                              ] as const
+                            ).map(
+                              ([waarde, symbool, label]) => {
+                                const geselecteerd =
+                                  persoon.aanspreking === waarde;
+
+                                return (
+                                  <button
+                                    key={waarde}
+                                    type="button"
+                                    aria-pressed={geselecteerd}
+                                    onClick={() =>
+                                      wijzigAanspreking(
+                                        persoon.id,
+                                        waarde,
+                                      )
+                                    }
+                                    className={`flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                                      geselecteerd
+                                        ? "border-blue-600 bg-blue-700 text-white"
+                                        : "border-blue-200 bg-blue-50 text-blue-900 hover:border-blue-400 hover:bg-blue-100"
+                                    }`}
+                                  >
+                                    <span
+                                      aria-hidden="true"
+                                      className="text-lg leading-none"
+                                    >
+                                      {symbool}
+                                    </span>
+                                    {label}
+                                  </button>
+                                );
+                              },
+                            )}
+                          </div>
+
+                          <label className="mt-3 block">
+                            <span className="text-sm font-semibold text-slate-700">
+                              Naam persoon {index + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={persoon.naam}
+                              maxLength={150}
+                              onChange={(event) =>
+                                wijzigOntmoetePersoon(
+                                  persoon.id,
+                                  "naam",
+                                  event.target.value,
+                                )
+                              }
+                              autoComplete="off"
+                              className="mt-2 min-h-11 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-base outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                            />
+                          </label>
+                        </div>
 
                         <label className="block min-w-0">
                           <span className="text-sm font-semibold text-slate-700">

@@ -61,7 +61,13 @@ export type OngevalsgegevensInput = {
   werkpostBezocht: boolean | null;
 };
 
+export type Aanspreking =
+  | "HEER"
+  | "MEVROUW"
+  | "";
+
 export type OntmoetePersoonInput = {
+  aanspreking: Aanspreking;
   naam: string;
   functie: string;
 };
@@ -95,19 +101,33 @@ function normaliseerOntmoetePersonen(
   }
 
   return personen
-    .map((persoon) => ({
-      naam: persoon.naam.trim(),
-      functie: persoon.functie.trim(),
-    }))
+    .map((persoon) => {
+      const aanspreking: Aanspreking =
+        persoon.aanspreking === "HEER" ||
+        persoon.aanspreking === "MEVROUW"
+          ? persoon.aanspreking
+          : "";
+
+      return {
+        aanspreking,
+        naam: persoon.naam.trim(),
+        functie: persoon.functie.trim(),
+      };
+    })
     .filter(
       (persoon) =>
+        persoon.aanspreking.length > 0 ||
         persoon.naam.length > 0 ||
         persoon.functie.length > 0,
     )
     .map((persoon) => {
-      if (!persoon.naam || !persoon.functie) {
+      if (
+        !persoon.aanspreking ||
+        !persoon.naam ||
+        !persoon.functie
+      ) {
         throw new Error(
-          "Vul voor elke ontmoete persoon zowel de naam als de functie in.",
+          "Kies voor elke ontmoete persoon de aanspreking en vul de naam en functie in.",
         );
       }
 
@@ -259,6 +279,31 @@ export async function maakInspectie(input: {
 
   revalidatePath("/inspecties");
   return inspectie.id;
+}
+
+export async function bewaarOntmoetePersonen(
+  inspectieId: string,
+  personen: OntmoetePersoonInput[],
+): Promise<void> {
+  const gebruiker = await vereisGebruiker();
+  const ontmoetePersonen =
+    normaliseerOntmoetePersonen(personen);
+  const resultaat =
+    await prisma.inspectie.updateMany({
+      where: {
+        id: inspectieId,
+        gebruikerId: gebruiker.id,
+        status: { not: "VERWIJDERD" },
+      },
+      data: { ontmoetePersonen },
+    });
+
+  if (resultaat.count === 0) {
+    throw new Error("Inspectie niet gevonden.");
+  }
+
+  revalidatePath("/inspecties");
+  revalidatePath("/inspecties/uitvoeren");
 }
 
 export async function bewaarInspectie(
