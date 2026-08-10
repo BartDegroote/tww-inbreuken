@@ -434,9 +434,9 @@ function maakOntmoetePersonenParagrafen(
       return {
         aanspreking,
         naam: persoon.naam.trim(),
-        functie: persoon.functie
-          .trim()
-          .toLocaleLowerCase("nl-BE"),
+        functie: formatteerFunctieVoorVerslag(
+          persoon.functie,
+        ),
       };
     })
     .filter(
@@ -484,6 +484,23 @@ function maakOntmoetePersonenParagrafen(
       },
     }),
   ];
+}
+
+function formatteerFunctieVoorVerslag(
+  functie: string,
+): string {
+  const opgeschoondeFunctie = functie.trim();
+
+  if (!opgeschoondeFunctie) {
+    return "";
+  }
+
+  // Vakafkortingen zoals HR, HSE, CEO en ICT behouden hun hoofdletters.
+  if (/^\p{Lu}{2,}(?:[^\p{L}]|$)/u.test(opgeschoondeFunctie)) {
+    return opgeschoondeFunctie;
+  }
+
+  return `${opgeschoondeFunctie[0].toLocaleLowerCase("nl-BE")}${opgeschoondeFunctie.slice(1)}`;
 }
 
 function maakVaststellingenInleiding(): Paragraph[] {
