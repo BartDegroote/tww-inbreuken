@@ -1792,6 +1792,29 @@ export default function InspectieUitvoerenClient({
       return;
     }
 
+    const onvolledigeOntmoetePersoon =
+      huidigeOntmoetePersonen()
+        .filter(
+          (persoon) =>
+            Boolean(persoon.aanspreking) ||
+            Boolean(persoon.naam.trim()) ||
+            Boolean(persoon.functie.trim()),
+        )
+        .some(
+          (persoon) =>
+            !persoon.aanspreking ||
+            !persoon.naam.trim() ||
+            !persoon.functie.trim(),
+        );
+
+    if (onvolledigeOntmoetePersoon) {
+      setToonOntmoetePersonen(true);
+      setExportFout(
+        "Kies voor elke ontmoete persoon de aanspreking en vul de naam en functie in voordat je het Word-verslag maakt.",
+      );
+      return;
+    }
+
     setExportBezig(true);
     setExportFout("");
 
@@ -2339,76 +2362,72 @@ export default function InspectieUitvoerenClient({
                     (persoon, index) => (
                       <div
                         key={persoon.id}
-                        className="grid gap-3 rounded-lg border border-blue-200 bg-white p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end"
+                        className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-end gap-3 rounded-lg border border-blue-200 bg-white p-3 sm:grid-cols-[2.25rem_minmax(0,1fr)_minmax(0,1fr)_auto]"
                       >
-                        <div className="block min-w-0">
-                          <span className="text-sm font-semibold text-slate-700">
-                            Aanspreking persoon {index + 1}
-                          </span>
+                        <div
+                          className="grid gap-1 self-end pb-0.5"
+                          role="group"
+                          aria-label={`Aanspreking persoon ${index + 1}`}
+                        >
+                          {(
+                            [
+                              ["HEER", "♂", "De heer"],
+                              ["MEVROUW", "♀", "Mevrouw"],
+                            ] as const
+                          ).map(
+                            ([waarde, symbool, label]) => {
+                              const geselecteerd =
+                                persoon.aanspreking === waarde;
 
-                          <div className="mt-2 grid grid-cols-2 gap-2">
-                            {(
-                              [
-                                ["HEER", "♂", "De heer"],
-                                ["MEVROUW", "♀", "Mevrouw"],
-                              ] as const
-                            ).map(
-                              ([waarde, symbool, label]) => {
-                                const geselecteerd =
-                                  persoon.aanspreking === waarde;
-
-                                return (
-                                  <button
-                                    key={waarde}
-                                    type="button"
-                                    aria-pressed={geselecteerd}
-                                    onClick={() =>
-                                      wijzigAanspreking(
-                                        persoon.id,
-                                        waarde,
-                                      )
-                                    }
-                                    className={`flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                                      geselecteerd
-                                        ? "border-blue-600 bg-blue-700 text-white"
-                                        : "border-blue-200 bg-blue-50 text-blue-900 hover:border-blue-400 hover:bg-blue-100"
-                                    }`}
-                                  >
-                                    <span
-                                      aria-hidden="true"
-                                      className="text-lg leading-none"
-                                    >
-                                      {symbool}
-                                    </span>
-                                    {label}
-                                  </button>
-                                );
-                              },
-                            )}
-                          </div>
-
-                          <label className="mt-3 block">
-                            <span className="text-sm font-semibold text-slate-700">
-                              Naam persoon {index + 1}
-                            </span>
-                            <input
-                              type="text"
-                              value={persoon.naam}
-                              maxLength={150}
-                              onChange={(event) =>
-                                wijzigOntmoetePersoon(
-                                  persoon.id,
-                                  "naam",
-                                  event.target.value,
-                                )
-                              }
-                              autoComplete="off"
-                              className="mt-2 min-h-11 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-base outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
-                            />
-                          </label>
+                              return (
+                                <button
+                                  key={waarde}
+                                  type="button"
+                                  title={label}
+                                  aria-label={`${label} voor persoon ${index + 1}`}
+                                  aria-pressed={geselecteerd}
+                                  onClick={() =>
+                                    wijzigAanspreking(
+                                      persoon.id,
+                                      waarde,
+                                    )
+                                  }
+                                  className={`flex h-8 w-9 items-center justify-center rounded-md border text-base font-bold leading-none transition focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+                                    geselecteerd
+                                      ? "border-blue-700 bg-blue-700 text-white shadow-sm"
+                                      : "border-blue-200 bg-blue-50 text-blue-900 hover:border-blue-400 hover:bg-blue-100"
+                                  }`}
+                                >
+                                  <span aria-hidden="true">
+                                    {symbool}
+                                  </span>
+                                </button>
+                              );
+                            },
+                          )}
                         </div>
 
                         <label className="block min-w-0">
+                          <span className="text-sm font-semibold text-slate-700">
+                            Naam persoon {index + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={persoon.naam}
+                            maxLength={150}
+                            onChange={(event) =>
+                              wijzigOntmoetePersoon(
+                                persoon.id,
+                                "naam",
+                                event.target.value,
+                              )
+                            }
+                            autoComplete="off"
+                            className="mt-2 min-h-11 w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-base outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                          />
+                        </label>
+
+                        <label className="col-span-2 block min-w-0 sm:col-span-1">
                           <span className="text-sm font-semibold text-slate-700">
                             Functie
                           </span>
@@ -2436,7 +2455,7 @@ export default function InspectieUitvoerenClient({
                             )
                           }
                           aria-label={`Verwijder persoon ${index + 1}`}
-                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                          className="col-span-2 min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700 sm:col-span-1"
                         >
                           Verwijderen
                         </button>
@@ -3671,6 +3690,15 @@ export default function InspectieUitvoerenClient({
                     </p>
                     </div>
                   </section>
+
+                  {exportFout && (
+                    <p
+                      role="alert"
+                      className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800"
+                    >
+                      {exportFout}
+                    </p>
+                  )}
 
                   <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row">
                     <button

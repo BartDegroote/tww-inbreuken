@@ -93,6 +93,7 @@ function controleerEaoCode(
 
 function normaliseerOntmoetePersonen(
   personen: OntmoetePersoonInput[],
+  vereisAanspreking = false,
 ): OntmoetePersoonInput[] {
   if (personen.length > 50) {
     throw new Error(
@@ -122,12 +123,15 @@ function normaliseerOntmoetePersonen(
     )
     .map((persoon) => {
       if (
-        !persoon.aanspreking ||
         !persoon.naam ||
-        !persoon.functie
+        !persoon.functie ||
+        (vereisAanspreking &&
+          !persoon.aanspreking)
       ) {
         throw new Error(
-          "Kies voor elke ontmoete persoon de aanspreking en vul de naam en functie in.",
+          vereisAanspreking
+            ? "Kies voor elke ontmoete persoon de aanspreking en vul de naam en functie in."
+            : "Vul voor elke ontmoete persoon de naam en functie in.",
         );
       }
 
@@ -287,7 +291,7 @@ export async function bewaarOntmoetePersonen(
 ): Promise<void> {
   const gebruiker = await vereisGebruiker();
   const ontmoetePersonen =
-    normaliseerOntmoetePersonen(personen);
+    normaliseerOntmoetePersonen(personen, true);
   const resultaat =
     await prisma.inspectie.updateMany({
       where: {
