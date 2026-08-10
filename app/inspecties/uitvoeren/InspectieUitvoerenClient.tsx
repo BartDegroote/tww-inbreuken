@@ -656,6 +656,8 @@ export default function InspectieUitvoerenClient({
 
   const bewerkFormulierRef =
     useRef<HTMLDivElement | null>(null);
+  const zoekresultatenRef =
+    useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (geselecteerdeId === null) {
@@ -1201,7 +1203,18 @@ export default function InspectieUitvoerenClient({
     setWetgevingFilter("");
     setBoekFilter("");
     setTitelFilter("");
+    setOnderwerpFilter("");
     setZoekterm("");
+
+    window.requestAnimationFrame(() => {
+      zoekresultatenRef.current
+        ?.querySelectorAll<HTMLDetailsElement>(
+          "details[open]",
+        )
+        .forEach((groep) => {
+          groep.open = false;
+        });
+    });
   }
 
   function voegStandaardinbreukToe(
@@ -2808,7 +2821,10 @@ export default function InspectieUitvoerenClient({
                 </div>
               </div>
 
-              <div className="mt-6">
+              <div
+                ref={zoekresultatenRef}
+                className="mt-6"
+              >
                 <h3
                   className={`font-semibold text-slate-900 ${
                     zoekresultaten.length > 0
