@@ -18,6 +18,11 @@ import {
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
+import {
+  ARAB_BOEK_ID,
+  ARAB_TITEL_ID,
+  isArab,
+} from "@/bibliotheek/arab";
 
 type WetgevingOptie = {
   id: string;
@@ -753,6 +758,9 @@ function InbreukFormulierInhoud({
     isKbBeveiligingLiften(
       formulier?.wetgevingId ?? "",
     );
+  const arabGeselecteerd = isArab(
+    formulier?.wetgevingId ?? "",
+  );
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
@@ -910,8 +918,12 @@ function InbreukFormulierInhoud({
       return {
         ...huidig,
         wetgevingId,
-        boekId: "",
-        titelId: "",
+        boekId: isArab(wetgevingId)
+          ? ARAB_BOEK_ID
+          : "",
+        titelId: isArab(wetgevingId)
+          ? ARAB_TITEL_ID
+          : "",
         onderwerp: "",
       };
     });
@@ -1668,7 +1680,8 @@ function InbreukFormulierInhoud({
               </select>
             </label>
 
-            {formulier.wetgevingId && (
+            {formulier.wetgevingId &&
+              !arabGeselecteerd && (
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
                   {hoofdstukIndelingGeselecteerd
@@ -1711,6 +1724,7 @@ function InbreukFormulierInhoud({
             )}
 
             {formulier.wetgevingId &&
+              !arabGeselecteerd &&
               !kbLiftenGeselecteerd &&
               (!welzijnswetGeselecteerd ||
                 zichtbareTitels.length > 0) && (

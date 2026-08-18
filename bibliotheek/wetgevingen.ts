@@ -2,6 +2,7 @@ import {
   KB_BEVEILIGING_LIFTEN_ID,
   KB_BEVEILIGING_LIFTEN_NAAM,
 } from "./kb-liften";
+import { ARAB_ID, ARAB_NAAM } from "./arab";
 
 export type Wetgeving = {
   id: string;
@@ -20,6 +21,10 @@ export const wetgevingen: Wetgeving[] = [
   {
     id: KB_BEVEILIGING_LIFTEN_ID,
     naam: KB_BEVEILIGING_LIFTEN_NAAM,
+  },
+  {
+    id: ARAB_ID,
+    naam: ARAB_NAAM,
   },
 ];
 

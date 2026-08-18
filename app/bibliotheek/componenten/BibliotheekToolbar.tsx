@@ -5,6 +5,7 @@ import {
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
+import { isArab } from "@/bibliotheek/arab";
 
 type WetgevingOptie = {
   id: string;
@@ -95,6 +96,9 @@ export default function BibliotheekToolbar({
     isWelzijnswet(filterWetgevingId);
   const kbLiftenGeselecteerd =
     isKbBeveiligingLiften(filterWetgevingId);
+  const arabGeselecteerd = isArab(
+    filterWetgevingId,
+  );
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
@@ -171,7 +175,9 @@ export default function BibliotheekToolbar({
       <div
         className={`grid gap-4 p-5 sm:grid-cols-2 ${
           filterWetgevingId
-            ? hoofdstukIndelingGeselecteerd
+            ? arabGeselecteerd
+              ? "xl:grid-cols-3"
+              : hoofdstukIndelingGeselecteerd
               ? "xl:grid-cols-4"
               : "xl:grid-cols-5"
             : "xl:grid-cols-2"
@@ -208,7 +214,8 @@ export default function BibliotheekToolbar({
           </select>
         </label>
 
-        {filterWetgevingId && (
+        {filterWetgevingId &&
+          !arabGeselecteerd && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
               {eersteNiveauLabel}
@@ -246,6 +253,7 @@ export default function BibliotheekToolbar({
         )}
 
         {filterWetgevingId &&
+          !arabGeselecteerd &&
           !kbLiftenGeselecteerd && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">

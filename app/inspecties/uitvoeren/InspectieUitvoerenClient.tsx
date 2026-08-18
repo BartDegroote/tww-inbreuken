@@ -37,6 +37,7 @@ import {
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
+import { isArab } from "@/bibliotheek/arab";
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 import {
   downloadWordVerslag,
@@ -774,6 +775,9 @@ export default function InspectieUitvoerenClient({
     isWelzijnswet(wetgevingFilter);
   const kbLiftenGeselecteerd =
     isKbBeveiligingLiften(wetgevingFilter);
+  const arabGeselecteerd = isArab(
+    wetgevingFilter,
+  );
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
@@ -989,9 +993,14 @@ export default function InspectieUitvoerenClient({
           isKbBeveiligingLiften(
             inbreuk.wetgevingId,
           );
+        const isArabInbreuk = isArab(
+          inbreuk.wetgevingId,
+        );
         const sleutel =
           isWelzijnswetInbreuk
             ? `${inbreuk.wetgevingId}::welzijnswet`
+            : isArabInbreuk
+              ? `${inbreuk.wetgevingId}::arab`
             : isKbLiftenInbreuk
               ? `${inbreuk.boekId}::kb-liften`
             : `${inbreuk.boekId}::${inbreuk.titelId}`;
@@ -1015,6 +1024,10 @@ export default function InspectieUitvoerenClient({
             groepTitel:
               isWelzijnswetInbreuk
                 ? "Welzijnswet"
+                : isArabInbreuk
+                  ? wetgevingNaamPerId.get(
+                      inbreuk.wetgevingId,
+                    ) ?? "ARAB"
                 : isKbLiftenInbreuk
                   ? `${wetgevingNaamPerId.get(inbreuk.wetgevingId) ?? "KB beveiliging liften"} · ${boekNaam}`
                 : maakZoekgroepTitel(
@@ -1980,6 +1993,7 @@ export default function InspectieUitvoerenClient({
     const boekNaam =
       boekNaamPerId.get(inbreuk.boekId) ??
       "Onbekend boek";
+    const arab = isArab(inbreuk.wetgevingId);
 
     const titel =
       titelPerId.get(inbreuk.titelId);
@@ -2010,8 +2024,9 @@ export default function InspectieUitvoerenClient({
         <div className="flex min-w-0 items-start gap-2">
           <p className="flex min-w-0 flex-1 flex-col items-start gap-1 text-xs font-medium uppercase tracking-wide text-slate-500 sm:flex-row sm:items-center sm:gap-3">
             <span className="min-w-0 max-w-full truncate sm:flex-1">
-              {wetgevingNaam} · {boekNaam}
-              {titel && toonTitel
+              {wetgevingNaam}
+              {!arab && ` · ${boekNaam}`}
+              {!arab && titel && toonTitel
                 ? ` · ${titel.naam}`
                 : ""}
             </span>
@@ -2787,7 +2802,9 @@ export default function InspectieUitvoerenClient({
               <div
                 className={`mt-6 grid gap-4 sm:grid-cols-2 ${
                   wetgevingFilter
-                    ? kbLiftenGeselecteerd
+                    ? arabGeselecteerd
+                      ? "lg:grid-cols-3"
+                      : kbLiftenGeselecteerd
                       ? "lg:grid-cols-4"
                       : "lg:grid-cols-3 xl:grid-cols-5"
                     : "lg:grid-cols-3"
@@ -2831,7 +2848,8 @@ export default function InspectieUitvoerenClient({
                   </select>
                 </div>
 
-                {wetgevingFilter && (
+                {wetgevingFilter &&
+                  !arabGeselecteerd && (
                   <div>
                     <label
                       htmlFor="boek"
@@ -2874,6 +2892,7 @@ export default function InspectieUitvoerenClient({
                 )}
 
                 {wetgevingFilter &&
+                  !arabGeselecteerd &&
                   !kbLiftenGeselecteerd && (
                   <div>
                     <label

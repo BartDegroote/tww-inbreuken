@@ -13,6 +13,7 @@ import {
   isVerborgenAfdeling,
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
+import { isArab } from "@/bibliotheek/arab";
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 
 type InbreukenLijstProps = {
@@ -143,6 +144,9 @@ export default function InbreukenLijst({
                 isWelzijnswet(
                   inbreuk.wetgevingId,
                 );
+              const arab = isArab(
+                inbreuk.wetgevingId,
+              );
               const toonTitel =
                 !isVerborgenAfdeling(
                   inbreuk.titelId,
@@ -174,10 +178,14 @@ export default function InbreukenLijst({
                           </span>
                         )}
                         {wetgevingNaam}
-                        {" · "}
-                        {boekNaam}
-                        {toonTitel &&
-                          ` · ${titelNaam}`}
+                        {!arab && (
+                          <>
+                            {" · "}
+                            {boekNaam}
+                            {toonTitel &&
+                              ` · ${titelNaam}`}
+                          </>
+                        )}
                       </span>
 
                       {inbreuk.inspecteurInfoIngeschakeld &&

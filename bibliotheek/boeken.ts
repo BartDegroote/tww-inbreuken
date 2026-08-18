@@ -1,5 +1,6 @@
 import { kbLiftenHoofdstukken } from "./kb-liften";
 import { welzijnswetHoofdstukken } from "./welzijnswet";
+import { ARAB_BOEK_ID, ARAB_ID } from "./arab";
 
 export type Boek = {
   id: string;
@@ -60,6 +61,11 @@ export const boeken: Boek[] = [
   },
   ...kbLiftenHoofdstukken,
   ...welzijnswetHoofdstukken,
+  {
+    id: ARAB_BOEK_ID,
+    wetgevingId: ARAB_ID,
+    naam: "ARAB",
+  },
 ];
 
 const boekVolgorde = new Map(
