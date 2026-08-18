@@ -82,6 +82,7 @@ export type WordInspectie = {
   inspecteur: string;
   flow: string;
   ontmoetePersonen?: WordOntmoetePersoon[];
+  andereOpmerkingen?: string[];
   inbreuken: WordInbreuk[];
   ernstigArbeidsongeval?: WordOngevalsgegevens | null;
 };
@@ -116,6 +117,8 @@ const VERSLAG_ONDERDELEN_NUMMERING_REFERENTIE =
   "tww-verslag-onderdelen";
 const ONTMOETE_PERSONEN_NUMMERING_REFERENTIE =
   "tww-ontmoete-personen";
+const ANDERE_OPMERKINGEN_NUMMERING_REFERENTIE =
+  "tww-andere-opmerkingen";
 
 // De vaststelling krijgt een extra niveau:
 // het vierkante teken begint waar de gewone inbreuktekst begint,
@@ -483,6 +486,45 @@ function maakOntmoetePersonenParagrafen(
         line: ENKELE_REGELAFSTAND,
       },
     }),
+  ];
+}
+
+function maakAndereOpmerkingenParagrafen(
+  opmerkingen: string[] = [],
+): Paragraph[] {
+  const geldigeOpmerkingen = opmerkingen
+    .map((opmerking) => opmerking.trim())
+    .filter(Boolean);
+
+  if (geldigeOpmerkingen.length === 0) {
+    return [];
+  }
+
+  return [
+    maakVerslagOnderdeelTitel("Andere opmerkingen:"),
+    ...geldigeOpmerkingen.map(
+      (opmerking) =>
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          numbering: {
+            reference:
+              ANDERE_OPMERKINGEN_NUMMERING_REFERENTIE,
+            level: 0,
+          },
+          spacing: {
+            before: 0,
+            after: 120,
+            line: ENKELE_REGELAFSTAND,
+          },
+          children: [
+            new TextRun({
+              text: opmerking,
+              size: HOOFDTEKST_GROOTTE,
+              font: LETTERTYPE,
+            }),
+          ],
+        }),
+    ),
   ];
 }
 
@@ -1268,9 +1310,15 @@ function maakOngevalsParagrafen(
 }
 
 export function maakWordDocument(inspectie: WordInspectie): Document {
+  const heeftAndereOpmerkingen =
+    inspectie.andereOpmerkingen?.some(
+      (opmerking) => opmerking.trim().length > 0,
+    ) ?? false;
+
   if (
     inspectie.inbreuken.length === 0 &&
-    !inspectie.ernstigArbeidsongeval
+    !inspectie.ernstigArbeidsongeval &&
+    !heeftAndereOpmerkingen
   ) {
     throw new Error(
       "Er zijn geen inbreuken om te exporteren.",
@@ -1362,6 +1410,32 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
                   indent: {
                     left:
                       SITUERING_TEKST_INSPrONG,
+                    hanging:
+                      HANGENDE_INSPrONG,
+                  },
+                },
+              },
+            },
+          ],
+        },
+        {
+          reference:
+            ANDERE_OPMERKINGEN_NUMMERING_REFERENTIE,
+          levels: [
+            {
+              level: 0,
+              format: LevelFormat.DECIMAL,
+              text: "%1.",
+              alignment: AlignmentType.LEFT,
+              suffix: LevelSuffix.TAB,
+              style: {
+                run: {
+                  font: LETTERTYPE,
+                  size: HOOFDTEKST_GROOTTE,
+                },
+                paragraph: {
+                  indent: {
+                    left: TEKST_INSPrONG,
                     hanging:
                       HANGENDE_INSPrONG,
                   },
@@ -1484,6 +1558,10 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
             : maakOngevalsParagrafen(
                 inspectie.ernstigArbeidsongeval,
               )),
+
+          ...maakAndereOpmerkingenParagrafen(
+            inspectie.andereOpmerkingen,
+          ),
         ],
       },
     ],

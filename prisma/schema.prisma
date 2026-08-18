@@ -54,6 +54,7 @@ model Inspectie {
   werkhervattingsdatum  String?
   werkpostBezocht       Boolean?
   ontmoetePersonen      Json               @default("[]")
+  andereOpmerkingen     Json               @default("[]")
   status                InspectieStatus    @default(CONCEPT)
   verwijderdOp          DateTime?
   gebruikerId           String

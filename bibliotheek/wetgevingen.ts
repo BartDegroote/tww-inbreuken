@@ -3,6 +3,9 @@ import {
   KB_BEVEILIGING_LIFTEN_NAAM,
 } from "./kb-liften";
 import { ARAB_ID, ARAB_NAAM } from "./arab";
+import { WELZIJNSWET_ID } from "./welzijnswet";
+
+export const CODEX_WELZIJN_ID = "codex-welzijn";
 
 export type Wetgeving = {
   id: string;
@@ -11,11 +14,11 @@ export type Wetgeving = {
 
 export const wetgevingen: Wetgeving[] = [
   {
-    id: "codex-welzijn",
+    id: CODEX_WELZIJN_ID,
     naam: "Codex over het welzijn op het werk",
   },
   {
-    id: "welzijnswet-1996",
+    id: WELZIJNSWET_ID,
     naam: "Welzijnswet van 4 augustus 1996",
   },
   {
@@ -27,6 +30,25 @@ export const wetgevingen: Wetgeving[] = [
     naam: ARAB_NAAM,
   },
 ];
+
+const wetgevingVolgorde = new Map(
+  wetgevingen.map((wetgeving, index) => [
+    wetgeving.id,
+    index,
+  ]),
+);
+
+export function vergelijkWetgevingIds(
+  eersteId: string,
+  tweedeId: string,
+): number {
+  return (
+    (wetgevingVolgorde.get(eersteId) ??
+      Number.MAX_SAFE_INTEGER) -
+    (wetgevingVolgorde.get(tweedeId) ??
+      Number.MAX_SAFE_INTEGER)
+  );
+}
 
 export function zoekWetgevingOpId(
   wetgevingId: string,

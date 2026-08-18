@@ -72,6 +72,8 @@ export type OntmoetePersoonInput = {
   functie: string;
 };
 
+export type AndereOpmerkingInput = string;
+
 function controleerEaoCode(
   categorie: EaoCodeCategorie,
   code: string,
@@ -145,6 +147,29 @@ function normaliseerOntmoetePersonen(
       }
 
       return persoon;
+    });
+}
+
+function normaliseerAndereOpmerkingen(
+  opmerkingen: AndereOpmerkingInput[],
+): string[] {
+  if (opmerkingen.length > 50) {
+    throw new Error(
+      "Je kunt maximaal 50 andere opmerkingen toevoegen.",
+    );
+  }
+
+  return opmerkingen
+    .map((opmerking) => opmerking.trim())
+    .filter(Boolean)
+    .map((opmerking) => {
+      if (opmerking.length > 2_000) {
+        throw new Error(
+          "Een andere opmerking mag maximaal 2.000 tekens bevatten.",
+        );
+      }
+
+      return opmerking;
     });
 }
 
@@ -315,6 +340,7 @@ export async function bewaarInspectie(
   inbreuken: OpgeslagenInbreukInput[],
   ongevalsgegevens: OngevalsgegevensInput,
   ontmoetePersonen: OntmoetePersoonInput[],
+  andereOpmerkingen: AndereOpmerkingInput[],
 ) {
   const gebruiker = await vereisGebruiker();
   const inspectie = await prisma.inspectie.findFirst({
@@ -336,6 +362,10 @@ export async function bewaarInspectie(
     ongevalsgegevens.werkhervattingsdatum.trim();
   const genormaliseerdeOntmoetePersonen =
     normaliseerOntmoetePersonen(ontmoetePersonen);
+  const genormaliseerdeAndereOpmerkingen =
+    normaliseerAndereOpmerkingen(
+      andereOpmerkingen,
+    );
 
   if (
     ongevalsgegevens.ernstigArbeidsongeval &&
@@ -503,6 +533,8 @@ export async function bewaarInspectie(
       data: {
         ontmoetePersonen:
           genormaliseerdeOntmoetePersonen,
+        andereOpmerkingen:
+          genormaliseerdeAndereOpmerkingen,
         ernstigArbeidsongeval:
           ongevalsgegevens.ernstigArbeidsongeval,
         slachtofferVoornaam:

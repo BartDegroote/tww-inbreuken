@@ -1,4 +1,5 @@
 import { vergelijkBoekIds } from "@/bibliotheek/boeken";
+import { vergelijkWetgevingIds } from "@/bibliotheek/wetgevingen";
 
 type SorteerbareInbreuk = {
   standaardinbreukId: string;
@@ -89,10 +90,11 @@ export function sorteerInbreukenJuridisch<T extends SorteerbareInbreuk>(
   const indelingPerId = new Map(
     indelingen.map((indeling) => [indeling.id, indeling]),
   );
-  const wetgevingVolgorde = new Map(
-    [...wetgevingen]
-      .sort((a, b) => natuurlijkeVergelijker.compare(a.naam, b.naam))
-      .map((wetgeving, index) => [wetgeving.id, index]),
+  const wetgevingNaamPerId = new Map(
+    wetgevingen.map((wetgeving) => [
+      wetgeving.id,
+      wetgeving.naam,
+    ]),
   );
 
   return inbreuken
@@ -105,11 +107,20 @@ export function sorteerInbreukenJuridisch<T extends SorteerbareInbreuk>(
     .sort((a, b) => {
       const wetgevingA = a.indeling?.wetgevingId ?? "";
       const wetgevingB = b.indeling?.wetgevingId ?? "";
-      const wetgevingVerschil = vergelijkGetallen(
-        wetgevingVolgorde.get(wetgevingA) ?? Number.MAX_SAFE_INTEGER,
-        wetgevingVolgorde.get(wetgevingB) ?? Number.MAX_SAFE_INTEGER,
+      const wetgevingVerschil = vergelijkWetgevingIds(
+        wetgevingA,
+        wetgevingB,
       );
       if (wetgevingVerschil !== 0) return wetgevingVerschil;
+
+      const onbekendeWetgevingVerschil =
+        natuurlijkeVergelijker.compare(
+          wetgevingNaamPerId.get(wetgevingA) ?? wetgevingA,
+          wetgevingNaamPerId.get(wetgevingB) ?? wetgevingB,
+        );
+      if (onbekendeWetgevingVerschil !== 0) {
+        return onbekendeWetgevingVerschil;
+      }
 
       const boekA = a.indeling?.boekId ?? "";
       const boekB = b.indeling?.boekId ?? "";

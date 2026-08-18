@@ -52,6 +52,7 @@ export default async function InspectieUitvoerenPagina({
         inspecteur: true,
         flow: true,
         ontmoetePersonen: true,
+        andereOpmerkingen: true,
         ernstigArbeidsongeval: true,
         slachtofferVoornaam: true,
         slachtofferNaam: true,
@@ -269,6 +270,16 @@ export default async function InspectieUitvoerenPagina({
       )
     : [];
 
+  const initialAndereOpmerkingen = Array.isArray(
+    inspectie.andereOpmerkingen,
+  )
+    ? inspectie.andereOpmerkingen.filter(
+        (opmerking): opmerking is string =>
+          typeof opmerking === "string" &&
+          opmerking.trim().length > 0,
+      )
+    : [];
+
   return (
     <InspectieUitvoerenClient
       inspectieId={inspectie.id}
@@ -279,6 +290,9 @@ export default async function InspectieUitvoerenPagina({
       flow={inspectie.flow}
       initialOntmoetePersonen={
         initialOntmoetePersonen
+      }
+      initialAndereOpmerkingen={
+        initialAndereOpmerkingen
       }
       initialOngevalsgegevens={{
         ernstigArbeidsongeval:

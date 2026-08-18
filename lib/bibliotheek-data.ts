@@ -5,6 +5,7 @@ import type { Standaardinbreuk } from "@/bibliotheek";
 import { vergelijkBoekIds } from "@/bibliotheek/boeken";
 import { leesTekstSegmenten } from "@/bibliotheek/tekstsegmenten";
 import { vergelijkTitelIds } from "@/bibliotheek/titels";
+import { vergelijkWetgevingIds } from "@/bibliotheek/wetgevingen";
 import { prisma } from "@/lib/prisma";
 
 const standaardinbreukSelect = {
@@ -139,7 +140,22 @@ export async function haalBibliotheekGegevensOp() {
     ]);
 
   return {
-    wetgevingen,
+    wetgevingen: wetgevingen.sort(
+      (eerste, tweede) => {
+        const volgorde = vergelijkWetgevingIds(
+          eerste.id,
+          tweede.id,
+        );
+
+        return volgorde !== 0
+          ? volgorde
+          : eerste.naam.localeCompare(
+              tweede.naam,
+              "nl-BE",
+              { sensitivity: "base" },
+            );
+      },
+    ),
     boeken: boeken.sort((eerste, tweede) =>
       vergelijkBoekIds(eerste.id, tweede.id),
     ),

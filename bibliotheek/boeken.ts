@@ -59,8 +59,8 @@ export const boeken: Boek[] = [
     wetgevingId: "codex-welzijn",
     naam: "X - Werkorganisatie en bijzondere werknemerscategorieën",
   },
-  ...kbLiftenHoofdstukken,
   ...welzijnswetHoofdstukken,
+  ...kbLiftenHoofdstukken,
   {
     id: ARAB_BOEK_ID,
     wetgevingId: ARAB_ID,

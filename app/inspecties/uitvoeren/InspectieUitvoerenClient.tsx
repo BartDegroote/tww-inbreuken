@@ -74,6 +74,11 @@ type OntmoetePersoonRij =
     id: string;
   };
 
+type AndereOpmerkingRij = {
+  id: string;
+  tekst: string;
+};
+
 export type InspectieFoto = {
   id: string;
   naam: string;
@@ -111,6 +116,7 @@ type InspectieUitvoerenClientProps = {
   inspecteur: string;
   flow: string;
   initialOntmoetePersonen: OntmoetePersoonInput[];
+  initialAndereOpmerkingen: string[];
   initialOngevalsgegevens: OngevalsgegevensInput;
   wetgevingen: WetgevingOptie[];
   boeken: BoekOptie[];
@@ -498,6 +504,7 @@ export default function InspectieUitvoerenClient({
   inspecteur,
   flow,
   initialOntmoetePersonen,
+  initialAndereOpmerkingen,
   initialOngevalsgegevens,
   wetgevingen,
   boeken,
@@ -596,6 +603,21 @@ export default function InspectieUitvoerenClient({
   ] = useState(false);
 
   const [
+    andereOpmerkingen,
+    setAndereOpmerkingen,
+  ] = useState<AndereOpmerkingRij[]>(() =>
+    initialAndereOpmerkingen.map((tekst) => ({
+      id: maakTijdelijkId(),
+      tekst,
+    })),
+  );
+
+  const [
+    toonAndereOpmerkingen,
+    setToonAndereOpmerkingen,
+  ] = useState(false);
+
+  const [
     ernstigArbeidsongeval,
     setErnstigArbeidsongeval,
   ] = useState(
@@ -661,6 +683,12 @@ export default function InspectieUitvoerenClient({
         slachtofferNaam.trim() &&
         ongevalsdatum,
     );
+  const aantalAndereOpmerkingen =
+    andereOpmerkingen.filter((opmerking) =>
+      Boolean(opmerking.tekst.trim()),
+    ).length;
+  const andereOpmerkingenIngevuld =
+    aantalAndereOpmerkingen > 0;
 
   const bewerkFormulierRef =
     useRef<HTMLDivElement | null>(null);
@@ -1148,6 +1176,12 @@ export default function InspectieUitvoerenClient({
     );
   }
 
+  function huidigeAndereOpmerkingen(): string[] {
+    return andereOpmerkingen
+      .map((opmerking) => opmerking.tekst.trim())
+      .filter(Boolean);
+  }
+
   function wisselOntmoetePersonenPaneel() {
     setToonOntmoetePersonen(
       (huidigeWaarde) => {
@@ -1183,6 +1217,71 @@ export default function InspectieUitvoerenClient({
       );
     }
 
+    setExportFout("");
+  }
+
+  function wisselAndereOpmerkingenPaneel() {
+    setToonAndereOpmerkingen(
+      (huidigeWaarde) => {
+        const nieuweWaarde = !huidigeWaarde;
+
+        if (
+          nieuweWaarde &&
+          andereOpmerkingen.length === 0
+        ) {
+          setAndereOpmerkingen([
+            {
+              id: maakTijdelijkId(),
+              tekst: "",
+            },
+          ]);
+        }
+
+        return nieuweWaarde;
+      },
+    );
+    setExportFout("");
+  }
+
+  function voegAndereOpmerkingToe() {
+    if (andereOpmerkingen.length >= 50) {
+      return;
+    }
+
+    setAndereOpmerkingen(
+      (huidigeOpmerkingen) => [
+        ...huidigeOpmerkingen,
+        {
+          id: maakTijdelijkId(),
+          tekst: "",
+        },
+      ],
+    );
+    setExportFout("");
+  }
+
+  function wijzigAndereOpmerking(
+    id: string,
+    tekst: string,
+  ) {
+    setAndereOpmerkingen(
+      (huidigeOpmerkingen) =>
+        huidigeOpmerkingen.map((opmerking) =>
+          opmerking.id === id
+            ? { ...opmerking, tekst }
+            : opmerking,
+        ),
+    );
+    setExportFout("");
+  }
+
+  function verwijderAndereOpmerking(id: string) {
+    setAndereOpmerkingen(
+      (huidigeOpmerkingen) =>
+        huidigeOpmerkingen.filter(
+          (opmerking) => opmerking.id !== id,
+        ),
+    );
     setExportFout("");
   }
 
@@ -1516,6 +1615,7 @@ export default function InspectieUitvoerenClient({
         invoer,
         huidigeOngevalsgegevens(),
         huidigeOntmoetePersonen(),
+        huidigeAndereOpmerkingen(),
       );
 
       const opgeslagen = await Promise.all(
@@ -1797,7 +1897,8 @@ export default function InspectieUitvoerenClient({
   async function genereerWordVerslag() {
     if (
       (inbreuken.length === 0 &&
-        !ernstigArbeidsongeval) ||
+        !ernstigArbeidsongeval &&
+        !andereOpmerkingenIngevuld) ||
       exportBezig
     ) {
       return;
@@ -1943,6 +2044,8 @@ export default function InspectieUitvoerenClient({
         flow,
         ontmoetePersonen:
           huidigeOntmoetePersonen(),
+        andereOpmerkingen:
+          huidigeAndereOpmerkingen(),
         inbreuken: wordInbreuken,
         ernstigArbeidsongeval:
           ernstigArbeidsongeval
@@ -2124,7 +2227,7 @@ export default function InspectieUitvoerenClient({
               </h1>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:min-w-[40rem]">
+            <div className="grid grid-cols-2 gap-2 lg:min-w-[48rem] lg:grid-cols-4">
               <div className="col-span-2 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-4 py-3 sm:col-span-1">
                 <p className="text-xs text-blue-700">
                   Flow
@@ -2299,6 +2402,91 @@ export default function InspectieUitvoerenClient({
                   strokeWidth="2"
                   className={`h-4 w-4 shrink-0 opacity-60 transition-transform ${
                     toonOngevalsgegevens
+                      ? "rotate-180"
+                      : ""
+                  }`}
+                >
+                  <path
+                    d="m6 8 4 4 4-4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+
+              <button
+                type="button"
+                aria-expanded={toonAndereOpmerkingen}
+                aria-controls="andere-opmerkingen-paneel"
+                onClick={wisselAndereOpmerkingenPaneel}
+                className={`flex min-h-16 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-violet-300 ${
+                  toonAndereOpmerkingen
+                    ? "border-violet-500 bg-violet-100 text-violet-950 shadow-sm"
+                    : andereOpmerkingenIngevuld
+                      ? "border-emerald-300 bg-emerald-50 text-slate-800 hover:border-violet-300 hover:bg-violet-50"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-violet-300 hover:bg-violet-50"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                    toonAndereOpmerkingen
+                      ? "bg-violet-600 text-white"
+                      : "bg-violet-100 text-violet-700"
+                  }`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8 10h8M8 14h5m8-2a9 9 0 0 1-9 9 9.6 9.6 0 0 1-4-.87L3 21l.87-5A9.6 9.6 0 0 1 3 12a9 9 0 0 1 18 0Z"
+                    />
+                  </svg>
+
+                  {andereOpmerkingenIngevuld && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-emerald-600 text-white shadow-sm">
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        className="h-3 w-3"
+                      >
+                        <path
+                          d="m5 10 3 3 7-7"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  )}
+                </span>
+
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold">
+                    Andere opmerkingen
+                  </span>
+                  <span className="mt-0.5 block text-xs opacity-75">
+                    {andereOpmerkingenIngevuld
+                      ? `${aantalAndereOpmerkingen} toegevoegd`
+                      : "Toevoegen aan verslag"}
+                  </span>
+                </span>
+
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  className={`h-4 w-4 shrink-0 opacity-60 transition-transform ${
+                    toonAndereOpmerkingen
                       ? "rotate-180"
                       : ""
                   }`}
@@ -2695,6 +2883,95 @@ export default function InspectieUitvoerenClient({
                     ))}
                   </div>
                 </fieldset>
+              </div>
+            </section>
+          )}
+
+          {toonAndereOpmerkingen && (
+            <section
+              id="andere-opmerkingen-paneel"
+              aria-labelledby="andere-opmerkingen-titel"
+              className="mt-5 overflow-hidden rounded-xl border border-violet-200 bg-violet-50/70"
+            >
+              <div className="flex flex-col gap-3 border-b border-violet-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                <div>
+                  <h2
+                    id="andere-opmerkingen-titel"
+                    className="font-bold text-violet-950"
+                  >
+                    Andere opmerkingen
+                  </h2>
+                  <p className="mt-1 text-sm text-violet-800">
+                    Alleen ingevulde opmerkingen verschijnen onderaan het Word-verslag.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={voegAndereOpmerkingToe}
+                  disabled={
+                    andereOpmerkingen.length >= 50
+                  }
+                  className="min-h-10 shrink-0 rounded-lg border border-violet-300 bg-white px-4 py-2 text-sm font-bold text-violet-800 transition hover:bg-violet-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  + Opmerking toevoegen
+                </button>
+              </div>
+
+              <div className="space-y-3 p-4 sm:p-5">
+                {andereOpmerkingen.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-violet-300 bg-white/70 px-4 py-3 text-sm text-violet-800">
+                    Er zijn nog geen opmerkingen toegevoegd.
+                  </p>
+                ) : (
+                  andereOpmerkingen.map(
+                    (opmerking, index) => (
+                      <div
+                        key={opmerking.id}
+                        className="grid gap-3 rounded-lg border border-violet-200 bg-white p-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-start"
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-100 text-sm font-bold text-violet-800"
+                        >
+                          {index + 1}
+                        </span>
+
+                        <label className="block min-w-0">
+                          <span className="sr-only">
+                            Opmerking {index + 1}
+                          </span>
+                          <textarea
+                            value={opmerking.tekst}
+                            maxLength={2000}
+                            rows={3}
+                            onChange={(event) =>
+                              wijzigAndereOpmerking(
+                                opmerking.id,
+                                event.target.value,
+                              )
+                            }
+                            placeholder="Formuleer de opmerking zoals ze in het verslag moet verschijnen."
+                            className="min-h-24 w-full resize-y rounded-lg border border-violet-200 bg-white px-3 py-2 text-base leading-6 outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-200"
+                          />
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            verwijderAndereOpmerking(
+                              opmerking.id,
+                            )
+                          }
+                          aria-label={`Verwijder opmerking ${index + 1}`}
+                          className="min-h-11 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                        >
+                          Verwijderen
+                        </button>
+                      </div>
+                    ),
+                  )
+                )}
               </div>
             </section>
           )}
@@ -3813,7 +4090,8 @@ export default function InspectieUitvoerenClient({
                   onClick={genereerWordVerslag}
                   disabled={
                     (inbreuken.length === 0 &&
-                      !ernstigArbeidsongeval) ||
+                      !ernstigArbeidsongeval &&
+                      !andereOpmerkingenIngevuld) ||
                     exportBezig
                   }
                   className="w-full rounded-lg bg-emerald-700 px-3 py-3 text-sm font-semibold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 sm:w-auto sm:px-6 sm:text-base"
