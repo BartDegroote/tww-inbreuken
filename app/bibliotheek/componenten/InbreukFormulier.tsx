@@ -17,6 +17,7 @@ import {
   isVerborgenAfdeling,
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
+import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 
 type WetgevingOptie = {
   id: string;
@@ -748,6 +749,13 @@ function InbreukFormulierInhoud({
   const welzijnswetGeselecteerd = isWelzijnswet(
     formulier?.wetgevingId ?? "",
   );
+  const kbLiftenGeselecteerd =
+    isKbBeveiligingLiften(
+      formulier?.wetgevingId ?? "",
+    );
+  const hoofdstukIndelingGeselecteerd =
+    welzijnswetGeselecteerd ||
+    kbLiftenGeselecteerd;
 
   const zichtbareTitels = useMemo(
     () =>
@@ -931,7 +939,10 @@ function InbreukFormulierInhoud({
         ...huidig,
         boekId,
         titelId:
-          isWelzijnswet(huidig.wetgevingId) &&
+          (isWelzijnswet(huidig.wetgevingId) ||
+            isKbBeveiligingLiften(
+              huidig.wetgevingId,
+            )) &&
           verborgenAfdeling
             ? verborgenAfdeling.id
             : "",
@@ -1660,7 +1671,7 @@ function InbreukFormulierInhoud({
             {formulier.wetgevingId && (
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {welzijnswetGeselecteerd
+                  {hoofdstukIndelingGeselecteerd
                     ? "Hoofdstuk"
                     : "Boek"}
                   <span className="ml-1 text-red-600">
@@ -1680,7 +1691,7 @@ function InbreukFormulierInhoud({
                   required
                 >
                   <option value="">
-                    {welzijnswetGeselecteerd
+                    {hoofdstukIndelingGeselecteerd
                       ? "Selecteer hoofdstuk"
                       : "Selecteer boek"}
                   </option>
@@ -1700,6 +1711,7 @@ function InbreukFormulierInhoud({
             )}
 
             {formulier.wetgevingId &&
+              !kbLiftenGeselecteerd &&
               (!welzijnswetGeselecteerd ||
                 zichtbareTitels.length > 0) && (
               <label className="block">

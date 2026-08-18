@@ -36,6 +36,7 @@ import {
   isVerborgenAfdeling,
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
+import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 import {
   downloadWordVerslag,
@@ -771,8 +772,13 @@ export default function InspectieUitvoerenClient({
 
   const welzijnswetGeselecteerd =
     isWelzijnswet(wetgevingFilter);
+  const kbLiftenGeselecteerd =
+    isKbBeveiligingLiften(wetgevingFilter);
+  const hoofdstukIndelingGeselecteerd =
+    welzijnswetGeselecteerd ||
+    kbLiftenGeselecteerd;
   const eersteNiveauLabel = wetgevingFilter
-    ? welzijnswetGeselecteerd
+    ? hoofdstukIndelingGeselecteerd
       ? "Hoofdstuk"
       : "Boek"
     : "Boek / hoofdstuk";
@@ -979,9 +985,15 @@ export default function InspectieUitvoerenClient({
           isWelzijnswet(
             inbreuk.wetgevingId,
           );
+        const isKbLiftenInbreuk =
+          isKbBeveiligingLiften(
+            inbreuk.wetgevingId,
+          );
         const sleutel =
           isWelzijnswetInbreuk
             ? `${inbreuk.wetgevingId}::welzijnswet`
+            : isKbLiftenInbreuk
+              ? `${inbreuk.boekId}::kb-liften`
             : `${inbreuk.boekId}::${inbreuk.titelId}`;
         let groep =
           groepen.get(sleutel);
@@ -1003,6 +1015,8 @@ export default function InspectieUitvoerenClient({
             groepTitel:
               isWelzijnswetInbreuk
                 ? "Welzijnswet"
+                : isKbLiftenInbreuk
+                  ? `${wetgevingNaamPerId.get(inbreuk.wetgevingId) ?? "KB beveiliging liften"} · ${boekNaam}`
                 : maakZoekgroepTitel(
                     boekNaam,
                     inbreuk.titelId,
@@ -1085,6 +1099,7 @@ export default function InspectieUitvoerenClient({
       titels,
       boekNaamPerId,
       titelPerId,
+      wetgevingNaamPerId,
     ]);
 
   function maakFormulierLeeg() {
@@ -2772,7 +2787,9 @@ export default function InspectieUitvoerenClient({
               <div
                 className={`mt-6 grid gap-4 sm:grid-cols-2 ${
                   wetgevingFilter
-                    ? "lg:grid-cols-3 xl:grid-cols-5"
+                    ? kbLiftenGeselecteerd
+                      ? "lg:grid-cols-4"
+                      : "lg:grid-cols-3 xl:grid-cols-5"
                     : "lg:grid-cols-3"
                 }`}
               >
@@ -2837,7 +2854,7 @@ export default function InspectieUitvoerenClient({
                     >
                       <option value="">
                         Alle{" "}
-                        {welzijnswetGeselecteerd
+                        {hoofdstukIndelingGeselecteerd
                           ? "hoofdstukken"
                           : "boeken"}
                       </option>
@@ -2856,7 +2873,8 @@ export default function InspectieUitvoerenClient({
                   </div>
                 )}
 
-                {wetgevingFilter && (
+                {wetgevingFilter &&
+                  !kbLiftenGeselecteerd && (
                   <div>
                     <label
                       htmlFor="titel"

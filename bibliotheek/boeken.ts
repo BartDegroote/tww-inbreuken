@@ -1,3 +1,6 @@
+import { kbLiftenHoofdstukken } from "./kb-liften";
+import { welzijnswetHoofdstukken } from "./welzijnswet";
+
 export type Boek = {
   id: string;
   wetgevingId: string;
@@ -55,6 +58,7 @@ export const boeken: Boek[] = [
     wetgevingId: "codex-welzijn",
     naam: "X - Werkorganisatie en bijzondere werknemerscategorieën",
   },
+  ...kbLiftenHoofdstukken,
   ...welzijnswetHoofdstukken,
 ];
 
@@ -80,4 +84,3 @@ export function zoekBoekenVoorWetgeving(
     (boek) => boek.wetgevingId === wetgevingId,
   );
 }
-import { welzijnswetHoofdstukken } from "./welzijnswet";

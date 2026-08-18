@@ -144,7 +144,6 @@ export default function InbreukenLijst({
                   inbreuk.wetgevingId,
                 );
               const toonTitel =
-                !welzijnswet ||
                 !isVerborgenAfdeling(
                   inbreuk.titelId,
                 );

@@ -1,5 +1,6 @@
 import { vergelijkBoekIds } from "./boeken";
 import { welzijnswetAfdelingen } from "./welzijnswet";
+import { kbLiftenTechnischeTitels } from "./kb-liften";
 
 export type Titel = {
   id: string;
@@ -68,6 +69,7 @@ export const titels: Titel[] = [
   { id: "boek-x-titel-4", boekId: "boek-x", naam: "4 - Stagiairs" },
   { id: "boek-x-titel-5", boekId: "boek-x", naam: "5 - Moederschapsbescherming" },
   { id: "boek-x-titel-6", boekId: "boek-x", naam: "6 - Dienstboden en huispersoneel" },
+  ...kbLiftenTechnischeTitels,
   ...welzijnswetAfdelingen,
 ];
 

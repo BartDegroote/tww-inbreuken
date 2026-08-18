@@ -11,6 +11,7 @@ import {
   isVerborgenAfdeling,
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
+import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 import { mapStandaardinbreuk } from "@/lib/bibliotheek-data";
 import { prisma } from "@/lib/prisma";
 import { vereisGebruiker } from "@/lib/auth";
@@ -218,15 +219,23 @@ export async function bewaarStandaardinbreuk(
   );
 
   const welzijnswet = isWelzijnswet(wetgevingId);
+  const kbLiften =
+    isKbBeveiligingLiften(wetgevingId);
+  const hoofdstukIndeling =
+    welzijnswet || kbLiften;
 
   const boekId = verplichtTekstveld(
     invoer.boekId,
-    welzijnswet ? "Hoofdstuk" : "Boek",
+    hoofdstukIndeling ? "Hoofdstuk" : "Boek",
   );
 
   const titelId = verplichtTekstveld(
     invoer.titelId,
-    welzijnswet ? "Afdeling" : "Titel",
+    welzijnswet
+      ? "Afdeling"
+      : kbLiften
+        ? "Juridische indeling"
+        : "Titel",
   );
 
   const omschrijving = verplichtTekstveld(

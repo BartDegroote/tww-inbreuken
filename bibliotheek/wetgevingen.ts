@@ -1,3 +1,8 @@
+import {
+  KB_BEVEILIGING_LIFTEN_ID,
+  KB_BEVEILIGING_LIFTEN_NAAM,
+} from "./kb-liften";
+
 export type Wetgeving = {
   id: string;
   naam: string;
@@ -11,6 +16,10 @@ export const wetgevingen: Wetgeving[] = [
   {
     id: "welzijnswet-1996",
     naam: "Welzijnswet van 4 augustus 1996",
+  },
+  {
+    id: KB_BEVEILIGING_LIFTEN_ID,
+    naam: KB_BEVEILIGING_LIFTEN_NAAM,
   },
 ];
 

@@ -4,6 +4,7 @@ import {
   isVerborgenAfdeling,
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
+import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 
 type WetgevingOptie = {
   id: string;
@@ -92,9 +93,14 @@ export default function BibliotheekToolbar({
 
   const welzijnswetGeselecteerd =
     isWelzijnswet(filterWetgevingId);
+  const kbLiftenGeselecteerd =
+    isKbBeveiligingLiften(filterWetgevingId);
+  const hoofdstukIndelingGeselecteerd =
+    welzijnswetGeselecteerd ||
+    kbLiftenGeselecteerd;
   const eersteNiveauLabel =
     filterWetgevingId
-      ? welzijnswetGeselecteerd
+      ? hoofdstukIndelingGeselecteerd
         ? "Hoofdstuk"
         : "Boek"
       : "Boek / hoofdstuk";
@@ -165,7 +171,7 @@ export default function BibliotheekToolbar({
       <div
         className={`grid gap-4 p-5 sm:grid-cols-2 ${
           filterWetgevingId
-            ? welzijnswetGeselecteerd
+            ? hoofdstukIndelingGeselecteerd
               ? "xl:grid-cols-4"
               : "xl:grid-cols-5"
             : "xl:grid-cols-2"
@@ -220,7 +226,7 @@ export default function BibliotheekToolbar({
             >
               <option value="">
                 Alle{" "}
-                {welzijnswetGeselecteerd
+                {hoofdstukIndelingGeselecteerd
                   ? "hoofdstukken"
                   : "boeken"}
               </option>
@@ -239,7 +245,8 @@ export default function BibliotheekToolbar({
           </label>
         )}
 
-        {filterWetgevingId && (
+        {filterWetgevingId &&
+          !kbLiftenGeselecteerd && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
               {tweedeNiveauLabel}
