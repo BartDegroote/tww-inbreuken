@@ -6,6 +6,7 @@ import {
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 import { isArab } from "@/bibliotheek/arab";
+import { isKbTmb } from "@/bibliotheek/kb-tmb";
 
 type WetgevingOptie = {
   id: string;
@@ -99,6 +100,11 @@ export default function BibliotheekToolbar({
   const arabGeselecteerd = isArab(
     filterWetgevingId,
   );
+  const kbTmbGeselecteerd = isKbTmb(
+    filterWetgevingId,
+  );
+  const enkelOnderwerpenGeselecteerd =
+    arabGeselecteerd || kbTmbGeselecteerd;
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
@@ -175,7 +181,7 @@ export default function BibliotheekToolbar({
       <div
         className={`grid gap-4 p-5 sm:grid-cols-2 ${
           filterWetgevingId
-            ? arabGeselecteerd
+            ? enkelOnderwerpenGeselecteerd
               ? "xl:grid-cols-3"
               : hoofdstukIndelingGeselecteerd
               ? "xl:grid-cols-4"
@@ -215,7 +221,7 @@ export default function BibliotheekToolbar({
         </label>
 
         {filterWetgevingId &&
-          !arabGeselecteerd && (
+          !enkelOnderwerpenGeselecteerd && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
               {eersteNiveauLabel}
@@ -253,7 +259,7 @@ export default function BibliotheekToolbar({
         )}
 
         {filterWetgevingId &&
-          !arabGeselecteerd &&
+          !enkelOnderwerpenGeselecteerd &&
           !kbLiftenGeselecteerd && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">

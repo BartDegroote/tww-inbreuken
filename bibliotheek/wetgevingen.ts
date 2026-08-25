@@ -3,6 +3,7 @@ import {
   KB_BEVEILIGING_LIFTEN_NAAM,
 } from "./kb-liften";
 import { ARAB_ID, ARAB_NAAM } from "./arab";
+import { KB_TMB_ID, KB_TMB_NAAM } from "./kb-tmb";
 import { WELZIJNSWET_ID } from "./welzijnswet";
 
 export const CODEX_WELZIJN_ID = "codex-welzijn";
@@ -24,6 +25,10 @@ export const wetgevingen: Wetgeving[] = [
   {
     id: KB_BEVEILIGING_LIFTEN_ID,
     naam: KB_BEVEILIGING_LIFTEN_NAAM,
+  },
+  {
+    id: KB_TMB_ID,
+    naam: KB_TMB_NAAM,
   },
   {
     id: ARAB_ID,

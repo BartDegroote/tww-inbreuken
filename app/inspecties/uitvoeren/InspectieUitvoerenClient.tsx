@@ -38,6 +38,7 @@ import {
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 import { isArab } from "@/bibliotheek/arab";
+import { isKbTmb } from "@/bibliotheek/kb-tmb";
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 import {
   downloadWordVerslag,
@@ -806,6 +807,11 @@ export default function InspectieUitvoerenClient({
   const arabGeselecteerd = isArab(
     wetgevingFilter,
   );
+  const kbTmbGeselecteerd = isKbTmb(
+    wetgevingFilter,
+  );
+  const enkelOnderwerpenGeselecteerd =
+    arabGeselecteerd || kbTmbGeselecteerd;
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
@@ -1024,11 +1030,16 @@ export default function InspectieUitvoerenClient({
         const isArabInbreuk = isArab(
           inbreuk.wetgevingId,
         );
+        const isKbTmbInbreuk = isKbTmb(
+          inbreuk.wetgevingId,
+        );
+        const isEnkelOnderwerpenInbreuk =
+          isArabInbreuk || isKbTmbInbreuk;
         const sleutel =
           isWelzijnswetInbreuk
             ? `${inbreuk.wetgevingId}::welzijnswet`
-            : isArabInbreuk
-              ? `${inbreuk.wetgevingId}::arab`
+            : isEnkelOnderwerpenInbreuk
+              ? `${inbreuk.wetgevingId}::enkel-onderwerpen`
             : isKbLiftenInbreuk
               ? `${inbreuk.boekId}::kb-liften`
             : `${inbreuk.boekId}::${inbreuk.titelId}`;
@@ -1052,10 +1063,10 @@ export default function InspectieUitvoerenClient({
             groepTitel:
               isWelzijnswetInbreuk
                 ? "Welzijnswet"
-                : isArabInbreuk
+                : isEnkelOnderwerpenInbreuk
                   ? wetgevingNaamPerId.get(
                       inbreuk.wetgevingId,
-                    ) ?? "ARAB"
+                    ) ?? "Wetgeving"
                 : isKbLiftenInbreuk
                   ? `${wetgevingNaamPerId.get(inbreuk.wetgevingId) ?? "KB beveiliging liften"} · ${boekNaam}`
                 : maakZoekgroepTitel(
@@ -2096,7 +2107,9 @@ export default function InspectieUitvoerenClient({
     const boekNaam =
       boekNaamPerId.get(inbreuk.boekId) ??
       "Onbekend boek";
-    const arab = isArab(inbreuk.wetgevingId);
+    const enkelOnderwerpen =
+      isArab(inbreuk.wetgevingId) ||
+      isKbTmb(inbreuk.wetgevingId);
 
     const titel =
       titelPerId.get(inbreuk.titelId);
@@ -2128,8 +2141,8 @@ export default function InspectieUitvoerenClient({
           <p className="flex min-w-0 flex-1 flex-col items-start gap-1 text-xs font-medium uppercase tracking-wide text-slate-500 sm:flex-row sm:items-center sm:gap-3">
             <span className="min-w-0 max-w-full truncate sm:flex-1">
               {wetgevingNaam}
-              {!arab && ` · ${boekNaam}`}
-              {!arab && titel && toonTitel
+              {!enkelOnderwerpen && ` · ${boekNaam}`}
+              {!enkelOnderwerpen && titel && toonTitel
                 ? ` · ${titel.naam}`
                 : ""}
             </span>
@@ -3079,7 +3092,7 @@ export default function InspectieUitvoerenClient({
               <div
                 className={`mt-6 grid gap-4 sm:grid-cols-2 ${
                   wetgevingFilter
-                    ? arabGeselecteerd
+                    ? enkelOnderwerpenGeselecteerd
                       ? "lg:grid-cols-3"
                       : kbLiftenGeselecteerd
                       ? "lg:grid-cols-4"
@@ -3126,7 +3139,7 @@ export default function InspectieUitvoerenClient({
                 </div>
 
                 {wetgevingFilter &&
-                  !arabGeselecteerd && (
+                  !enkelOnderwerpenGeselecteerd && (
                   <div>
                     <label
                       htmlFor="boek"
@@ -3169,7 +3182,7 @@ export default function InspectieUitvoerenClient({
                 )}
 
                 {wetgevingFilter &&
-                  !arabGeselecteerd &&
+                  !enkelOnderwerpenGeselecteerd &&
                   !kbLiftenGeselecteerd && (
                   <div>
                     <label

@@ -1,6 +1,10 @@
 import { kbLiftenHoofdstukken } from "./kb-liften";
 import { welzijnswetHoofdstukken } from "./welzijnswet";
 import { ARAB_BOEK_ID, ARAB_ID } from "./arab";
+import {
+  KB_TMB_BOEK_ID,
+  KB_TMB_ID,
+} from "./kb-tmb";
 
 export type Boek = {
   id: string;
@@ -61,6 +65,11 @@ export const boeken: Boek[] = [
   },
   ...welzijnswetHoofdstukken,
   ...kbLiftenHoofdstukken,
+  {
+    id: KB_TMB_BOEK_ID,
+    wetgevingId: KB_TMB_ID,
+    naam: "KB TMB",
+  },
   {
     id: ARAB_BOEK_ID,
     wetgevingId: ARAB_ID,

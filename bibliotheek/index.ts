@@ -5,5 +5,6 @@ export * from "./boeken";
 export * from "./titels";
 export * from "./welzijnswet";
 export * from "./kb-liften";
+export * from "./kb-tmb";
 export * from "./arab";
 export * from "./codex/Boek_III";

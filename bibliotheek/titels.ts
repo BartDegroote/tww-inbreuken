@@ -2,6 +2,10 @@ import { vergelijkBoekIds } from "./boeken";
 import { welzijnswetAfdelingen } from "./welzijnswet";
 import { kbLiftenTechnischeTitels } from "./kb-liften";
 import { ARAB_BOEK_ID, ARAB_TITEL_ID } from "./arab";
+import {
+  KB_TMB_BOEK_ID,
+  KB_TMB_TITEL_ID,
+} from "./kb-tmb";
 
 export type Titel = {
   id: string;
@@ -72,6 +76,11 @@ export const titels: Titel[] = [
   { id: "boek-x-titel-6", boekId: "boek-x", naam: "6 - Dienstboden en huispersoneel" },
   ...welzijnswetAfdelingen,
   ...kbLiftenTechnischeTitels,
+  {
+    id: KB_TMB_TITEL_ID,
+    boekId: KB_TMB_BOEK_ID,
+    naam: "Rechtstreeks onder KB TMB",
+  },
   {
     id: ARAB_TITEL_ID,
     boekId: ARAB_BOEK_ID,

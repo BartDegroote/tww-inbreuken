@@ -13,6 +13,7 @@ import {
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 import { isArab } from "@/bibliotheek/arab";
+import { isKbTmb } from "@/bibliotheek/kb-tmb";
 import { mapStandaardinbreuk } from "@/lib/bibliotheek-data";
 import { prisma } from "@/lib/prisma";
 import { vereisGebruiker } from "@/lib/auth";
@@ -223,6 +224,8 @@ export async function bewaarStandaardinbreuk(
   const kbLiften =
     isKbBeveiligingLiften(wetgevingId);
   const arab = isArab(wetgevingId);
+  const kbTmb = isKbTmb(wetgevingId);
+  const enkelOnderwerpen = arab || kbTmb;
   const hoofdstukIndeling =
     welzijnswet || kbLiften;
 
@@ -230,7 +233,7 @@ export async function bewaarStandaardinbreuk(
     invoer.boekId,
     hoofdstukIndeling
       ? "Hoofdstuk"
-      : arab
+      : enkelOnderwerpen
         ? "Juridische indeling"
         : "Boek",
   );
@@ -239,7 +242,7 @@ export async function bewaarStandaardinbreuk(
     invoer.titelId,
     welzijnswet
       ? "Afdeling"
-      : kbLiften || arab
+      : kbLiften || enkelOnderwerpen
         ? "Juridische indeling"
         : "Titel",
   );

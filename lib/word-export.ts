@@ -1568,6 +1568,35 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
   });
 }
 
+export function maakWordBestandsnaam(
+  inspectie: Pick<
+    WordInspectie,
+    "flow" | "onderneming"
+  >,
+): string {
+  const flow = veiligeBestandsnaam(
+    inspectie.flow.replace(/\//g, " "),
+  );
+
+  const onderneming =
+    veiligeBestandsnaam(
+      inspectie.onderneming.toUpperCase(),
+    );
+
+  const bestandsdelen = [
+    flow !== "inspectie" ? flow : "",
+    "105",
+    onderneming !== "inspectie"
+      ? onderneming
+      : "",
+  ].filter(Boolean);
+
+  return `${
+    bestandsdelen.join(" ") ||
+    "Inspectie"
+  } - Inbreuken.docx`;
+}
+
 export async function downloadWordVerslag(
   inspectie: WordInspectie,
 ): Promise<void> {
@@ -1582,27 +1611,8 @@ export async function downloadWordVerslag(
   const link =
     window.document.createElement("a");
 
-  const flow = veiligeBestandsnaam(
-    inspectie.flow.replace(/\//g, " "),
-  );
-
-  const onderneming =
-    veiligeBestandsnaam(
-      inspectie.onderneming.toUpperCase(),
-    );
-
-  const bestandsdelen = [
-    flow !== "inspectie" ? flow : "",
-    onderneming !== "inspectie"
-      ? onderneming
-      : "",
-  ].filter(Boolean);
-
   link.href = objectUrl;
-  link.download = `${
-    bestandsdelen.join(" ") ||
-    "Inspectie"
-  } - Inbreuken.docx`;
+  link.download = maakWordBestandsnaam(inspectie);
 
   window.document.body.appendChild(link);
   link.click();
