@@ -242,7 +242,7 @@ export function maakRokenWordBestandsnaam(
   const flowDeel = veiligeBestandsnaam(flow.replaceAll("/", " "));
   const ondernemingDeel = veiligeBestandsnaam(onderneming.toUpperCase());
 
-  return `${flowDeel} 105 ${ondernemingDeel} - Roken.docx`;
+  return `${flowDeel} 105 ${ondernemingDeel}.docx`;
 }
 
 export async function maakRokenDocxBuffer(

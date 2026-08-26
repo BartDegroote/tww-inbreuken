@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 
 import AppBalk from "@/app/componenten/AppBalk";
 import {
@@ -79,8 +79,9 @@ export default function Roken105Pagina() {
   const [plaatCijfers, setPlaatCijfers] = useState("");
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState("");
-
-  const [rapportDatumVandaag] = useState(() => formatteerRapportDatum());
+  const plaatEersteRef = useRef<HTMLInputElement>(null);
+  const plaatLettersRef = useRef<HTMLInputElement>(null);
+  const plaatCijfersRef = useRef<HTMLInputElement>(null);
 
   function wisFormulier() {
     setOnderneming("");
@@ -172,7 +173,7 @@ export default function Roken105Pagina() {
         <AppBalk />
 
         <section className="mt-5 overflow-hidden rounded-2xl border border-white bg-white/95 shadow-[0_14px_45px_rgba(15,23,42,0.07)]">
-          <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-8">
+          <div className="border-b border-slate-200 px-5 py-6 sm:px-8">
             <div>
               <p className="font-mono text-xs font-bold uppercase tracking-[0.18em] text-blue-700">
                 Schriftelijke waarschuwing
@@ -183,11 +184,6 @@ export default function Roken105Pagina() {
               <p className="mt-2 max-w-2xl text-slate-600">
                 Vul de vaststellingsgegevens in en maak onmiddellijk het bestaande Word-sjabloon aan.
               </p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
-              <span aria-hidden="true" className="h-2 w-2 rounded-full bg-emerald-500" />
-              Geen gegevensopslag
             </div>
           </div>
 
@@ -276,10 +272,10 @@ export default function Roken105Pagina() {
 
             <fieldset>
               <legend className="text-lg font-extrabold text-slate-950">
-                Kenmerk en rapportdatum
+                Kenmerk
               </legend>
 
-              <div className="mt-5 grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
+              <div className="mt-5 max-w-xl">
                 <label className="block text-sm font-semibold text-slate-700">
                   Ons kenmerk · flow
                   <span className="mt-2 grid grid-cols-[3.25rem_auto_5rem_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-2">
@@ -311,14 +307,6 @@ export default function Roken105Pagina() {
                     />
                   </span>
                 </label>
-
-                <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wide text-blue-700">
-                    Rapportdatum
-                  </p>
-                  <p className="mt-1 font-bold text-slate-900">{rapportDatumVandaag}</p>
-                  <p className="mt-1 text-xs text-slate-500">Automatisch bij genereren</p>
-                </div>
               </div>
             </fieldset>
 
@@ -460,6 +448,7 @@ export default function Roken105Pagina() {
                   </span>
                   <div className="mt-2 flex min-h-12 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-100">
                     <input
+                      ref={plaatEersteRef}
                       aria-label="Eerste cijfer van de nummerplaat"
                       type="text"
                       inputMode="numeric"
@@ -467,26 +456,44 @@ export default function Roken105Pagina() {
                       pattern="[0-9]"
                       maxLength={1}
                       value={plaatEerste}
-                      onChange={(event) => setPlaatEerste(alleenCijfers(event.target.value, 1))}
+                      onChange={(event) => {
+                        const waarde = alleenCijfers(event.target.value, 1);
+                        setPlaatEerste(waarde);
+                        if (waarde.length === 1) {
+                          plaatLettersRef.current?.focus();
+                        }
+                      }}
                       className="min-h-8 w-10 rounded-lg bg-slate-100 px-2 text-center font-bold uppercase outline-none"
                     />
                     <span aria-hidden="true" className="font-bold text-slate-400">-</span>
                     <input
+                      ref={plaatLettersRef}
                       aria-label="Drie letters van de nummerplaat"
                       type="text"
                       required
                       pattern="[A-Za-z]{3}"
                       maxLength={3}
                       value={plaatLetters}
-                      onChange={(event) =>
-                        setPlaatLetters(
-                          event.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 3).toUpperCase(),
-                        )
-                      }
+                      onChange={(event) => {
+                        const waarde = event.target.value
+                          .replace(/[^a-zA-Z]/g, "")
+                          .slice(0, 3)
+                          .toUpperCase();
+                        setPlaatLetters(waarde);
+                        if (waarde.length === 3) {
+                          plaatCijfersRef.current?.focus();
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Backspace" && plaatLetters.length === 0) {
+                          plaatEersteRef.current?.focus();
+                        }
+                      }}
                       className="min-h-8 w-20 rounded-lg bg-slate-100 px-2 text-center font-bold uppercase tracking-wider outline-none"
                     />
                     <span aria-hidden="true" className="font-bold text-slate-400">-</span>
                     <input
+                      ref={plaatCijfersRef}
                       aria-label="Drie laatste cijfers van de nummerplaat"
                       type="text"
                       inputMode="numeric"
@@ -495,6 +502,11 @@ export default function Roken105Pagina() {
                       maxLength={3}
                       value={plaatCijfers}
                       onChange={(event) => setPlaatCijfers(alleenCijfers(event.target.value, 3))}
+                      onKeyDown={(event) => {
+                        if (event.key === "Backspace" && plaatCijfers.length === 0) {
+                          plaatLettersRef.current?.focus();
+                        }
+                      }}
                       className="min-h-8 w-20 rounded-lg bg-slate-100 px-2 text-center font-bold tracking-wider outline-none"
                     />
                   </div>

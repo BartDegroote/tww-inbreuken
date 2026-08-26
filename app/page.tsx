@@ -33,6 +33,13 @@ const keuzes = [
     kleur: "from-slate-500 to-slate-700",
     icoon: "instellingen",
   },
+  {
+    href: "/105-roken",
+    nummer: "05",
+    titel: "105 - roken",
+    kleur: "from-amber-500 to-orange-700",
+    icoon: "roken",
+  },
 ];
 
 function DashboardIcoon({ type }: { type: string }) {
@@ -67,6 +74,12 @@ function DashboardIcoon({ type }: { type: string }) {
         <>
           <path d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5Z" />
           <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 4.2 15a1.7 1.7 0 0 0-1.2-1H3v-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.34-1.88L4.2 7.06 7.06 4.2l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.5V3h4v.1A1.7 1.7 0 0 0 15 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 1.5 1h.1v4h-.1a1.7 1.7 0 0 0-1.5 1Z" opacity=".6" />
+        </>
+      )}
+      {type === "roken" && (
+        <>
+          <path d="M7 3h8l4 4v14H7z" opacity=".45" />
+          <path d="M15 3v5h5M10 12h6M10 16h6" />
         </>
       )}
     </svg>
