@@ -5,13 +5,13 @@ import { FormEvent, useRef, useState } from "react";
 import AppBalk from "@/app/componenten/AppBalk";
 import {
   MAX_FLOW_VOLGNUMMER_TEKENS,
-  MAX_WORD_LOCATIE_BREEDTESCORE,
-  ROKEN_SJABLOON_PAD,
-  controleerRokenSjabloonIntegriteit,
+  MAX_PDF_LOCATIE_BREEDTESCORE,
+  ROKEN_PDF_SJABLOON_PAD,
+  controleerRokenPdfSjabloonIntegriteit,
   formatteerRapportDatum,
-  maakRokenDocxBuffer,
-  maakRokenWordBestandsnaam,
-} from "@/lib/roken-word-export";
+  maakRokenPdfBestandsnaam,
+  maakRokenPdfBuffer,
+} from "@/lib/roken-pdf-export";
 
 type LocatieType = "adres" | "autosnelweg";
 type VoertuigType = "bestelwagen" | "dienstwagen" | "vrachtwagen";
@@ -100,7 +100,7 @@ export default function Roken105Pagina() {
   const [kboNummer, setKboNummer] = useState("");
   const [flowJaar, setFlowJaar] = useState(HUIDIG_JAAR);
   const [flowNummer, setFlowNummer] = useState("");
-  const [locatieType, setLocatieType] = useState<LocatieType>("adres");
+  const [locatieType, setLocatieType] = useState<LocatieType>("autosnelweg");
   const [locatieStraat, setLocatieStraat] = useState("");
   const [locatiePostcode, setLocatiePostcode] = useState("");
   const [locatiePlaats, setLocatiePlaats] = useState("");
@@ -133,10 +133,10 @@ export default function Roken105Pagina() {
         : "";
   const nummerplaat = `${plaatEerste}-${plaatLetters.toUpperCase()}-${plaatCijfers}`;
   const locatieBreedtescore = berekenWordBreedtescore(locatie);
-  const locatieTeLang = locatieBreedtescore > MAX_WORD_LOCATIE_BREEDTESCORE;
+  const locatieTeLang = locatieBreedtescore > MAX_PDF_LOCATIE_BREEDTESCORE;
   const locatieVulling = Math.min(
     100,
-    Math.round((locatieBreedtescore / MAX_WORD_LOCATIE_BREEDTESCORE) * 100),
+    Math.round((locatieBreedtescore / MAX_PDF_LOCATIE_BREEDTESCORE) * 100),
   );
   const heeftInvoer = Boolean(
     onderneming ||
@@ -184,7 +184,7 @@ export default function Roken105Pagina() {
     setKboNummer("");
     setFlowJaar(HUIDIG_JAAR);
     setFlowNummer("");
-    setLocatieType("adres");
+    setLocatieType("autosnelweg");
     setLocatieStraat("");
     setLocatiePostcode("");
     setLocatiePlaats("");
@@ -200,7 +200,7 @@ export default function Roken105Pagina() {
     setWisBevestiging(false);
   }
 
-  async function genereerWordRapport(event: FormEvent<HTMLFormElement>) {
+  async function genereerPdfRapport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBezig(true);
     setFout("");
@@ -208,22 +208,22 @@ export default function Roken105Pagina() {
     try {
       if (locatieTeLang) {
         throw new Error(
-          "Verkort de locatie. De huidige tekst neemt in het Word-sjabloon meer dan één regel in, waardoor de ondertekenruimte kan verschuiven.",
+          "Verkort de locatie. De huidige tekst is te lang om netjes op één regel in de PDF-brief te plaatsen.",
         );
       }
 
-      const antwoord = await fetch(ROKEN_SJABLOON_PAD, {
+      const antwoord = await fetch(ROKEN_PDF_SJABLOON_PAD, {
         cache: "no-store",
       });
 
       if (!antwoord.ok) {
-        throw new Error("Het Word-sjabloon kon niet worden geladen.");
+        throw new Error("Het PDF-sjabloon kon niet worden geladen.");
       }
 
       const sjabloon = await antwoord.arrayBuffer();
-      await controleerRokenSjabloonIntegriteit(sjabloon);
+      await controleerRokenPdfSjabloonIntegriteit(sjabloon);
       const rapportDatum = formatteerRapportDatum(new Date());
-      const wordBuffer = await maakRokenDocxBuffer(
+      const pdfBuffer = await maakRokenPdfBuffer(
         sjabloon,
         {
           onderneming: onderneming.trim(),
@@ -241,14 +241,14 @@ export default function Roken105Pagina() {
         },
       );
 
-      const blob = new Blob([wordBuffer], {
-        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      const blob = new Blob([Uint8Array.from(pdfBuffer).buffer], {
+        type: "application/pdf",
       });
       const objectUrl = URL.createObjectURL(blob);
       const link = window.document.createElement("a");
 
       link.href = objectUrl;
-      link.download = maakRokenWordBestandsnaam(flow, onderneming);
+      link.download = maakRokenPdfBestandsnaam(flow, onderneming);
       window.document.body.appendChild(link);
       link.click();
       link.remove();
@@ -258,7 +258,7 @@ export default function Roken105Pagina() {
       setFout(
         error instanceof Error
           ? error.message
-          : "De Word-brief kon niet worden aangemaakt.",
+          : "De PDF-brief kon niet worden aangemaakt.",
       );
     } finally {
       setBezig(false);
@@ -280,14 +280,14 @@ export default function Roken105Pagina() {
                 105 - roken
               </h1>
               <p className="mt-2 max-w-2xl text-slate-600">
-                Vul de gegevens in en maak de Word-brief.
+                Vul de gegevens in en maak meteen de PDF-brief.
               </p>
             </div>
           </div>
 
           <form
             autoComplete="off"
-            onSubmit={genereerWordRapport}
+            onSubmit={genereerPdfRapport}
             onChangeCapture={() => {
               if (wisBevestiging) setWisBevestiging(false);
             }}
@@ -556,7 +556,7 @@ export default function Roken105Pagina() {
                 <span>
                   {locatieTeLang
                     ? `Verkort de locatie zodat de brief op één pagina blijft.`
-                    : "De locatie past op één regel in de Word-brief."}
+                    : "De locatie past op één regel in de PDF-brief."}
                 </span>
                 <span className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
                   <span
@@ -674,55 +674,6 @@ export default function Roken105Pagina() {
               </div>
             </fieldset>
 
-            <div className="h-px bg-slate-200" />
-
-            <section aria-labelledby="controle-titel">
-              <div id="controle-titel">
-                <StapKop
-                  nummer="03"
-                  titel="Controleren en maken"
-                  uitleg="Controleer de kerngegevens voor u de Word-brief downloadt."
-                />
-              </div>
-
-              <details className="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80">
-                <summary className="cursor-pointer select-none px-4 py-3 font-bold text-slate-800 marker:text-blue-700">
-                  Controle vóór export
-                </summary>
-                <dl className="grid gap-x-6 gap-y-3 border-t border-slate-200 bg-white px-4 py-4 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Onderneming</dt>
-                    <dd className="mt-1 font-semibold text-slate-900">{onderneming || "Nog niet ingevuld"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Flow</dt>
-                    <dd className="mt-1 font-semibold text-slate-900">{flowNummer ? flow : "Nog niet ingevuld"}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Vaststelling</dt>
-                    <dd className="mt-1 font-semibold text-slate-900">
-                      {vaststellingsDatum || tijdstip
-                        ? `${vaststellingsDatum || "datum ontbreekt"} · ${tijdstip || "tijdstip ontbreekt"}`
-                        : "Nog niet ingevuld"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Voertuig en nummerplaat</dt>
-                    <dd className="mt-1 font-semibold text-slate-900">
-                      {`${voertuigType.charAt(0).toUpperCase()}${voertuigType.slice(1)}`}
-                      {plaatEerste || plaatLetters || plaatCijfers ? ` · ${nummerplaat}` : " · nummerplaat ontbreekt"}
-                    </dd>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Locatie</dt>
-                    <dd className={`mt-1 font-semibold ${locatieTeLang ? "text-red-700" : "text-slate-900"}`}>
-                      {locatie || "Nog niet ingevuld"}
-                    </dd>
-                  </div>
-                </dl>
-              </details>
-            </section>
-
             {fout && (
               <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
                 {fout}
@@ -748,12 +699,12 @@ export default function Roken105Pagina() {
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-blue-800 px-6 py-3 font-bold text-white shadow-[0_10px_25px_rgba(29,78,216,0.18)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:translate-y-0 disabled:opacity-60"
               >
                 <DownloadIcoon />
-                {bezig ? "Word-brief wordt gemaakt..." : "Word-brief maken"}
+                {bezig ? "PDF-brief wordt gemaakt..." : "PDF-brief maken"}
               </button>
             </div>
 
             <p className="text-center text-xs leading-relaxed text-slate-500">
-              De invoer wordt uitsluitend in uw browser gebruikt om het Word-document te maken en wordt niet naar Supabase of een andere databank verzonden.
+              De invoer wordt uitsluitend in uw browser gebruikt om de PDF te maken en wordt niet naar Supabase of een andere databank verzonden.
             </p>
           </form>
         </section>
