@@ -33,6 +33,14 @@ export default function AppBalk() {
       ),
     },
     {
+      href: "/105-roken",
+      label: "105 - roken",
+      kortLabel: "105",
+      actief: pathname.startsWith(
+        "/105-roken",
+      ),
+    },
+    {
       href: "/instellingen",
       label: "Instellingen",
       kortLabel: "Instellingen",
@@ -46,12 +54,13 @@ export default function AppBalk() {
     <header className="relative left-1/2 w-[calc(100vw-2rem)] max-w-screen-2xl -translate-x-1/2 rounded-xl border border-white/80 bg-white/85 p-1 shadow-[0_8px_28px_rgba(15,23,42,0.06)] backdrop-blur sm:w-[calc(100vw-3rem)] lg:w-[calc(100vw-4rem)]">
       <nav
         aria-label="Hoofdnavigatie"
-        className="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1"
+        className="grid grid-cols-5 gap-1 rounded-lg bg-slate-100 p-1"
       >
         {tabbladen.map((tabblad) => (
           <Link
             key={tabblad.href}
             href={tabblad.href}
+            aria-label={tabblad.label}
             aria-current={
               tabblad.actief ? "page" : undefined
             }
@@ -61,10 +70,10 @@ export default function AppBalk() {
                 : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
             }`}
           >
-            <span className="sm:hidden">
+            <span aria-hidden="true" className="sm:hidden">
               {tabblad.kortLabel}
             </span>
-            <span className="hidden sm:inline">
+            <span aria-hidden="true" className="hidden sm:inline">
               {tabblad.label}
             </span>
           </Link>
