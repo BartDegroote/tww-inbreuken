@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test:load": "tsx scripts/load-test.ts",
     "test:library-load": "tsx scripts/library-load-test.ts",
+    "test:roken-export": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/roken-export-test.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

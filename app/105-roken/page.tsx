@@ -4,13 +4,23 @@ import { FormEvent, useRef, useState } from "react";
 
 import AppBalk from "@/app/componenten/AppBalk";
 import {
+  MAX_FLOW_VOLGNUMMER_TEKENS,
+  MAX_WORD_LOCATIE_BREEDTESCORE,
   ROKEN_SJABLOON_PAD,
+  controleerRokenSjabloonIntegriteit,
   formatteerRapportDatum,
   maakRokenDocxBuffer,
   maakRokenWordBestandsnaam,
 } from "@/lib/roken-word-export";
 
 type LocatieType = "adres" | "autosnelweg";
+type VoertuigType = "bestelwagen" | "dienstwagen" | "vrachtwagen";
+
+const WERKRUIMTE_PER_VOERTUIG: Record<VoertuigType, string> = {
+  bestelwagen: "Cabine van een bestelwagen (gesloten ruimte buiten een onderneming)",
+  dienstwagen: "Cabine van een dienstwagen",
+  vrachtwagen: "Cabine van een vrachtwagen",
+};
 
 const HUIDIG_JAAR = String(new Date().getFullYear());
 const INVOERKLASSE =
@@ -42,6 +52,16 @@ function formatteerInvoerdatum(waarde: string): string {
   return `${dag}/${maand}/${jaar}`;
 }
 
+function berekenWordBreedtescore(waarde: string): number {
+  return Array.from(waarde).reduce((score, teken) => {
+    if (/[MW@%&]/.test(teken)) return score + 1.7;
+    if (/[ilI1.,'` :;|!]/.test(teken)) return score + 0.5;
+    if (/[A-Z]/.test(teken)) return score + 1.15;
+    if (/[0-9]/.test(teken)) return score + 0.95;
+    return score + 1;
+  }, 0);
+}
+
 function DownloadIcoon() {
   return (
     <svg
@@ -55,6 +75,20 @@ function DownloadIcoon() {
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 19h14" />
     </svg>
+  );
+}
+
+function StapKop({ nummer, titel, uitleg }: { nummer: string; titel: string; uitleg: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-700 font-mono text-xs font-black text-white shadow-sm">
+        {nummer}
+      </span>
+      <span>
+        <span className="block text-lg font-extrabold text-slate-950">{titel}</span>
+        <span className="mt-0.5 block text-sm font-normal text-slate-500">{uitleg}</span>
+      </span>
+    </div>
   );
 }
 
@@ -73,17 +107,76 @@ export default function Roken105Pagina() {
   const [autosnelweg, setAutosnelweg] = useState("");
   const [autosnelwegPlaats, setAutosnelwegPlaats] = useState("");
   const [vaststellingsDatum, setVaststellingsDatum] = useState("");
+  const [voertuigType, setVoertuigType] = useState<VoertuigType>("bestelwagen");
   const [tijdstip, setTijdstip] = useState("");
   const [plaatEerste, setPlaatEerste] = useState("");
   const [plaatLetters, setPlaatLetters] = useState("");
   const [plaatCijfers, setPlaatCijfers] = useState("");
   const [bezig, setBezig] = useState(false);
   const [fout, setFout] = useState("");
+  const [wisBevestiging, setWisBevestiging] = useState(false);
   const plaatEersteRef = useRef<HTMLInputElement>(null);
   const plaatLettersRef = useRef<HTMLInputElement>(null);
   const plaatCijfersRef = useRef<HTMLInputElement>(null);
 
+  const flow = `02/${flowJaar}/${flowNummer}`;
+  const locatie =
+    locatieType === "adres"
+      ? [
+          locatieStraat.trim(),
+          [locatiePostcode, locatiePlaats.trim()].filter(Boolean).join(" "),
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : autosnelweg || autosnelwegPlaats
+        ? `${autosnelweg.toUpperCase()}${autosnelwegPlaats ? ` ter hoogte van ${autosnelwegPlaats.trim()}` : ""}`
+        : "";
+  const nummerplaat = `${plaatEerste}-${plaatLetters.toUpperCase()}-${plaatCijfers}`;
+  const locatieBreedtescore = berekenWordBreedtescore(locatie);
+  const locatieTeLang = locatieBreedtescore > MAX_WORD_LOCATIE_BREEDTESCORE;
+  const locatieVulling = Math.min(
+    100,
+    Math.round((locatieBreedtescore / MAX_WORD_LOCATIE_BREEDTESCORE) * 100),
+  );
+  const heeftInvoer = Boolean(
+    onderneming ||
+      straatEnNummer ||
+      postcode ||
+      plaats ||
+      kboNummer ||
+      flowNummer ||
+      locatieStraat ||
+      locatiePostcode ||
+      locatiePlaats ||
+      autosnelweg ||
+      autosnelwegPlaats ||
+      vaststellingsDatum ||
+      tijdstip ||
+      plaatEerste ||
+      plaatLetters ||
+      plaatCijfers,
+  );
+
+  function verwerkNummerplaatPlakken(waarde: string): boolean {
+    const match = waarde.trim().toUpperCase().match(/^(\d)[\s-]*([A-Z]{3})[\s-]*(\d{3})$/);
+
+    if (!match) return false;
+
+    setPlaatEerste(match[1]);
+    setPlaatLetters(match[2]);
+    setPlaatCijfers(match[3]);
+    plaatCijfersRef.current?.focus();
+    return true;
+  }
+
   function wisFormulier() {
+    if (!heeftInvoer) return;
+
+    if (!wisBevestiging) {
+      setWisBevestiging(true);
+      return;
+    }
+
     setOnderneming("");
     setStraatEnNummer("");
     setPostcode("");
@@ -98,11 +191,13 @@ export default function Roken105Pagina() {
     setAutosnelweg("");
     setAutosnelwegPlaats("");
     setVaststellingsDatum("");
+    setVoertuigType("bestelwagen");
     setTijdstip("");
     setPlaatEerste("");
     setPlaatLetters("");
     setPlaatCijfers("");
     setFout("");
+    setWisBevestiging(false);
   }
 
   async function genereerWordRapport(event: FormEvent<HTMLFormElement>) {
@@ -111,23 +206,25 @@ export default function Roken105Pagina() {
     setFout("");
 
     try {
+      if (locatieTeLang) {
+        throw new Error(
+          "Verkort de locatie. De huidige tekst neemt in het Word-sjabloon meer dan één regel in, waardoor de ondertekenruimte kan verschuiven.",
+        );
+      }
+
       const antwoord = await fetch(ROKEN_SJABLOON_PAD, {
-        cache: "force-cache",
+        cache: "no-store",
       });
 
       if (!antwoord.ok) {
         throw new Error("Het Word-sjabloon kon niet worden geladen.");
       }
 
-      const flow = `02/${flowJaar}/${flowNummer}`;
+      const sjabloon = await antwoord.arrayBuffer();
+      await controleerRokenSjabloonIntegriteit(sjabloon);
       const rapportDatum = formatteerRapportDatum(new Date());
-      const locatie =
-        locatieType === "adres"
-          ? `${locatieStraat}, ${locatiePostcode} ${locatiePlaats}`.trim()
-          : `${autosnelweg.toUpperCase()} ter hoogte van ${autosnelwegPlaats}`.trim();
-      const nummerplaat = `${plaatEerste}-${plaatLetters.toUpperCase()}-${plaatCijfers}`;
       const wordBuffer = await maakRokenDocxBuffer(
-        await antwoord.arrayBuffer(),
+        sjabloon,
         {
           onderneming: onderneming.trim(),
           straatEnNummer: straatEnNummer.trim(),
@@ -137,6 +234,7 @@ export default function Roken105Pagina() {
           flow,
           rapportDatum,
           vaststellingsDatum: formatteerInvoerdatum(vaststellingsDatum),
+          werkruimte: WERKRUIMTE_PER_VOERTUIG[voertuigType],
           locatie,
           tijdstip: tijdstip.replace(":", "u"),
           nummerplaat,
@@ -160,7 +258,7 @@ export default function Roken105Pagina() {
       setFout(
         error instanceof Error
           ? error.message
-          : "Het Word-rapport kon niet worden aangemaakt.",
+          : "De Word-brief kon niet worden aangemaakt.",
       );
     } finally {
       setBezig(false);
@@ -182,7 +280,7 @@ export default function Roken105Pagina() {
                 105 - roken
               </h1>
               <p className="mt-2 max-w-2xl text-slate-600">
-                Vul de vaststellingsgegevens in en maak onmiddellijk het bestaande Word-sjabloon aan.
+                Vul de gegevens in en maak de Word-brief.
               </p>
             </div>
           </div>
@@ -190,15 +288,19 @@ export default function Roken105Pagina() {
           <form
             autoComplete="off"
             onSubmit={genereerWordRapport}
+            onChangeCapture={() => {
+              if (wisBevestiging) setWisBevestiging(false);
+            }}
             className="space-y-8 p-5 sm:p-8"
           >
             <fieldset>
-              <legend className="text-lg font-extrabold text-slate-950">
-                Onderneming
+              <legend>
+                <StapKop
+                  nummer="01"
+                  titel="Onderneming en kenmerk"
+                  uitleg="Gegevens voor het adres- en kenmerkblok van de brief."
+                />
               </legend>
-              <p className="mt-1 text-sm text-slate-500">
-                Deze gegevens komen in het adres- en kenmerkblok van de brief.
-              </p>
 
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-slate-700 sm:col-span-2">
@@ -265,18 +367,8 @@ export default function Roken105Pagina() {
                     className={INVOERKLASSE}
                   />
                 </label>
-              </div>
-            </fieldset>
 
-            <div className="h-px bg-slate-200" />
-
-            <fieldset>
-              <legend className="text-lg font-extrabold text-slate-950">
-                Kenmerk
-              </legend>
-
-              <div className="mt-5 max-w-xl">
-                <label className="block text-sm font-semibold text-slate-700">
+                <label className="block text-sm font-semibold text-slate-700 sm:col-span-2 sm:max-w-xl">
                   Ons kenmerk · flow
                   <span className="mt-2 grid grid-cols-[3.25rem_auto_5rem_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-2">
                     <span className="flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 px-2 py-3 font-bold text-slate-700">
@@ -300,9 +392,14 @@ export default function Roken105Pagina() {
                       inputMode="numeric"
                       required
                       pattern="[0-9]+"
+                      maxLength={MAX_FLOW_VOLGNUMMER_TEKENS}
                       placeholder="123"
                       value={flowNummer}
-                      onChange={(event) => setFlowNummer(alleenCijfers(event.target.value))}
+                      onChange={(event) =>
+                        setFlowNummer(
+                          alleenCijfers(event.target.value, MAX_FLOW_VOLGNUMMER_TEKENS),
+                        )
+                      }
                       className="min-h-12 min-w-0 w-full rounded-xl border border-slate-300 px-3 py-3 font-semibold outline-none transition focus:border-blue-600 focus:ring-4 focus:ring-blue-100"
                     />
                   </span>
@@ -313,20 +410,39 @@ export default function Roken105Pagina() {
             <div className="h-px bg-slate-200" />
 
             <fieldset>
-              <legend className="text-lg font-extrabold text-slate-950">
-                Vaststelling
+              <legend>
+                <StapKop
+                  nummer="02"
+                  titel="Vaststelling"
+                  uitleg="Kies het voertuig en noteer waar en wanneer de vaststelling gebeurde."
+                />
               </legend>
 
-              <label className="mt-5 block max-w-sm text-sm font-semibold text-slate-700">
-                Datum vaststelling
-                <input
-                  type="date"
-                  required
-                  value={vaststellingsDatum}
-                  onChange={(event) => setVaststellingsDatum(event.target.value)}
-                  className={INVOERKLASSE}
-                />
-              </label>
+              <div className="mt-5 grid gap-5 sm:grid-cols-2">
+                <label className="block text-sm font-semibold text-slate-700">
+                  Datum vaststelling
+                  <input
+                    type="date"
+                    required
+                    value={vaststellingsDatum}
+                    onChange={(event) => setVaststellingsDatum(event.target.value)}
+                    className={INVOERKLASSE}
+                  />
+                </label>
+
+                <label className="block text-sm font-semibold text-slate-700">
+                  Voertuig
+                  <select
+                    value={voertuigType}
+                    onChange={(event) => setVoertuigType(event.target.value as VoertuigType)}
+                    className={INVOERKLASSE}
+                  >
+                    <option value="bestelwagen">Bestelwagen</option>
+                    <option value="dienstwagen">Dienstwagen</option>
+                    <option value="vrachtwagen">Vrachtwagen</option>
+                  </select>
+                </label>
+              </div>
 
               <div className="mt-5">
                 <span className="block text-sm font-semibold text-slate-700">
@@ -430,6 +546,26 @@ export default function Roken105Pagina() {
                 </div>
               )}
 
+              <div
+                className={`mt-3 flex items-start justify-between gap-4 rounded-lg px-3 py-2 text-xs ${
+                  locatieTeLang
+                    ? "bg-red-50 font-semibold text-red-700"
+                    : "bg-slate-50 text-slate-500"
+                }`}
+              >
+                <span>
+                  {locatieTeLang
+                    ? `Verkort de locatie zodat de brief op één pagina blijft.`
+                    : "De locatie past op één regel in de Word-brief."}
+                </span>
+                <span className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
+                  <span
+                    className={`block h-full rounded-full ${locatieTeLang ? "bg-red-500" : "bg-blue-600"}`}
+                    style={{ width: `${locatieVulling}%` }}
+                  />
+                </span>
+              </div>
+
               <div className="mt-5 grid gap-5 sm:grid-cols-2">
                 <label className="block text-sm font-semibold text-slate-700">
                   Tijdstip vaststelling
@@ -447,6 +583,9 @@ export default function Roken105Pagina() {
                     Nummerplaat
                   </span>
                   <div className="mt-2 flex min-h-12 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-100">
+                    <span className="sr-only" id="nummerplaat-hulp">
+                      U kunt ook een volledige nummerplaat zoals 1-ABC-123 plakken.
+                    </span>
                     <input
                       ref={plaatEersteRef}
                       aria-label="Eerste cijfer van de nummerplaat"
@@ -455,7 +594,13 @@ export default function Roken105Pagina() {
                       required
                       pattern="[0-9]"
                       maxLength={1}
+                      aria-describedby="nummerplaat-hulp"
                       value={plaatEerste}
+                      onPaste={(event) => {
+                        if (verwerkNummerplaatPlakken(event.clipboardData.getData("text"))) {
+                          event.preventDefault();
+                        }
+                      }}
                       onChange={(event) => {
                         const waarde = alleenCijfers(event.target.value, 1);
                         setPlaatEerste(waarde);
@@ -473,7 +618,13 @@ export default function Roken105Pagina() {
                       required
                       pattern="[A-Za-z]{3}"
                       maxLength={3}
+                      aria-describedby="nummerplaat-hulp"
                       value={plaatLetters}
+                      onPaste={(event) => {
+                        if (verwerkNummerplaatPlakken(event.clipboardData.getData("text"))) {
+                          event.preventDefault();
+                        }
+                      }}
                       onChange={(event) => {
                         const waarde = event.target.value
                           .replace(/[^a-zA-Z]/g, "")
@@ -500,7 +651,13 @@ export default function Roken105Pagina() {
                       required
                       pattern="[0-9]{3}"
                       maxLength={3}
+                      aria-describedby="nummerplaat-hulp"
                       value={plaatCijfers}
+                      onPaste={(event) => {
+                        if (verwerkNummerplaatPlakken(event.clipboardData.getData("text"))) {
+                          event.preventDefault();
+                        }
+                      }}
                       onChange={(event) => setPlaatCijfers(alleenCijfers(event.target.value, 3))}
                       onKeyDown={(event) => {
                         if (event.key === "Backspace" && plaatCijfers.length === 0) {
@@ -510,10 +667,61 @@ export default function Roken105Pagina() {
                       className="min-h-8 w-20 rounded-lg bg-slate-100 px-2 text-center font-bold tracking-wider outline-none"
                     />
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">Vorm: 1-ABC-123</p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Vorm: 1-ABC-123 · een volledige nummerplaat plakken kan ook.
+                  </p>
                 </div>
               </div>
             </fieldset>
+
+            <div className="h-px bg-slate-200" />
+
+            <section aria-labelledby="controle-titel">
+              <div id="controle-titel">
+                <StapKop
+                  nummer="03"
+                  titel="Controleren en maken"
+                  uitleg="Controleer de kerngegevens voor u de Word-brief downloadt."
+                />
+              </div>
+
+              <details className="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/80">
+                <summary className="cursor-pointer select-none px-4 py-3 font-bold text-slate-800 marker:text-blue-700">
+                  Controle vóór export
+                </summary>
+                <dl className="grid gap-x-6 gap-y-3 border-t border-slate-200 bg-white px-4 py-4 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Onderneming</dt>
+                    <dd className="mt-1 font-semibold text-slate-900">{onderneming || "Nog niet ingevuld"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Flow</dt>
+                    <dd className="mt-1 font-semibold text-slate-900">{flowNummer ? flow : "Nog niet ingevuld"}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Vaststelling</dt>
+                    <dd className="mt-1 font-semibold text-slate-900">
+                      {vaststellingsDatum || tijdstip
+                        ? `${vaststellingsDatum || "datum ontbreekt"} · ${tijdstip || "tijdstip ontbreekt"}`
+                        : "Nog niet ingevuld"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Voertuig en nummerplaat</dt>
+                    <dd className="mt-1 font-semibold text-slate-900">
+                      {`${voertuigType.charAt(0).toUpperCase()}${voertuigType.slice(1)}`}
+                      {plaatEerste || plaatLetters || plaatCijfers ? ` · ${nummerplaat}` : " · nummerplaat ontbreekt"}
+                    </dd>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">Locatie</dt>
+                    <dd className={`mt-1 font-semibold ${locatieTeLang ? "text-red-700" : "text-slate-900"}`}>
+                      {locatie || "Nog niet ingevuld"}
+                    </dd>
+                  </div>
+                </dl>
+              </details>
+            </section>
 
             {fout && (
               <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
@@ -521,13 +729,17 @@ export default function Roken105Pagina() {
               </p>
             )}
 
-            <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="sticky bottom-3 z-20 flex flex-col-reverse gap-3 rounded-2xl border border-white/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,0.18)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
                 onClick={wisFormulier}
-                className="min-h-12 rounded-xl border border-slate-300 bg-white px-5 py-3 font-bold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                className={`min-h-12 rounded-xl border px-5 py-3 font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  wisBevestiging
+                    ? "border-red-300 bg-red-50 text-red-700 hover:bg-red-100"
+                    : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                }`}
               >
-                Formulier wissen
+                {wisBevestiging ? "Nogmaals klikken om te wissen" : "Formulier wissen"}
               </button>
 
               <button
@@ -536,7 +748,7 @@ export default function Roken105Pagina() {
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-blue-800 px-6 py-3 font-bold text-white shadow-[0_10px_25px_rgba(29,78,216,0.18)] transition hover:-translate-y-0.5 disabled:cursor-wait disabled:translate-y-0 disabled:opacity-60"
               >
                 <DownloadIcoon />
-                {bezig ? "Word-rapport wordt gemaakt..." : "Word-rapport maken"}
+                {bezig ? "Word-brief wordt gemaakt..." : "Word-brief maken"}
               </button>
             </div>
 

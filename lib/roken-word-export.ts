@@ -2,6 +2,19 @@ import type JSZip from "jszip";
 
 export const ROKEN_SJABLOON_PAD =
   "/sjablonen/105-roken-sjabloon.dotx";
+export const ROKEN_SJABLOON_SHA256 =
+  "f30193f277b1bc3b943e5905ba8b4bebc31213b84ee03c528929528499591902";
+export const MAX_WORD_LOCATIE_BREEDTESCORE = 63.5;
+export const MAX_FLOW_VOLGNUMMER_TEKENS = 8;
+
+const ROOKVERBOD_UITLEG_SJABLOON =
+  "Het rookverbod wordt niet gerespecteerd in een werkruimte zoals gedefinieerd in artikel 2 van de Wet van 22/12/2009 betreffende een algemene regeling voor rookvrije gesloten plaatsen toegankelijk voor het publiek en ter bescherming van werknemers tegen tabaksrook.";
+const ROOKVERBOD_UITLEG =
+  "Elke werknemer heeft recht op werkruimten en sociale voorzieningen die vrij zijn van tabaksrook. Tijdens de vaststelling bleek dat dit recht niet werd gerespecteerd in een werkruimte zoals gedefinieerd in artikel 2 van de wet van 22 december 2009 betreffende een algemene regeling voor rookvrije gesloten plaatsen toegankelijk voor het publiek en ter bescherming van werknemers tegen tabaksrook.";
+const ROOKVERBOD_DERDEN_SJABLOON =
+  "Het verbod dient ook door derden te worden nageleefd en geldt ook voor elementen die kunnen aanzetten of laten geloven dat roken is toegestaan (bijv. elektronische sigaret).";
+const ROOKVERBOD_DERDEN =
+  "Het rookverbod moet ook door derden worden nageleefd. Daarnaast zijn elementen die tot roken kunnen aanzetten of de indruk kunnen wekken dat roken is toegestaan, verboden (bijv. de elektronische sigaret).";
 
 export type RokenRapportGegevens = {
   onderneming: string;
@@ -12,10 +25,26 @@ export type RokenRapportGegevens = {
   flow: string;
   rapportDatum: string;
   vaststellingsDatum: string;
+  werkruimte: string;
   locatie: string;
   tijdstip: string;
   nummerplaat: string;
 };
+
+export async function controleerRokenSjabloonIntegriteit(
+  sjabloon: ArrayBuffer,
+): Promise<void> {
+  const hash = await globalThis.crypto.subtle.digest("SHA-256", sjabloon);
+  const hashHex = Array.from(new Uint8Array(hash), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+
+  if (hashHex !== ROKEN_SJABLOON_SHA256) {
+    throw new Error(
+      "Het Word-sjabloon wijkt af van het goedgekeurde origineel. De brief werd daarom niet aangemaakt.",
+    );
+  }
+}
 
 type TekstNode = {
   begin: number;
@@ -301,6 +330,24 @@ export async function maakRokenDocxBuffer(
     documentXml,
     "**/**/2026",
     gegevens.vaststellingsDatum,
+    1,
+  );
+  documentXml = pasVervangingToe(
+    documentXml,
+    ROOKVERBOD_UITLEG_SJABLOON,
+    ROOKVERBOD_UITLEG,
+    1,
+  );
+  documentXml = pasVervangingToe(
+    documentXml,
+    ROOKVERBOD_DERDEN_SJABLOON,
+    ROOKVERBOD_DERDEN,
+    1,
+  );
+  documentXml = pasVervangingToe(
+    documentXml,
+    "Cabine van een bedrijfswagen",
+    gegevens.werkruimte,
     1,
   );
   documentXml = pasVervangingToe(
