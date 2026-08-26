@@ -7,15 +7,6 @@ export const ROKEN_SJABLOON_SHA256 =
 export const MAX_WORD_LOCATIE_BREEDTESCORE = 63.5;
 export const MAX_FLOW_VOLGNUMMER_TEKENS = 8;
 
-const ROOKVERBOD_UITLEG_SJABLOON =
-  "Het rookverbod wordt niet gerespecteerd in een werkruimte zoals gedefinieerd in artikel 2 van de Wet van 22/12/2009 betreffende een algemene regeling voor rookvrije gesloten plaatsen toegankelijk voor het publiek en ter bescherming van werknemers tegen tabaksrook.";
-const ROOKVERBOD_UITLEG =
-  "Elke werknemer heeft recht op werkruimten en sociale voorzieningen die vrij zijn van tabaksrook. Tijdens de vaststelling bleek dat dit recht niet werd gerespecteerd in een werkruimte zoals gedefinieerd in artikel 2 van de wet van 22 december 2009 betreffende een algemene regeling voor rookvrije gesloten plaatsen toegankelijk voor het publiek en ter bescherming van werknemers tegen tabaksrook.";
-const ROOKVERBOD_DERDEN_SJABLOON =
-  "Het verbod dient ook door derden te worden nageleefd en geldt ook voor elementen die kunnen aanzetten of laten geloven dat roken is toegestaan (bijv. elektronische sigaret).";
-const ROOKVERBOD_DERDEN =
-  "Het rookverbod moet ook door derden worden nageleefd. Daarnaast zijn elementen die tot roken kunnen aanzetten of de indruk kunnen wekken dat roken is toegestaan, verboden (bijv. de elektronische sigaret).";
-
 export type RokenRapportGegevens = {
   onderneming: string;
   straatEnNummer: string;
@@ -332,18 +323,8 @@ export async function maakRokenDocxBuffer(
     gegevens.vaststellingsDatum,
     1,
   );
-  documentXml = pasVervangingToe(
-    documentXml,
-    ROOKVERBOD_UITLEG_SJABLOON,
-    ROOKVERBOD_UITLEG,
-    1,
-  );
-  documentXml = pasVervangingToe(
-    documentXml,
-    ROOKVERBOD_DERDEN_SJABLOON,
-    ROOKVERBOD_DERDEN,
-    1,
-  );
+  // De juridische alinea's worden niet vervangen: ze blijven exact zoals in
+  // het goedgekeurde Word-sjabloon, inclusief opmaak en paginabudget.
   documentXml = pasVervangingToe(
     documentXml,
     "Cabine van een bedrijfswagen",

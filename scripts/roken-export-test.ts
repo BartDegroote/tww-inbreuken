@@ -79,6 +79,7 @@ async function voerTestUit() {
     .file("word/document.xml")!
     .async("string");
   const footerXml = await resultaatZip.file("word/footer1.xml")!.async("string");
+  const zichtbareDocumentTekst = documentXml.replace(/<[^>]+>/g, "");
 
   assert.equal(
     (documentXml.match(/02\/2026\/1234/g) ?? []).length,
@@ -89,6 +90,22 @@ async function voerTestUit() {
     (footerXml.match(/02\/2026\/1234/g) ?? []).length,
     1,
     "Het flownummer moet eenmaal in de voettekst staan.",
+  );
+  assert.ok(
+    zichtbareDocumentTekst.includes(
+      "Het rookverbod wordt niet gerespecteerd in een werkruimte zoals gedefinieerd in artikel 2 van de Wet van 22/12/2009",
+    ),
+    "De oorspronkelijke juridische tekst uit het sjabloon moet behouden blijven.",
+  );
+  assert.ok(
+    zichtbareDocumentTekst.includes(
+      "Het verbod dient ook door derden te worden nageleefd en geldt ook voor elementen die kunnen aanzetten of laten geloven dat roken is toegestaan",
+    ),
+    "De oorspronkelijke tekst over derden moet behouden blijven.",
+  );
+  assert.ok(
+    !zichtbareDocumentTekst.includes("Elke werknemer heeft recht op werkruimten"),
+    "De langere, toegevoegde formulering mag niet meer in de export staan.",
   );
 }
 
