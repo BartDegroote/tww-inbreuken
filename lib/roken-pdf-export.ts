@@ -1,8 +1,12 @@
 import {
+  decodePDFRawStream,
+  PDFArray,
+  PDFDict,
   PDFDocument,
   PDFFont,
+  PDFName,
   PDFPage,
-  StandardFonts,
+  PDFRawStream,
   rgb,
 } from "pdf-lib";
 
@@ -11,7 +15,7 @@ import type { RokenRapportGegevens } from "@/lib/roken-word-export";
 export const ROKEN_PDF_SJABLOON_PAD =
   "/sjablonen/105-roken-sjabloon.pdf";
 export const ROKEN_PDF_SJABLOON_SHA256 =
-  "f0cb5735a894858eac3bbe6b16e9dbfe46ff9beb07d50696a3147db76694cda1";
+  "afcd501e417a4c135c3ef759fbd1732201cafa4b2c0616ec7e5f69c3d035faaf";
 export const MAX_PDF_LOCATIE_BREEDTESCORE = 63.5;
 export const MAX_FLOW_VOLGNUMMER_TEKENS = 8;
 
@@ -124,6 +128,56 @@ function vulVeldIn(pagina: PDFPage, veld: Invulveld): void {
   });
 }
 
+function haalIngebedLettertypeOp(
+  pdf: PDFDocument,
+  pagina: PDFPage,
+  naam: "Verdana" | "Verdana-Bold" | "Verdana-Italic",
+): Uint8Array {
+  const bronnen = pagina.node.Resources();
+  if (!bronnen) {
+    throw new Error("Het goedgekeurde PDF-sjabloon bevat geen lettertypebronnen.");
+  }
+  const lettertypes = bronnen.lookup(PDFName.of("Font"), PDFDict);
+
+  for (const [, verwijzing] of lettertypes.entries()) {
+    const hoofdlettertype = pdf.context.lookup(verwijzing, PDFDict);
+    const afstammelingen = hoofdlettertype.lookupMaybe(
+      PDFName.of("DescendantFonts"),
+      PDFArray,
+    );
+    const lettertype = afstammelingen
+      ? pdf.context.lookup(afstammelingen.get(0), PDFDict)
+      : hoofdlettertype;
+    const basisnaam = lettertype.get(PDFName.of("BaseFont"))?.toString() ?? "";
+
+    // De volledige, door het goedgekeurde documentsjabloon ingebedde fonts
+    // hebben geen Word-subsetprefix (zoals AAAAAA+). Zo vermijden we dat een
+    // afwijkend browser- of systeemlettertype wordt gebruikt.
+    const juisteVariant =
+      naam === "Verdana"
+        ? /^\/Verdana-\d+$/.test(basisnaam)
+        : new RegExp(`^\\/${naam}-\\d+$`).test(basisnaam);
+
+    if (!juisteVariant) continue;
+
+    const omschrijving = lettertype.lookup(
+      PDFName.of("FontDescriptor"),
+      PDFDict,
+    );
+    const bestandVerwijzing = omschrijving.get(PDFName.of("FontFile2"));
+    if (!bestandVerwijzing) continue;
+
+    const bestand = pdf.context.lookup(bestandVerwijzing);
+    if (!(bestand instanceof PDFRawStream)) continue;
+
+    return decodePDFRawStream(bestand).decode();
+  }
+
+  throw new Error(
+    `Het goedgekeurde PDF-sjabloon bevat het vereiste lettertype ${naam} niet.`,
+  );
+}
+
 export async function maakRokenPdfBuffer(
   sjabloon: ArrayBuffer,
   gegevens: RokenRapportGegevens,
@@ -135,15 +189,23 @@ export async function maakRokenPdfBuffer(
   }
 
   const pagina = pdf.getPage(0);
-  const normaal = await pdf.embedFont(StandardFonts.TimesRoman);
-  const vet = await pdf.embedFont(StandardFonts.TimesRomanBold);
+  const { default: fontkit } = await import("@pdf-lib/fontkit");
+  pdf.registerFontkit(fontkit);
+  const normaal = await pdf.embedFont(
+    haalIngebedLettertypeOp(pdf, pagina, "Verdana"),
+    { subset: true },
+  );
+  const vet = await pdf.embedFont(
+    haalIngebedLettertypeOp(pdf, pagina, "Verdana-Bold"),
+    { subset: true },
+  );
   const blauw = rgb(0.12, 0.5, 0.82);
   const postcodePlaats = `${gegevens.postcode} ${gegevens.plaats}`.trim();
 
   const velden: Invulveld[] = [
     {
       x: 74.5,
-      onderkantVanafBoven: 164.41,
+      onderkantVanafBoven: 161.15,
       wisBreedte: 230,
       maximaleTekstbreedte: 230,
       lettergrootte: 10,
@@ -153,7 +215,7 @@ export async function maakRokenPdfBuffer(
     },
     {
       x: 74.5,
-      onderkantVanafBoven: 187.21,
+      onderkantVanafBoven: 185.45,
       wisBreedte: 260,
       maximaleTekstbreedte: 260,
       lettergrootte: 10,
@@ -163,7 +225,7 @@ export async function maakRokenPdfBuffer(
     },
     {
       x: 74.5,
-      onderkantVanafBoven: 198.61,
+      onderkantVanafBoven: 197.6,
       wisBreedte: 260,
       maximaleTekstbreedte: 260,
       lettergrootte: 10,
@@ -173,7 +235,7 @@ export async function maakRokenPdfBuffer(
     },
     {
       x: 219.85,
-      onderkantVanafBoven: 266.07,
+      onderkantVanafBoven: 265.9,
       wisBreedte: 65,
       maximaleTekstbreedte: 65,
       lettergrootte: 7,
@@ -182,7 +244,7 @@ export async function maakRokenPdfBuffer(
     },
     {
       x: 354.5,
-      onderkantVanafBoven: 266.07,
+      onderkantVanafBoven: 265.9,
       wisBreedte: 70,
       maximaleTekstbreedte: 70,
       lettergrootte: 7,
@@ -191,7 +253,7 @@ export async function maakRokenPdfBuffer(
     },
     {
       x: 488.4,
-      onderkantVanafBoven: 266.07,
+      onderkantVanafBoven: 265.9,
       wisBreedte: 45,
       maximaleTekstbreedte: 45,
       lettergrootte: 7,
@@ -199,19 +261,19 @@ export async function maakRokenPdfBuffer(
       lettertype: normaal,
     },
     {
-      x: 92,
-      onderkantVanafBoven: 354.41,
-      wisBreedte: 42.5,
-      maximaleTekstbreedte: 40,
-      lettergrootte: 8.5,
+      x: 98.93,
+      onderkantVanafBoven: 367.65,
+      wisBreedte: 60,
+      maximaleTekstbreedte: 61.5,
+      lettergrootte: 10,
       tekst: gegevens.vaststellingsDatum,
       lettertype: normaal,
     },
     {
       x: 219.65,
-      onderkantVanafBoven: 481.01,
-      wisBreedte: 305,
-      maximaleTekstbreedte: 305,
+      onderkantVanafBoven: 513.15,
+      wisBreedte: 310,
+      maximaleTekstbreedte: 310,
       lettergrootte: 10,
       minimaleLettergrootte: 8.5,
       tekst: gegevens.werkruimte,
@@ -219,7 +281,7 @@ export async function maakRokenPdfBuffer(
     },
     {
       x: 219.65,
-      onderkantVanafBoven: 499.61,
+      onderkantVanafBoven: 531.3,
       wisBreedte: 305,
       maximaleTekstbreedte: 305,
       lettergrootte: 10,
@@ -228,48 +290,63 @@ export async function maakRokenPdfBuffer(
       lettertype: normaal,
     },
     {
-      x: 269,
-      wisX: 265.7,
-      onderkantVanafBoven: 518.21,
-      wisBreedte: 30,
-      maximaleTekstbreedte: 30,
+      x: 273.63,
+      wisX: 272.5,
+      onderkantVanafBoven: 549.45,
+      wisBreedte: 38,
+      maximaleTekstbreedte: 38,
       lettergrootte: 10,
       tekst: gegevens.tijdstip,
       lettertype: normaal,
     },
     {
-      x: 184.25,
-      onderkantVanafBoven: 536.81,
-      wisBreedte: 48,
-      maximaleTekstbreedte: 48,
+      x: 219.65,
+      onderkantVanafBoven: 567.6,
+      wisBreedte: 65,
+      maximaleTekstbreedte: 65,
       lettergrootte: 10,
       tekst: gegevens.nummerplaat,
       lettertype: normaal,
     },
     {
-      x: 361.25,
-      onderkantVanafBoven: 602.29,
-      wisBreedte: 58,
-      maximaleTekstbreedte: 59,
-      lettergrootte: 10,
-      minimaleLettergrootte: 9,
-      tekst: gegevens.flow,
-      lettertype: vet,
-    },
-    {
-      x: 482.9,
-      onderkantVanafBoven: 806.42,
-      wisBreedte: 35,
-      maximaleTekstbreedte: 35,
+      x: 456.05,
+      wisX: 450,
+      onderkantVanafBoven: 804.97,
+      wisBreedte: 112,
+      maximaleTekstbreedte: 106,
       lettergrootte: 7,
       minimaleLettergrootte: 6,
-      tekst: gegevens.flow,
+      tekst: `${gegevens.flow} - Pagina 1/1`,
       lettertype: normaal,
       kleur: blauw,
     },
   ];
 
   velden.forEach((veld) => vulVeldIn(pagina, veld));
+
+  // De lengte van een flownummer varieert. Daarom wordt het volledige einde
+  // van deze zin opnieuw geplaatst, zodat “vermelden.” altijd direct aansluit
+  // en nooit over de waarde heen schuift.
+  const referentieBasislijn = pagina.getHeight() - 631.8;
+  pagina.drawRectangle({
+    x: 395.5,
+    y: referentieBasislijn - 2,
+    width: 148,
+    height: 14,
+    color: rgb(1, 1, 1),
+  });
+  pagina.drawText(gegevens.flow, {
+    x: 396.65,
+    y: referentieBasislijn,
+    size: 10,
+    font: vet,
+  });
+  pagina.drawText(" vermelden.", {
+    x: 396.65 + vet.widthOfTextAtSize(gegevens.flow, 10),
+    y: referentieBasislijn,
+    size: 10,
+    font: normaal,
+  });
 
   pdf.setTitle(`Schriftelijke waarschuwing roken - ${gegevens.onderneming}`);
   pdf.setAuthor("Bart Degroote");
