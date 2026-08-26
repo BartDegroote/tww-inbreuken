@@ -11,6 +11,7 @@ export type RokenRapportGegevens = {
   kboNummer: string;
   flow: string;
   rapportDatum: string;
+  vaststellingsDatum: string;
   locatie: string;
   tijdstip: string;
   nummerplaat: string;
@@ -299,7 +300,7 @@ export async function maakRokenDocxBuffer(
   documentXml = pasVervangingToe(
     documentXml,
     "**/**/2026",
-    gegevens.rapportDatum,
+    gegevens.vaststellingsDatum,
     1,
   );
   documentXml = pasVervangingToe(

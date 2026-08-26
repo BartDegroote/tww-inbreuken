@@ -32,6 +32,16 @@ function formatteerKboInvoer(waarde: string): string {
   return delen.join(".");
 }
 
+function formatteerInvoerdatum(waarde: string): string {
+  const [jaar, maand, dag] = waarde.split("-");
+
+  if (!jaar || !maand || !dag) {
+    throw new Error("Vul een geldige datum van de vaststelling in.");
+  }
+
+  return `${dag}/${maand}/${jaar}`;
+}
+
 function DownloadIcoon() {
   return (
     <svg
@@ -62,6 +72,7 @@ export default function Roken105Pagina() {
   const [locatiePlaats, setLocatiePlaats] = useState("");
   const [autosnelweg, setAutosnelweg] = useState("");
   const [autosnelwegPlaats, setAutosnelwegPlaats] = useState("");
+  const [vaststellingsDatum, setVaststellingsDatum] = useState("");
   const [tijdstip, setTijdstip] = useState("");
   const [plaatEerste, setPlaatEerste] = useState("");
   const [plaatLetters, setPlaatLetters] = useState("");
@@ -85,6 +96,7 @@ export default function Roken105Pagina() {
     setLocatiePlaats("");
     setAutosnelweg("");
     setAutosnelwegPlaats("");
+    setVaststellingsDatum("");
     setTijdstip("");
     setPlaatEerste("");
     setPlaatLetters("");
@@ -123,6 +135,7 @@ export default function Roken105Pagina() {
           kboNummer,
           flow,
           rapportDatum,
+          vaststellingsDatum: formatteerInvoerdatum(vaststellingsDatum),
           locatie,
           tijdstip: tijdstip.replace(":", "u"),
           nummerplaat,
@@ -315,6 +328,17 @@ export default function Roken105Pagina() {
               <legend className="text-lg font-extrabold text-slate-950">
                 Vaststelling
               </legend>
+
+              <label className="mt-5 block max-w-sm text-sm font-semibold text-slate-700">
+                Datum vaststelling
+                <input
+                  type="date"
+                  required
+                  value={vaststellingsDatum}
+                  onChange={(event) => setVaststellingsDatum(event.target.value)}
+                  className={INVOERKLASSE}
+                />
+              </label>
 
               <div className="mt-5">
                 <span className="block text-sm font-semibold text-slate-700">
