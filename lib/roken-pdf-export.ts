@@ -209,6 +209,12 @@ export async function maakRokenPdfBuffer(
   );
   const blauw = rgb(0.12, 0.5, 0.82);
   const postcodePlaats = `${gegevens.postcode} ${gegevens.plaats}`.trim();
+  const bestelwagenHoofdtekst = "Cabine van een bestelwagen";
+  const bestelwagenToelichting = "(gesloten ruimte buiten onderneming)";
+  const isBestelwagen = gegevens.werkruimte.startsWith(bestelwagenHoofdtekst);
+  const werkruimteHoofdtekst = isBestelwagen
+    ? bestelwagenHoofdtekst
+    : gegevens.werkruimte;
 
   const velden: Invulveld[] = [
     {
@@ -284,7 +290,7 @@ export async function maakRokenPdfBuffer(
       maximaleTekstbreedte: 310,
       lettergrootte: 10,
       minimaleLettergrootte: 8.5,
-      tekst: gegevens.werkruimte,
+      tekst: werkruimteHoofdtekst,
       lettertype: normaal,
     },
     {
@@ -332,19 +338,36 @@ export async function maakRokenPdfBuffer(
 
   velden.forEach((veld) => vulVeldIn(pagina, veld));
 
+  if (isBestelwagen) {
+    const werkruimteX = 219.65;
+    const werkruimteBasislijn = pagina.getHeight() - 513.15;
+    pagina.drawText(bestelwagenToelichting, {
+      x:
+        werkruimteX +
+        normaal.widthOfTextAtSize(bestelwagenHoofdtekst, 10) +
+        4,
+      y: werkruimteBasislijn + 0.25,
+      size: 8,
+      font: normaal,
+      color: rgb(0.38, 0.38, 0.38),
+    });
+  }
+
   // Het goedgekeurde sjabloon bevat hier “art. 13, van”. Verwijder uitsluitend
   // die overbodige komma en behoud positie, lettertype en lettergrootte.
-  const wettelijkeVerwijzingBasislijn = pagina.getHeight() - 586.632;
+  const wettelijkeVerwijzingOnderkant = pagina.getHeight() - 586.632;
   pagina.drawRectangle({
     x: 260.5,
-    y: wettelijkeVerwijzingBasislijn - 1.5,
+    y: wettelijkeVerwijzingOnderkant - 1.5,
     width: 36.5,
     height: 11.5,
     color: rgb(1, 1, 1),
   });
   pagina.drawText("13 van", {
     x: 261.088,
-    y: wettelijkeVerwijzingBasislijn,
+    // pdf-lib plaatst Verdana-Italic 1,89 punt onder de opgegeven tekst-y.
+    // Deze correctie zet de zichtbare letteronderkant exact op de bronregel.
+    y: wettelijkeVerwijzingOnderkant + 1.89,
     size: 9,
     font: cursief,
   });
