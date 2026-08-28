@@ -304,8 +304,8 @@ export async function maakRokenPdfBuffer(
       lettertype: normaal,
     },
     {
-      x: 273.63,
-      wisX: 272.5,
+      x: 277.17,
+      wisX: 276.5,
       onderkantVanafBoven: 549.45,
       wisBreedte: 38,
       maximaleTekstbreedte: 38,
