@@ -372,25 +372,43 @@ export async function maakRokenPdfBuffer(
     font: cursief,
   });
 
-  // De lengte van een flownummer varieert. Daarom wordt het volledige einde
-  // van deze zin opnieuw geplaatst, zodat “vermelden.” altijd direct aansluit
-  // en nooit over de waarde heen schuift.
+  // De lengte van een flownummer varieert. Plaats daarom de volledige zin
+  // opnieuw, zodat de aangepaste formulering en “vermelden.” correct aansluiten.
   const referentieBasislijn = pagina.getHeight() - 631.8;
   pagina.drawRectangle({
-    x: 395.5,
+    x: 77,
     y: referentieBasislijn - 2,
-    width: 148,
+    width: 490,
     height: 14,
     color: rgb(1, 1, 1),
   });
+  const referentiePrefix =
+    "Elke briefwisseling betreffende dit schrijven moet de ";
+  const referentieVet = "referentie ";
+  const referentieX = 78.1;
+  pagina.drawText(referentiePrefix, {
+    x: referentieX,
+    y: referentieBasislijn,
+    size: 10,
+    font: normaal,
+  });
+  const referentieVetX =
+    referentieX + normaal.widthOfTextAtSize(referentiePrefix, 10);
+  pagina.drawText(referentieVet, {
+    x: referentieVetX,
+    y: referentieBasislijn,
+    size: 10,
+    font: vet,
+  });
+  const flowX = referentieVetX + vet.widthOfTextAtSize(referentieVet, 10);
   pagina.drawText(gegevens.flow, {
-    x: 396.65,
+    x: flowX,
     y: referentieBasislijn,
     size: 10,
     font: vet,
   });
   pagina.drawText(" vermelden.", {
-    x: 396.65 + vet.widthOfTextAtSize(gegevens.flow, 10),
+    x: flowX + vet.widthOfTextAtSize(gegevens.flow, 10),
     y: referentieBasislijn,
     size: 10,
     font: normaal,
