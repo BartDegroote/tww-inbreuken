@@ -44,7 +44,7 @@ async function voerTestUit() {
     rapportDatum: "26/08/2026",
     vaststellingsDatum: "25/08/2026",
     werkruimte:
-      "Cabine van een bestelwagen (gesloten ruimte buiten een onderneming)",
+      "Cabine van een bestelwagen (gesloten ruimte buiten onderneming)",
     locatie: "Controlelaan 5, 1000 Brussel",
     tijdstip: "14u35",
     nummerplaat: "1-ABC-234",

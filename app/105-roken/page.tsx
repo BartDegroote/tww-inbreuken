@@ -17,7 +17,7 @@ type LocatieType = "adres" | "autosnelweg";
 type VoertuigType = "bestelwagen" | "dienstwagen" | "vrachtwagen";
 
 const WERKRUIMTE_PER_VOERTUIG: Record<VoertuigType, string> = {
-  bestelwagen: "Cabine van een bestelwagen (gesloten ruimte buiten een onderneming)",
+  bestelwagen: "Cabine van een bestelwagen (gesloten ruimte buiten onderneming)",
   dienstwagen: "Cabine van een dienstwagen",
   vrachtwagen: "Cabine van een vrachtwagen",
 };

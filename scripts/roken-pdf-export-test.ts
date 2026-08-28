@@ -34,7 +34,7 @@ async function voerTestUit() {
     rapportDatum: "26/08/2026",
     vaststellingsDatum: "21/08/2026",
     werkruimte:
-      "Cabine van een bestelwagen (gesloten ruimte buiten een onderneming)",
+      "Cabine van een bestelwagen (gesloten ruimte buiten onderneming)",
     locatie: "E17 ter hoogte van Kruisem",
     tijdstip: "07u34",
     nummerplaat: "2-EDF-682",

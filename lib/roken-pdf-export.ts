@@ -111,12 +111,16 @@ function vulVeldIn(pagina: PDFPage, veld: Invulveld): void {
   const paginahoogte = pagina.getHeight();
   const grootte = passendeLettergrootte(veld);
   const basislijn = paginahoogte - veld.onderkantVanafBoven;
+  const wisOnderMarge = veld.lettergrootte * 0.24;
+  const wisHoogte = veld.lettergrootte * 1.06;
 
   pagina.drawRectangle({
     x: (veld.wisX ?? veld.x) - 1,
-    y: basislijn - 1.4,
+    y: basislijn - wisOnderMarge,
     width: veld.wisBreedte + 2,
-    height: veld.lettergrootte + 3,
+    // Wis uitsluitend de oorspronkelijke veldtekst. De vroegere hogere
+    // rechthoek raakte de staarten van letters (zoals de j) in de regel erboven.
+    height: wisHoogte,
     color: rgb(1, 1, 1),
   });
   pagina.drawText(veld.tekst, {
@@ -197,6 +201,10 @@ export async function maakRokenPdfBuffer(
   );
   const vet = await pdf.embedFont(
     haalIngebedLettertypeOp(pdf, pagina, "Verdana-Bold"),
+    { subset: true },
+  );
+  const cursief = await pdf.embedFont(
+    haalIngebedLettertypeOp(pdf, pagina, "Verdana-Italic"),
     { subset: true },
   );
   const blauw = rgb(0.12, 0.5, 0.82);
@@ -323,6 +331,23 @@ export async function maakRokenPdfBuffer(
   ];
 
   velden.forEach((veld) => vulVeldIn(pagina, veld));
+
+  // Het goedgekeurde sjabloon bevat hier “art. 13, van”. Verwijder uitsluitend
+  // die overbodige komma en behoud positie, lettertype en lettergrootte.
+  const wettelijkeVerwijzingBasislijn = pagina.getHeight() - 586.632;
+  pagina.drawRectangle({
+    x: 260.5,
+    y: wettelijkeVerwijzingBasislijn - 1.5,
+    width: 36.5,
+    height: 11.5,
+    color: rgb(1, 1, 1),
+  });
+  pagina.drawText("13 van", {
+    x: 261.088,
+    y: wettelijkeVerwijzingBasislijn,
+    size: 9,
+    font: cursief,
+  });
 
   // De lengte van een flownummer varieert. Daarom wordt het volledige einde
   // van deze zin opnieuw geplaatst, zodat “vermelden.” altijd direct aansluit
