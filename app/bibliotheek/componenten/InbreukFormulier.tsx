@@ -778,8 +778,9 @@ function InbreukFormulierInhoud({
     useMemo(() => {
       if (
         !formulier?.wetgevingId ||
-        !formulier.boekId ||
-        !formulier.titelId
+        (!enkelOnderwerpenGeselecteerd &&
+          (!formulier.boekId ||
+            !formulier.titelId))
       ) {
         return [];
       }
@@ -791,8 +792,9 @@ function InbreukFormulierInhoud({
         if (
           bron.wetgevingId !==
             formulier.wetgevingId ||
-          bron.boekId !== formulier.boekId ||
-          bron.titelId !== formulier.titelId
+          (!enkelOnderwerpenGeselecteerd &&
+            (bron.boekId !== formulier.boekId ||
+              bron.titelId !== formulier.titelId))
         ) {
           continue;
         }
@@ -827,7 +829,11 @@ function InbreukFormulierInhoud({
           },
         ),
       );
-    }, [formulier, onderwerpSuggesties]);
+    }, [
+      enkelOnderwerpenGeselecteerd,
+      formulier,
+      onderwerpSuggesties,
+    ]);
 
   const zichtbareOnderwerpSuggesties =
     useMemo(() => {
@@ -1543,8 +1549,9 @@ function InbreukFormulierInhoud({
   const formulierGeldig =
     formulier.wetgevingId.trim().length >
       0 &&
-    formulier.boekId.trim().length > 0 &&
-    formulier.titelId.trim().length > 0 &&
+    (enkelOnderwerpenGeselecteerd ||
+      (formulier.boekId.trim().length > 0 &&
+        formulier.titelId.trim().length > 0)) &&
     (welzijnswetGeselecteerd ||
       formulier.onderwerp.trim().length >
         0) &&
@@ -1815,7 +1822,8 @@ function InbreukFormulierInhoud({
                 placeholder="Bijvoorbeeld: Arbeidsmiddelen"
                 list="onderwerp-suggesties"
                 disabled={
-                  !formulier.titelId ||
+                  (!enkelOnderwerpenGeselecteerd &&
+                    !formulier.titelId) ||
                   bezig
                 }
                 autoComplete="off"
