@@ -7,4 +7,5 @@ export * from "./welzijnswet";
 export * from "./kb-liften";
 export * from "./kb-tmb";
 export * from "./arab";
+export * from "./rookwet";
 export * from "./codex/Boek_III";

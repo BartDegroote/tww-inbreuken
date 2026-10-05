@@ -5,8 +5,7 @@ import {
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
-import { isArab } from "@/bibliotheek/arab";
-import { isKbTmb } from "@/bibliotheek/kb-tmb";
+import { isWetgevingMetEnkelOnderwerpen } from "@/bibliotheek/wetgevingen";
 
 type WetgevingOptie = {
   id: string;
@@ -97,14 +96,10 @@ export default function BibliotheekToolbar({
     isWelzijnswet(filterWetgevingId);
   const kbLiftenGeselecteerd =
     isKbBeveiligingLiften(filterWetgevingId);
-  const arabGeselecteerd = isArab(
-    filterWetgevingId,
-  );
-  const kbTmbGeselecteerd = isKbTmb(
-    filterWetgevingId,
-  );
   const enkelOnderwerpenGeselecteerd =
-    arabGeselecteerd || kbTmbGeselecteerd;
+    isWetgevingMetEnkelOnderwerpen(
+      filterWetgevingId,
+    );
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;

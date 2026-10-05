@@ -6,6 +6,10 @@ import {
   KB_TMB_BOEK_ID,
   KB_TMB_TITEL_ID,
 } from "./kb-tmb";
+import {
+  ROOKWET_2009_BOEK_ID,
+  ROOKWET_2009_TITEL_ID,
+} from "./rookwet";
 
 export type Titel = {
   id: string;
@@ -75,6 +79,11 @@ export const titels: Titel[] = [
   { id: "boek-x-titel-5", boekId: "boek-x", naam: "5 - Moederschapsbescherming" },
   { id: "boek-x-titel-6", boekId: "boek-x", naam: "6 - Dienstboden en huispersoneel" },
   ...welzijnswetAfdelingen,
+  {
+    id: ROOKWET_2009_TITEL_ID,
+    boekId: ROOKWET_2009_BOEK_ID,
+    naam: "Rechtstreeks onder de Rookwet",
+  },
   ...kbLiftenTechnischeTitels,
   {
     id: KB_TMB_TITEL_ID,

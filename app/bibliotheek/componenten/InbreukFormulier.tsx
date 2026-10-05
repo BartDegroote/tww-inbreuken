@@ -19,15 +19,9 @@ import {
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 import {
-  ARAB_BOEK_ID,
-  ARAB_TITEL_ID,
-  isArab,
-} from "@/bibliotheek/arab";
-import {
-  KB_TMB_BOEK_ID,
-  KB_TMB_TITEL_ID,
-  isKbTmb,
-} from "@/bibliotheek/kb-tmb";
+  isWetgevingMetEnkelOnderwerpen,
+  zoekTechnischeIndelingVoorOnderwerpen,
+} from "@/bibliotheek/wetgevingen";
 
 type WetgevingOptie = {
   id: string;
@@ -763,14 +757,10 @@ function InbreukFormulierInhoud({
     isKbBeveiligingLiften(
       formulier?.wetgevingId ?? "",
     );
-  const arabGeselecteerd = isArab(
-    formulier?.wetgevingId ?? "",
-  );
-  const kbTmbGeselecteerd = isKbTmb(
-    formulier?.wetgevingId ?? "",
-  );
   const enkelOnderwerpenGeselecteerd =
-    arabGeselecteerd || kbTmbGeselecteerd;
+    isWetgevingMetEnkelOnderwerpen(
+      formulier?.wetgevingId ?? "",
+    );
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
@@ -920,6 +910,11 @@ function InbreukFormulierInhoud({
   function wijzigWetgeving(
     wetgevingId: string,
   ): void {
+    const technischeIndeling =
+      zoekTechnischeIndelingVoorOnderwerpen(
+        wetgevingId,
+      );
+
     setFormulier((huidig) => {
       if (!huidig) {
         return huidig;
@@ -928,16 +923,10 @@ function InbreukFormulierInhoud({
       return {
         ...huidig,
         wetgevingId,
-        boekId: isArab(wetgevingId)
-          ? ARAB_BOEK_ID
-          : isKbTmb(wetgevingId)
-            ? KB_TMB_BOEK_ID
-            : "",
-        titelId: isArab(wetgevingId)
-          ? ARAB_TITEL_ID
-          : isKbTmb(wetgevingId)
-            ? KB_TMB_TITEL_ID
-            : "",
+        boekId:
+          technischeIndeling?.boekId ?? "",
+        titelId:
+          technischeIndeling?.titelId ?? "",
         onderwerp: "",
       };
     });

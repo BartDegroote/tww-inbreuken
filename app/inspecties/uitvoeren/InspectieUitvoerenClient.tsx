@@ -37,8 +37,7 @@ import {
   isWelzijnswet,
 } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
-import { isArab } from "@/bibliotheek/arab";
-import { isKbTmb } from "@/bibliotheek/kb-tmb";
+import { isWetgevingMetEnkelOnderwerpen } from "@/bibliotheek/wetgevingen";
 import TekstMetOpmaak from "@/app/bibliotheek/TekstMetOpmaak";
 import {
   downloadWordVerslag,
@@ -804,14 +803,10 @@ export default function InspectieUitvoerenClient({
     isWelzijnswet(wetgevingFilter);
   const kbLiftenGeselecteerd =
     isKbBeveiligingLiften(wetgevingFilter);
-  const arabGeselecteerd = isArab(
-    wetgevingFilter,
-  );
-  const kbTmbGeselecteerd = isKbTmb(
-    wetgevingFilter,
-  );
   const enkelOnderwerpenGeselecteerd =
-    arabGeselecteerd || kbTmbGeselecteerd;
+    isWetgevingMetEnkelOnderwerpen(
+      wetgevingFilter,
+    );
   const hoofdstukIndelingGeselecteerd =
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
@@ -1027,14 +1022,10 @@ export default function InspectieUitvoerenClient({
           isKbBeveiligingLiften(
             inbreuk.wetgevingId,
           );
-        const isArabInbreuk = isArab(
-          inbreuk.wetgevingId,
-        );
-        const isKbTmbInbreuk = isKbTmb(
-          inbreuk.wetgevingId,
-        );
         const isEnkelOnderwerpenInbreuk =
-          isArabInbreuk || isKbTmbInbreuk;
+          isWetgevingMetEnkelOnderwerpen(
+            inbreuk.wetgevingId,
+          );
         const sleutel =
           isWelzijnswetInbreuk
             ? `${inbreuk.wetgevingId}::welzijnswet`
@@ -2108,8 +2099,9 @@ export default function InspectieUitvoerenClient({
       boekNaamPerId.get(inbreuk.boekId) ??
       "Onbekend boek";
     const enkelOnderwerpen =
-      isArab(inbreuk.wetgevingId) ||
-      isKbTmb(inbreuk.wetgevingId);
+      isWetgevingMetEnkelOnderwerpen(
+        inbreuk.wetgevingId,
+      );
 
     const titel =
       titelPerId.get(inbreuk.titelId);

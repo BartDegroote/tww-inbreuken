@@ -5,6 +5,11 @@ import {
   KB_TMB_BOEK_ID,
   KB_TMB_ID,
 } from "./kb-tmb";
+import {
+  ROOKWET_2009_BOEK_ID,
+  ROOKWET_2009_ID,
+  ROOKWET_2009_NAAM,
+} from "./rookwet";
 
 export type Boek = {
   id: string;
@@ -64,6 +69,11 @@ export const boeken: Boek[] = [
     naam: "X - Werkorganisatie en bijzondere werknemerscategorieën",
   },
   ...welzijnswetHoofdstukken,
+  {
+    id: ROOKWET_2009_BOEK_ID,
+    wetgevingId: ROOKWET_2009_ID,
+    naam: ROOKWET_2009_NAAM,
+  },
   ...kbLiftenHoofdstukken,
   {
     id: KB_TMB_BOEK_ID,
