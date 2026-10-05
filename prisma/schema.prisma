@@ -145,10 +145,10 @@ model Standaardinbreuk {
   inbreukType String  @default("STANDAARD")
 
   wetgevingId String
-  boekId      String
-  titelId     String
+  boekId      String?
+  titelId     String?
 
-  titel Titel @relation(fields: [titelId], references: [id])
+  titel Titel? @relation(fields: [titelId], references: [id])
 
   // Vrij onderwerp per inbreuk.
   // Eerder gebruikte onderwerpen binnen dezelfde titel

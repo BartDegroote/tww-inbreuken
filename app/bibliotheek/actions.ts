@@ -227,23 +227,23 @@ export async function bewaarStandaardinbreuk(
   const hoofdstukIndeling =
     welzijnswet || kbLiften;
 
-  const boekId = verplichtTekstveld(
-    invoer.boekId,
-    hoofdstukIndeling
-      ? "Hoofdstuk"
-      : enkelOnderwerpen
-        ? "Juridische indeling"
-        : "Boek",
-  );
+  const boekId = enkelOnderwerpen
+    ? optioneelTekstveld(invoer.boekId)
+    : verplichtTekstveld(
+        invoer.boekId,
+        hoofdstukIndeling ? "Hoofdstuk" : "Boek",
+      );
 
-  const titelId = verplichtTekstveld(
-    invoer.titelId,
-    welzijnswet
-      ? "Afdeling"
-      : kbLiften || enkelOnderwerpen
-        ? "Juridische indeling"
-        : "Titel",
-  );
+  const titelId = enkelOnderwerpen
+    ? optioneelTekstveld(invoer.titelId)
+    : verplichtTekstveld(
+        invoer.titelId,
+        welzijnswet
+          ? "Afdeling"
+          : kbLiften
+            ? "Juridische indeling"
+            : "Titel",
+      );
 
   const omschrijving = verplichtTekstveld(
     invoer.omschrijving,
@@ -330,16 +330,18 @@ export async function bewaarStandaardinbreuk(
   }
 
   const juridischeIndeling =
-    await controleerJuridischeIndeling({
-    wetgevingId,
-    boekId,
-    titelId,
-  });
+    boekId && titelId
+      ? await controleerJuridischeIndeling({
+          wetgevingId,
+          boekId,
+          titelId,
+        })
+      : null;
 
   const onderwerp = welzijnswet
-    ? isVerborgenAfdeling(titelId)
-      ? juridischeIndeling.boekNaam
-      : juridischeIndeling.titelNaam
+    ? isVerborgenAfdeling(titelId ?? "")
+      ? juridischeIndeling?.boekNaam ?? ""
+      : juridischeIndeling?.titelNaam ?? ""
     : verplichtTekstveld(
         invoer.onderwerp,
         "Onderwerp",

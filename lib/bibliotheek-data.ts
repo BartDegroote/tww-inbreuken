@@ -57,8 +57,8 @@ export function mapStandaardinbreuk(
         ? "EAO_CODES"
         : "STANDAARD",
     wetgevingId: inbreuk.wetgevingId,
-    boekId: inbreuk.boekId,
-    titelId: inbreuk.titelId,
+    boekId: inbreuk.boekId ?? "",
+    titelId: inbreuk.titelId ?? "",
     onderwerp: inbreuk.onderwerp,
     kernwoorden: inbreuk.kernwoorden,
     omschrijving: inbreuk.omschrijving,

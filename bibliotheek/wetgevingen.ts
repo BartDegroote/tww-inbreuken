@@ -15,10 +15,8 @@ import {
   KB_TMB_TITEL_ID,
 } from "./kb-tmb";
 import {
-  ROOKWET_2009_BOEK_ID,
   ROOKWET_2009_ID,
   ROOKWET_2009_NAAM,
-  ROOKWET_2009_TITEL_ID,
 } from "./rookwet";
 import { WELZIJNSWET_ID } from "./welzijnswet";
 
@@ -58,13 +56,6 @@ export const wetgevingen: Wetgeving[] = [
 
 const technischeIndelingPerWetgeving = new Map([
   [
-    ROOKWET_2009_ID,
-    {
-      boekId: ROOKWET_2009_BOEK_ID,
-      titelId: ROOKWET_2009_TITEL_ID,
-    },
-  ],
-  [
     KB_TMB_ID,
     {
       boekId: KB_TMB_BOEK_ID,
@@ -80,6 +71,12 @@ const technischeIndelingPerWetgeving = new Map([
   ],
 ]);
 
+const wetgevingenMetEnkelOnderwerpen = new Set([
+  ROOKWET_2009_ID,
+  KB_TMB_ID,
+  ARAB_ID,
+]);
+
 export function zoekTechnischeIndelingVoorOnderwerpen(
   wetgevingId: string,
 ): { boekId: string; titelId: string } | undefined {
@@ -89,7 +86,7 @@ export function zoekTechnischeIndelingVoorOnderwerpen(
 export function isWetgevingMetEnkelOnderwerpen(
   wetgevingId: string,
 ): boolean {
-  return technischeIndelingPerWetgeving.has(wetgevingId);
+  return wetgevingenMetEnkelOnderwerpen.has(wetgevingId);
 }
 
 const wetgevingVolgorde = new Map(
