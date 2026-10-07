@@ -422,3 +422,76 @@ export async function maakRokenPdfBuffer(
 
   return pdf.save({ useObjectStreams: false });
 }
+
+/**
+ * Zet de afgewerkte brief om naar één vaste beeldlaag, vergelijkbaar met
+ * “Afdrukken naar PDF”. Daardoor blijven er in het gedownloade bestand geen
+ * afzonderlijke sjabloon- en invullagen achter.
+ */
+export async function vervlakRokenPdfAlsAfdruk(
+  ingevuldePdf: Uint8Array,
+): Promise<Uint8Array> {
+  if (typeof window === "undefined") {
+    throw new Error("De PDF kan alleen in de browser worden afgevlakt.");
+  }
+
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
+
+  const brondocument = await pdfjs.getDocument({
+    data: ingevuldePdf.slice(),
+  }).promise;
+
+  if (brondocument.numPages !== 1) {
+    throw new Error("De afgewerkte brief moet exact één pagina bevatten.");
+  }
+
+  const bronpagina = await brondocument.getPage(1);
+  const afdrukSchaal = 3;
+  const weergave = bronpagina.getViewport({ scale: afdrukSchaal });
+  const canvas = window.document.createElement("canvas");
+  canvas.width = Math.ceil(weergave.width);
+  canvas.height = Math.ceil(weergave.height);
+  const context = canvas.getContext("2d", { alpha: false });
+
+  if (!context) {
+    throw new Error("De browser kon geen afdrukweergave van de PDF maken.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  await bronpagina.render({ canvas, canvasContext: context, viewport: weergave }).promise;
+
+  const afbeelding = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("De afdrukweergave kon niet worden opgeslagen."));
+    }, "image/png");
+  });
+  const afbeeldingsBytes = new Uint8Array(await afbeelding.arrayBuffer());
+  const afgevlaktDocument = await PDFDocument.create();
+  const breedte = weergave.width / afdrukSchaal;
+  const hoogte = weergave.height / afdrukSchaal;
+  const afgevlaktePagina = afgevlaktDocument.addPage([breedte, hoogte]);
+  const paginaAfbeelding = await afgevlaktDocument.embedPng(afbeeldingsBytes);
+
+  afgevlaktePagina.drawImage(paginaAfbeelding, {
+    x: 0,
+    y: 0,
+    width: breedte,
+    height: hoogte,
+  });
+  afgevlaktDocument.setTitle("Schriftelijke waarschuwing roken");
+  afgevlaktDocument.setAuthor("Bart Degroote");
+  afgevlaktDocument.setCreator("WebApp TWW");
+  afgevlaktDocument.setProducer("WebApp TWW");
+
+  await brondocument.destroy();
+  canvas.width = 0;
+  canvas.height = 0;
+
+  return afgevlaktDocument.save({ useObjectStreams: true });
+}
