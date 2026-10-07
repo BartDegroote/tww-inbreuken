@@ -61,6 +61,56 @@ export type OngevalsgegevensInput = {
   werkpostBezocht: boolean | null;
 };
 
+function normaliseerOngevalsgegevens(
+  gegevens: OngevalsgegevensInput,
+  omschrijving: string,
+): OngevalsgegevensInput {
+  const genormaliseerd = {
+    ernstigArbeidsongeval:
+      gegevens.ernstigArbeidsongeval,
+    slachtofferVoornaam:
+      gegevens.slachtofferVoornaam.trim(),
+    slachtofferNaam:
+      gegevens.slachtofferNaam.trim(),
+    ongevalsdatum: gegevens.ongevalsdatum.trim(),
+    slachtofferWerkHervat:
+      gegevens.slachtofferWerkHervat,
+    werkhervattingsdatum:
+      gegevens.werkhervattingsdatum.trim(),
+    werkpostBezocht: gegevens.werkpostBezocht,
+  };
+
+  if (
+    genormaliseerd.ernstigArbeidsongeval &&
+    (!genormaliseerd.slachtofferVoornaam ||
+      !genormaliseerd.slachtofferNaam ||
+      !genormaliseerd.ongevalsdatum)
+  ) {
+    throw new Error(
+      `Vul alle basisgegevens over ${omschrijving} in.`,
+    );
+  }
+
+  if (
+    genormaliseerd.ernstigArbeidsongeval &&
+    (genormaliseerd.slachtofferVoornaam.length > 100 ||
+      genormaliseerd.slachtofferNaam.length > 100 ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(
+        genormaliseerd.ongevalsdatum,
+      ) ||
+      (genormaliseerd.werkhervattingsdatum &&
+        !/^\d{4}-\d{2}-\d{2}$/.test(
+          genormaliseerd.werkhervattingsdatum,
+        )))
+  ) {
+    throw new Error(
+      `Controleer de naam en datum van ${omschrijving}.`,
+    );
+  }
+
+  return genormaliseerd;
+}
+
 export type Aanspreking =
   | "HEER"
   | "MEVROUW"
@@ -332,13 +382,13 @@ export async function bewaarOntmoetePersonen(
   }
 
   revalidatePath("/inspecties");
-  revalidatePath("/inspecties/uitvoeren");
 }
 
 export async function bewaarInspectie(
   inspectieId: string,
   inbreuken: OpgeslagenInbreukInput[],
   ongevalsgegevens: OngevalsgegevensInput,
+  tweedeOngevalsgegevens: OngevalsgegevensInput,
   ontmoetePersonen: OntmoetePersoonInput[],
   andereOpmerkingen: AndereOpmerkingInput[],
 ) {
@@ -352,14 +402,14 @@ export async function bewaarInspectie(
     throw new Error("Inspectie niet gevonden.");
   }
 
-  const slachtofferVoornaam =
-    ongevalsgegevens.slachtofferVoornaam.trim();
-  const slachtofferNaam =
-    ongevalsgegevens.slachtofferNaam.trim();
-  const ongevalsdatum =
-    ongevalsgegevens.ongevalsdatum.trim();
-  const werkhervattingsdatum =
-    ongevalsgegevens.werkhervattingsdatum.trim();
+  const eersteOngeval = normaliseerOngevalsgegevens(
+    ongevalsgegevens,
+    "het ernstig arbeidsongeval",
+  );
+  const tweedeOngeval = normaliseerOngevalsgegevens(
+    tweedeOngevalsgegevens,
+    "het tweede ernstig arbeidsongeval",
+  );
   const genormaliseerdeOntmoetePersonen =
     normaliseerOntmoetePersonen(ontmoetePersonen);
   const genormaliseerdeAndereOpmerkingen =
@@ -368,30 +418,11 @@ export async function bewaarInspectie(
     );
 
   if (
-    ongevalsgegevens.ernstigArbeidsongeval &&
-    (!slachtofferVoornaam ||
-      !slachtofferNaam ||
-      !ongevalsdatum)
+    tweedeOngeval.ernstigArbeidsongeval &&
+    !eersteOngeval.ernstigArbeidsongeval
   ) {
     throw new Error(
-      "Vul alle gegevens over het ernstig arbeidsongeval in.",
-    );
-  }
-
-  if (
-    ongevalsgegevens.ernstigArbeidsongeval &&
-    (slachtofferVoornaam.length > 100 ||
-      slachtofferNaam.length > 100 ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(
-        ongevalsdatum,
-      ) ||
-      (werkhervattingsdatum &&
-        !/^\d{4}-\d{2}-\d{2}$/.test(
-          werkhervattingsdatum,
-        )))
-  ) {
-    throw new Error(
-      "Controleer de naam en datum van het ernstig arbeidsongeval.",
+      "Voeg eerst het eerste ernstig arbeidsongeval toe.",
     );
   }
 
@@ -469,7 +500,7 @@ export async function bewaarInspectie(
 
       if (
         inbreukType === "EAO_CODES" &&
-        !ongevalsgegevens.ernstigArbeidsongeval
+        !eersteOngeval.ernstigArbeidsongeval
       ) {
         throw new Error(
           "Schakel Ernstig arbeidsongeval in om een EAO-code-inbreuk te gebruiken.",
@@ -536,40 +567,49 @@ export async function bewaarInspectie(
         andereOpmerkingen:
           genormaliseerdeAndereOpmerkingen,
         ernstigArbeidsongeval:
-          ongevalsgegevens.ernstigArbeidsongeval,
+          eersteOngeval.ernstigArbeidsongeval,
         slachtofferVoornaam:
-          ongevalsgegevens.ernstigArbeidsongeval
-            ? slachtofferVoornaam
+          eersteOngeval.ernstigArbeidsongeval
+            ? eersteOngeval.slachtofferVoornaam
             : null,
         slachtofferNaam:
-          ongevalsgegevens.ernstigArbeidsongeval
-            ? slachtofferNaam
+          eersteOngeval.ernstigArbeidsongeval
+            ? eersteOngeval.slachtofferNaam
             : null,
         ongevalsdatum:
-          ongevalsgegevens.ernstigArbeidsongeval
-            ? ongevalsdatum
+          eersteOngeval.ernstigArbeidsongeval
+            ? eersteOngeval.ongevalsdatum
             : null,
         slachtofferWerkHervat:
-          ongevalsgegevens.ernstigArbeidsongeval
-            ? ongevalsgegevens.slachtofferWerkHervat
+          eersteOngeval.ernstigArbeidsongeval
+            ? eersteOngeval.slachtofferWerkHervat
             : null,
         werkhervattingsdatum:
-          ongevalsgegevens.ernstigArbeidsongeval &&
-          ongevalsgegevens.slachtofferWerkHervat === true &&
-          werkhervattingsdatum
-            ? werkhervattingsdatum
+          eersteOngeval.ernstigArbeidsongeval &&
+          eersteOngeval.slachtofferWerkHervat === true &&
+          eersteOngeval.werkhervattingsdatum
+            ? eersteOngeval.werkhervattingsdatum
             : null,
         werkpostBezocht:
-          ongevalsgegevens.ernstigArbeidsongeval
-            ? ongevalsgegevens.werkpostBezocht
+          eersteOngeval.ernstigArbeidsongeval
+            ? eersteOngeval.werkpostBezocht
             : null,
+        tweedeArbeidsongeval:
+          tweedeOngeval.ernstigArbeidsongeval
+            ? ({
+                ...tweedeOngeval,
+                werkhervattingsdatum:
+                  tweedeOngeval.slachtofferWerkHervat === true
+                    ? tweedeOngeval.werkhervattingsdatum
+                    : "",
+              } satisfies Prisma.InputJsonObject)
+            : ({} satisfies Prisma.InputJsonObject),
         gewijzigdOp: new Date(),
       },
     });
   }, { timeout: 60_000 });
 
   revalidatePath("/inspecties");
-  revalidatePath("/inspecties/uitvoeren");
   return { opgeslagenOp: new Date().toISOString() };
 }
 

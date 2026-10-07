@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useDeferredValue,
   useEffect,
   useMemo,
   useRef,
@@ -118,6 +119,7 @@ type InspectieUitvoerenClientProps = {
   initialOntmoetePersonen: OntmoetePersoonInput[];
   initialAndereOpmerkingen: string[];
   initialOngevalsgegevens: OngevalsgegevensInput;
+  initialTweedeOngevalsgegevens: OngevalsgegevensInput;
   wetgevingen: WetgevingOptie[];
   boeken: BoekOptie[];
   titels: TitelOptie[];
@@ -206,6 +208,163 @@ function UitklapbareGroep({
     >
       {children}
     </details>
+  );
+}
+
+function legeOngevalsgegevens(): OngevalsgegevensInput {
+  return {
+    ernstigArbeidsongeval: false,
+    slachtofferVoornaam: "",
+    slachtofferNaam: "",
+    ongevalsdatum: "",
+    slachtofferWerkHervat: null,
+    werkhervattingsdatum: "",
+    werkpostBezocht: null,
+  };
+}
+
+function OngevalsgegevensVelden({
+  gegevens,
+  naamPrefix,
+  onWijzig,
+}: {
+  gegevens: OngevalsgegevensInput;
+  naamPrefix: string;
+  onWijzig: (gegevens: OngevalsgegevensInput) => void;
+}) {
+  function wijzig<K extends keyof OngevalsgegevensInput>(
+    veld: K,
+    waarde: OngevalsgegevensInput[K],
+  ) {
+    onWijzig({ ...gegevens, [veld]: waarde });
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">
+          Voornaam slachtoffer
+        </span>
+        <input
+          type="text"
+          value={gegevens.slachtofferVoornaam}
+          maxLength={100}
+          onChange={(event) =>
+            wijzig("slachtofferVoornaam", event.target.value)
+          }
+          autoComplete="off"
+          className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">
+          Naam slachtoffer
+        </span>
+        <input
+          type="text"
+          value={gegevens.slachtofferNaam}
+          maxLength={100}
+          onChange={(event) =>
+            wijzig("slachtofferNaam", event.target.value)
+          }
+          autoComplete="off"
+          className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+        />
+      </label>
+
+      <label className="block">
+        <span className="text-sm font-semibold text-slate-700">
+          Datum ongeval
+        </span>
+        <input
+          type="date"
+          value={gegevens.ongevalsdatum}
+          onChange={(event) =>
+            wijzig("ongevalsdatum", event.target.value)
+          }
+          className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+        />
+      </label>
+
+      <fieldset>
+        <legend className="text-sm font-semibold text-slate-700">
+          Slachtoffer opnieuw aan het werk?
+        </legend>
+        <div className="mt-2 grid grid-cols-3 gap-2">
+          {([null, true, false] as const).map((waarde) => (
+            <label
+              key={String(waarde)}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                gegevens.slachtofferWerkHervat === waarde
+                  ? "border-amber-600 bg-amber-200 text-amber-950"
+                  : "border-amber-300 bg-white text-slate-700 hover:bg-amber-100"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`${naamPrefix}-slachtofferWerkHervat`}
+                checked={gegevens.slachtofferWerkHervat === waarde}
+                onChange={() =>
+                  wijzig("slachtofferWerkHervat", waarde)
+                }
+                className="h-4 w-4 accent-amber-600"
+              />
+              {waarde === null ? "Open" : waarde ? "Ja" : "Nee"}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {gegevens.slachtofferWerkHervat && (
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">
+            Datum werkhervatting
+          </span>
+          <input
+            type="date"
+            value={gegevens.werkhervattingsdatum}
+            onChange={(event) =>
+              wijzig("werkhervattingsdatum", event.target.value)
+            }
+            className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+          />
+        </label>
+      )}
+
+      <fieldset
+        className={
+          gegevens.slachtofferWerkHervat
+            ? "sm:col-span-2 lg:col-span-1"
+            : "sm:col-span-1 lg:col-span-2"
+        }
+      >
+        <legend className="text-sm font-semibold text-slate-700">
+          Werkpost van het ongeval bezocht?
+        </legend>
+        <div className="mt-2 grid max-w-md grid-cols-3 gap-2">
+          {([null, true, false] as const).map((waarde) => (
+            <label
+              key={String(waarde)}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                gegevens.werkpostBezocht === waarde
+                  ? "border-amber-600 bg-amber-200 text-amber-950"
+                  : "border-amber-300 bg-white text-slate-700 hover:bg-amber-100"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`${naamPrefix}-werkpostBezocht`}
+                checked={gegevens.werkpostBezocht === waarde}
+                onChange={() => wijzig("werkpostBezocht", waarde)}
+                className="h-4 w-4 accent-amber-600"
+              />
+              {waarde === null ? "Open" : waarde ? "Ja" : "Nee"}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    </div>
   );
 }
 
@@ -506,6 +665,7 @@ export default function InspectieUitvoerenClient({
   initialOntmoetePersonen,
   initialAndereOpmerkingen,
   initialOngevalsgegevens,
+  initialTweedeOngevalsgegevens,
   wetgevingen,
   boeken,
   titels,
@@ -573,6 +733,8 @@ export default function InspectieUitvoerenClient({
 
   const [zoekterm, setZoekterm] =
     useState("");
+  const uitgesteldeZoekterm =
+    useDeferredValue(zoekterm);
 
   const [exportBezig, setExportBezig] =
     useState(false);
@@ -617,12 +779,19 @@ export default function InspectieUitvoerenClient({
     setToonAndereOpmerkingen,
   ] = useState(false);
 
-  const [
+  const [ongevalsgegevens, setOngevalsgegevens] =
+    useState<OngevalsgegevensInput>(
+      initialOngevalsgegevens,
+    );
+  const {
     ernstigArbeidsongeval,
-    setErnstigArbeidsongeval,
-  ] = useState(
-    initialOngevalsgegevens.ernstigArbeidsongeval,
-  );
+    slachtofferVoornaam,
+    slachtofferNaam,
+    ongevalsdatum,
+    slachtofferWerkHervat,
+    werkhervattingsdatum,
+    werkpostBezocht,
+  } = ongevalsgegevens;
 
   const [
     toonOngevalsgegevens,
@@ -630,40 +799,17 @@ export default function InspectieUitvoerenClient({
   ] = useState(false);
 
   const [
-    slachtofferVoornaam,
-    setSlachtofferVoornaam,
-  ] = useState(
-    initialOngevalsgegevens.slachtofferVoornaam,
+    tweedeOngevalsgegevens,
+    setTweedeOngevalsgegevens,
+  ] = useState<OngevalsgegevensInput>(
+    initialTweedeOngevalsgegevens,
   );
-
-  const [slachtofferNaam, setSlachtofferNaam] =
-    useState(
-      initialOngevalsgegevens.slachtofferNaam,
-    );
-
-  const [ongevalsdatum, setOngevalsdatum] =
-    useState(
-      initialOngevalsgegevens.ongevalsdatum,
-    );
-
   const [
-    slachtofferWerkHervat,
-    setSlachtofferWerkHervat,
-  ] = useState<boolean | null>(
-    initialOngevalsgegevens.slachtofferWerkHervat,
-  );
-
-  const [
-    werkhervattingsdatum,
-    setWerkhervattingsdatum,
+    toonTweedeOngevalsgegevens,
+    setToonTweedeOngevalsgegevens,
   ] = useState(
-    initialOngevalsgegevens.werkhervattingsdatum,
+    initialTweedeOngevalsgegevens.ernstigArbeidsongeval,
   );
-
-  const [werkpostBezocht, setWerkpostBezocht] =
-    useState<boolean | null>(
-      initialOngevalsgegevens.werkpostBezocht,
-    );
 
   const aantalVolledigOntmoetePersonen =
     ontmoetePersonen.filter(
@@ -682,6 +828,13 @@ export default function InspectieUitvoerenClient({
       slachtofferVoornaam.trim() &&
         slachtofferNaam.trim() &&
         ongevalsdatum,
+    );
+  const tweedeOngevalsgegevensVolledig =
+    tweedeOngevalsgegevens.ernstigArbeidsongeval &&
+    Boolean(
+      tweedeOngevalsgegevens.slachtofferVoornaam.trim() &&
+        tweedeOngevalsgegevens.slachtofferNaam.trim() &&
+        tweedeOngevalsgegevens.ongevalsdatum,
     );
   const aantalAndereOpmerkingen =
     andereOpmerkingen.filter((opmerking) =>
@@ -926,7 +1079,9 @@ export default function InspectieUitvoerenClient({
 
   const zoekresultaten = useMemo(() => {
     const genormaliseerdeZoekterm =
-      zoekterm.trim().toLowerCase();
+      uitgesteldeZoekterm
+        .trim()
+        .toLocaleLowerCase("nl-BE");
 
     return standaardinbreuken.filter(
       (inbreuk) => {
@@ -977,7 +1132,7 @@ export default function InspectieUitvoerenClient({
     boekFilter,
     titelFilter,
     onderwerpFilter,
-    zoekterm,
+    uitgesteldeZoekterm,
     zoektekstPerInbreukId,
   ]);
 
@@ -1157,15 +1312,7 @@ export default function InspectieUitvoerenClient({
   }
 
   function huidigeOngevalsgegevens(): OngevalsgegevensInput {
-    return {
-      ernstigArbeidsongeval,
-      slachtofferVoornaam,
-      slachtofferNaam,
-      ongevalsdatum,
-      slachtofferWerkHervat,
-      werkhervattingsdatum,
-      werkpostBezocht,
-    };
+    return ongevalsgegevens;
   }
 
   function huidigeOntmoetePersonen(): OntmoetePersoonInput[] {
@@ -1211,7 +1358,10 @@ export default function InspectieUitvoerenClient({
 
   function wisselOngevalsgegevensPaneel() {
     if (!ernstigArbeidsongeval) {
-      setErnstigArbeidsongeval(true);
+      setOngevalsgegevens((huidigeGegevens) => ({
+        ...huidigeGegevens,
+        ernstigArbeidsongeval: true,
+      }));
       setToonOngevalsgegevens(true);
     } else {
       setToonOngevalsgegevens(
@@ -1288,8 +1438,32 @@ export default function InspectieUitvoerenClient({
   }
 
   function verwijderOngevalsgegevensUitVerslag() {
-    setErnstigArbeidsongeval(false);
+    setOngevalsgegevens(legeOngevalsgegevens());
+    setTweedeOngevalsgegevens(legeOngevalsgegevens());
     setToonOngevalsgegevens(false);
+    setToonTweedeOngevalsgegevens(false);
+    setExportFout("");
+  }
+
+  function wisselTweedeOngeval() {
+    if (!tweedeOngevalsgegevens.ernstigArbeidsongeval) {
+      setTweedeOngevalsgegevens({
+        ...legeOngevalsgegevens(),
+        ernstigArbeidsongeval: true,
+      });
+      setToonTweedeOngevalsgegevens(true);
+    } else {
+      setToonTweedeOngevalsgegevens(
+        (huidigeWaarde) => !huidigeWaarde,
+      );
+    }
+
+    setExportFout("");
+  }
+
+  function verwijderTweedeOngeval() {
+    setTweedeOngevalsgegevens(legeOngevalsgegevens());
+    setToonTweedeOngevalsgegevens(false);
     setExportFout("");
   }
 
@@ -1458,7 +1632,10 @@ export default function InspectieUitvoerenClient({
     };
 
     if (standaard.inbreukType === "EAO_CODES") {
-      setErnstigArbeidsongeval(true);
+      setOngevalsgegevens((huidigeGegevens) => ({
+        ...huidigeGegevens,
+        ernstigArbeidsongeval: true,
+      }));
       setToonOngevalsgegevens(true);
     }
 
@@ -1616,6 +1793,7 @@ export default function InspectieUitvoerenClient({
         inspectieId,
         invoer,
         huidigeOngevalsgegevens(),
+        tweedeOngevalsgegevens,
         huidigeOntmoetePersonen(),
         huidigeAndereOpmerkingen(),
       );
@@ -1923,6 +2101,20 @@ export default function InspectieUitvoerenClient({
       return;
     }
 
+    if (
+      tweedeOngevalsgegevens.ernstigArbeidsongeval &&
+      (!tweedeOngevalsgegevens.slachtofferVoornaam.trim() ||
+        !tweedeOngevalsgegevens.slachtofferNaam.trim() ||
+        !tweedeOngevalsgegevens.ongevalsdatum)
+    ) {
+      setToonOngevalsgegevens(true);
+      setToonTweedeOngevalsgegevens(true);
+      setExportFout(
+        "Vul alle basisgegevens over het tweede ernstig arbeidsongeval in.",
+      );
+      return;
+    }
+
     const onvolledigeOntmoetePersoon =
       huidigeOntmoetePersonen()
         .filter(
@@ -2060,6 +2252,23 @@ export default function InspectieUitvoerenClient({
                 werkhervattingsdatum,
                 werkpostBezocht:
                   werkpostIsBezocht,
+              }
+            : null,
+        tweedeErnstigArbeidsongeval:
+          tweedeOngevalsgegevens.ernstigArbeidsongeval
+            ? {
+                slachtofferVoornaam:
+                  tweedeOngevalsgegevens.slachtofferVoornaam,
+                slachtofferNaam:
+                  tweedeOngevalsgegevens.slachtofferNaam,
+                ongevalsdatum:
+                  tweedeOngevalsgegevens.ongevalsdatum,
+                slachtofferWerkHervat:
+                  tweedeOngevalsgegevens.slachtofferWerkHervat,
+                werkhervattingsdatum:
+                  tweedeOngevalsgegevens.werkhervattingsdatum,
+                werkpostBezocht:
+                  tweedeOngevalsgegevens.werkpostBezocht,
               }
             : null,
       });
@@ -2724,170 +2933,81 @@ export default function InspectieUitvoerenClient({
                 </button>
               </div>
 
-              <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Voornaam slachtoffer
-                  </span>
-                  <input
-                    type="text"
-                    value={slachtofferVoornaam}
-                    maxLength={100}
-                    onChange={(event) =>
-                      setSlachtofferVoornaam(
-                        event.target.value,
-                      )
-                    }
-                    autoComplete="off"
-                    className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
-                  />
-                </label>
+              <div className="space-y-4 p-4 sm:p-5">
+                <OngevalsgegevensVelden
+                  gegevens={ongevalsgegevens}
+                  naamPrefix="eerste-ongeval"
+                  onWijzig={(nieuweGegevens) => {
+                    setOngevalsgegevens(nieuweGegevens);
+                    setExportFout("");
+                  }}
+                />
 
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Naam slachtoffer
-                  </span>
-                  <input
-                    type="text"
-                    value={slachtofferNaam}
-                    maxLength={100}
-                    onChange={(event) =>
-                      setSlachtofferNaam(
-                        event.target.value,
-                      )
-                    }
-                    autoComplete="off"
-                    className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Datum ongeval
-                  </span>
-                  <input
-                    type="date"
-                    value={ongevalsdatum}
-                    onChange={(event) =>
-                      setOngevalsdatum(
-                        event.target.value,
-                      )
-                    }
-                    className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
-                  />
-                </label>
-
-                <fieldset className="sm:col-span-1 lg:col-span-1">
-                  <legend className="text-sm font-semibold text-slate-700">
-                    Slachtoffer opnieuw aan het werk?
-                  </legend>
-                  <div className="mt-2 grid grid-cols-3 gap-2">
-                    {(
-                      [
-                        null,
-                        true,
-                        false,
-                      ] as const
-                    ).map((waarde) => (
-                      <label
-                        key={String(waarde)}
-                        className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                          slachtofferWerkHervat ===
-                          waarde
-                            ? "border-amber-600 bg-amber-200 text-amber-950"
-                            : "border-amber-300 bg-white text-slate-700 hover:bg-amber-100"
-                        }`}
+                {tweedeOngevalsgegevens.ernstigArbeidsongeval &&
+                  toonTweedeOngevalsgegevens && (
+                  <section className="overflow-hidden rounded-xl border border-amber-300 bg-white/75 shadow-sm">
+                    <div className="flex items-start justify-between gap-3 border-b border-amber-200 bg-amber-100/70 px-4 py-3">
+                      <div>
+                        <h3 className="font-bold text-amber-950">
+                          Tweede arbeidsongeval
+                        </h3>
+                        <p className="mt-0.5 text-xs text-amber-800">
+                          Verschijnt als afzonderlijk genummerd onderdeel in het Word-verslag.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={verwijderTweedeOngeval}
+                        className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-700 transition hover:bg-red-50"
                       >
-                        <input
-                          type="radio"
-                          name="slachtofferWerkHervat"
-                          checked={
-                            slachtofferWerkHervat ===
-                            waarde
-                          }
-                          onChange={() =>
-                            setSlachtofferWerkHervat(
-                              waarde,
-                            )
-                          }
-                          className="h-4 w-4 accent-amber-600"
-                        />
-                        {waarde === null
-                          ? "Open"
-                          : waarde
-                            ? "Ja"
-                            : "Nee"}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-
-                {slachtofferWerkHervat && (
-                  <label className="block">
-                    <span className="text-sm font-semibold text-slate-700">
-                      Datum werkhervatting
-                    </span>
-                    <input
-                      type="date"
-                      value={werkhervattingsdatum}
-                      onChange={(event) =>
-                        setWerkhervattingsdatum(
-                          event.target.value,
-                        )
-                      }
-                      className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
-                    />
-                  </label>
+                        Verwijderen
+                      </button>
+                    </div>
+                    <div className="p-4">
+                      <OngevalsgegevensVelden
+                        gegevens={tweedeOngevalsgegevens}
+                        naamPrefix="tweede-ongeval"
+                        onWijzig={(nieuweGegevens) => {
+                          setTweedeOngevalsgegevens(nieuweGegevens);
+                          setExportFout("");
+                        }}
+                      />
+                    </div>
+                  </section>
                 )}
 
-                <fieldset
-                  className={
-                    slachtofferWerkHervat
-                      ? "sm:col-span-2 lg:col-span-1"
-                      : "sm:col-span-1 lg:col-span-2"
-                  }
-                >
-                  <legend className="text-sm font-semibold text-slate-700">
-                    Werkpost van het ongeval bezocht?
-                  </legend>
-                  <div className="mt-2 grid max-w-md grid-cols-3 gap-2">
-                    {(
-                      [
-                        null,
-                        true,
-                        false,
-                      ] as const
-                    ).map((waarde) => (
-                      <label
-                        key={String(waarde)}
-                        className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
-                          werkpostBezocht === waarde
-                            ? "border-amber-600 bg-amber-200 text-amber-950"
-                            : "border-amber-300 bg-white text-slate-700 hover:bg-amber-100"
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="werkpostBezocht"
-                          checked={
-                            werkpostBezocht === waarde
-                          }
-                          onChange={() =>
-                            setWerkpostBezocht(
-                              waarde,
-                            )
-                          }
-                          className="h-4 w-4 accent-amber-600"
-                        />
-                        {waarde === null
-                          ? "Open"
-                          : waarde
-                            ? "Ja"
-                            : "Nee"}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
+                <div className="flex justify-end border-t border-amber-200 pt-4">
+                  <button
+                    type="button"
+                    onClick={wisselTweedeOngeval}
+                    aria-expanded={
+                      tweedeOngevalsgegevens.ernstigArbeidsongeval &&
+                      toonTweedeOngevalsgegevens
+                    }
+                    className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-amber-300 ${
+                      tweedeOngevalsgegevens.ernstigArbeidsongeval
+                        ? "border-amber-400 bg-amber-100 text-amber-950 hover:bg-amber-200"
+                        : "border-amber-300 bg-white text-amber-900 hover:border-amber-500 hover:bg-amber-100"
+                    }`}
+                  >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500 text-slate-950">
+                      {tweedeOngevalsgegevensVolledig ? (
+                        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" className="h-4 w-4">
+                          <path d="m5 10 3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : (
+                        <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                          <path d="M10 4v12M4 10h12" strokeLinecap="round" />
+                        </svg>
+                      )}
+                    </span>
+                    {tweedeOngevalsgegevens.ernstigArbeidsongeval
+                      ? toonTweedeOngevalsgegevens
+                        ? "Tweede ongeval inklappen"
+                        : "Tweede ongeval openen"
+                      : "Tweede ongeval toevoegen"}
+                  </button>
+                </div>
               </div>
             </section>
           )}
@@ -3268,6 +3388,12 @@ export default function InspectieUitvoerenClient({
                         event.target.value,
                       )
                     }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                      }
+                    }}
+                    autoComplete="off"
                     placeholder="Onderwerp of kernwoord..."
                     className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
                   />

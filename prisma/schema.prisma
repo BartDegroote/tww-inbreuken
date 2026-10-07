@@ -53,6 +53,7 @@ model Inspectie {
   slachtofferWerkHervat Boolean?
   werkhervattingsdatum  String?
   werkpostBezocht       Boolean?
+  tweedeArbeidsongeval  Json               @default("{}")
   ontmoetePersonen      Json               @default("[]")
   andereOpmerkingen     Json               @default("[]")
   status                InspectieStatus    @default(CONCEPT)
@@ -142,7 +143,7 @@ model Standaardinbreuk {
   id String @id @default(cuid())
 
   geverifieerd Boolean @default(false)
-  inbreukType String  @default("STANDAARD")
+  inbreukType  String  @default("STANDAARD")
 
   wetgevingId String
   boekId      String?
@@ -175,8 +176,8 @@ model Standaardinbreuk {
 
   // Interne veldinformatie voor de inspecteur.
   // Deze tekst wordt nooit opgenomen in het Word-verslag.
-  inspecteurInfo               String?
-  inspecteurInfoIngeschakeld   Boolean @default(false)
+  inspecteurInfo             String?
+  inspecteurInfoIngeschakeld Boolean @default(false)
 
   // 5. Aanvulling inbreuk
   aanvulling       String?

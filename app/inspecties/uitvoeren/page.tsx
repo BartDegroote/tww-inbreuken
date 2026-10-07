@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { vereisGebruiker } from "@/lib/auth";
 import { haalBibliotheekGegevensOp } from "@/lib/bibliotheek-data";
 import { notFound, redirect } from "next/navigation";
+import type { OngevalsgegevensInput } from "@/app/inspecties/actions";
 
 import InspectieUitvoerenClient, { type Inbreuk } from "./InspectieUitvoerenClient";
 
@@ -24,6 +25,59 @@ function leesZoekParameter(
   }
 
   return waarde ?? "";
+}
+
+function leesOpgeslagenOngevalsgegevens(
+  waarde: unknown,
+): OngevalsgegevensInput {
+  const leeg: OngevalsgegevensInput = {
+    ernstigArbeidsongeval: false,
+    slachtofferVoornaam: "",
+    slachtofferNaam: "",
+    ongevalsdatum: "",
+    slachtofferWerkHervat: null,
+    werkhervattingsdatum: "",
+    werkpostBezocht: null,
+  };
+
+  if (
+    typeof waarde !== "object" ||
+    waarde === null ||
+    Array.isArray(waarde)
+  ) {
+    return leeg;
+  }
+
+  const gegevens = waarde as Record<string, unknown>;
+
+  return {
+    ernstigArbeidsongeval:
+      gegevens.ernstigArbeidsongeval === true,
+    slachtofferVoornaam:
+      typeof gegevens.slachtofferVoornaam === "string"
+        ? gegevens.slachtofferVoornaam
+        : "",
+    slachtofferNaam:
+      typeof gegevens.slachtofferNaam === "string"
+        ? gegevens.slachtofferNaam
+        : "",
+    ongevalsdatum:
+      typeof gegevens.ongevalsdatum === "string"
+        ? gegevens.ongevalsdatum
+        : "",
+    slachtofferWerkHervat:
+      typeof gegevens.slachtofferWerkHervat === "boolean"
+        ? gegevens.slachtofferWerkHervat
+        : null,
+    werkhervattingsdatum:
+      typeof gegevens.werkhervattingsdatum === "string"
+        ? gegevens.werkhervattingsdatum
+        : "",
+    werkpostBezocht:
+      typeof gegevens.werkpostBezocht === "boolean"
+        ? gegevens.werkpostBezocht
+        : null,
+  };
 }
 
 export default async function InspectieUitvoerenPagina({
@@ -60,6 +114,7 @@ export default async function InspectieUitvoerenPagina({
         slachtofferWerkHervat: true,
         werkhervattingsdatum: true,
         werkpostBezocht: true,
+        tweedeArbeidsongeval: true,
         inbreuken: {
           orderBy: { volgorde: "asc" },
           select: {
@@ -310,6 +365,11 @@ export default async function InspectieUitvoerenPagina({
         werkpostBezocht:
           inspectie.werkpostBezocht,
       }}
+      initialTweedeOngevalsgegevens={
+        leesOpgeslagenOngevalsgegevens(
+          inspectie.tweedeArbeidsongeval,
+        )
+      }
       wetgevingen={wetgevingen}
       boeken={boeken}
       titels={titels}

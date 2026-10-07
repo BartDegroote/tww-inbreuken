@@ -85,6 +85,7 @@ export type WordInspectie = {
   andereOpmerkingen?: string[];
   inbreuken: WordInbreuk[];
   ernstigArbeidsongeval?: WordOngevalsgegevens | null;
+  tweedeErnstigArbeidsongeval?: WordOngevalsgegevens | null;
 };
 
 const LETTERTYPE = "Verdana";
@@ -1318,6 +1319,7 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
   if (
     inspectie.inbreuken.length === 0 &&
     !inspectie.ernstigArbeidsongeval &&
+    !inspectie.tweedeErnstigArbeidsongeval &&
     !heeftAndereOpmerkingen
   ) {
     throw new Error(
@@ -1558,6 +1560,10 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
             : maakOngevalsParagrafen(
                 inspectie.ernstigArbeidsongeval,
               )),
+
+          ...maakOngevalsParagrafen(
+            inspectie.tweedeErnstigArbeidsongeval,
+          ),
 
           ...maakAndereOpmerkingenParagrafen(
             inspectie.andereOpmerkingen,

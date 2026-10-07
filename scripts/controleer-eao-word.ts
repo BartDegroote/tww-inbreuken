@@ -59,6 +59,14 @@ const inspectie: WordInspectie = {
     werkhervattingsdatum: "",
     werkpostBezocht: false,
   },
+  tweedeErnstigArbeidsongeval: {
+    slachtofferVoornaam: "Eva",
+    slachtofferNaam: "Peeters",
+    ongevalsdatum: "2026-01-17",
+    slachtofferWerkHervat: true,
+    werkhervattingsdatum: "2026-02-02",
+    werkpostBezocht: true,
+  },
   inbreuken: [
     {
       inbreukType: "STANDAARD",
