@@ -16,7 +16,6 @@ import {
   formatteerRapportDatum,
   maakRokenPdfBestandsnaam,
   maakRokenPdfBuffer,
-  vervlakRokenPdfAlsAfdruk,
 } from "@/lib/roken-pdf-export";
 
 type LocatieType = "adres" | "autosnelweg";
@@ -428,7 +427,7 @@ export default function Roken105Pagina() {
       const sjabloon = await antwoord.arrayBuffer();
       await controleerRokenPdfSjabloonIntegriteit(sjabloon);
       const rapportDatum = formatteerRapportDatum(new Date());
-      const ingevuldePdfBuffer = await maakRokenPdfBuffer(
+      const pdfBuffer = await maakRokenPdfBuffer(
         sjabloon,
         {
           onderneming: onderneming.trim(),
@@ -445,7 +444,6 @@ export default function Roken105Pagina() {
           nummerplaat,
         },
       );
-      const pdfBuffer = await vervlakRokenPdfAlsAfdruk(ingevuldePdfBuffer);
 
       const blob = new Blob([Uint8Array.from(pdfBuffer).buffer], {
         type: "application/pdf",
