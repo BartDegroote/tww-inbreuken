@@ -21,11 +21,13 @@ async function voerTestUit() {
   } = await import(EXPORT_MODULE_PAD);
   const sjabloonBuffer = await readFile(SJABLOON_PAD);
   const sjabloon = naarArrayBuffer(sjabloonBuffer);
+  const langeOndernemingsnaam =
+    "NATIONALE MAATSCHAPPIJ DER BELGISCHE SPOORWEGEN";
 
   await controleerRokenPdfSjabloonIntegriteit(sjabloon);
 
   const resultaat = await maakRokenPdfBuffer(sjabloon, {
-    onderneming: "LiquidFloors",
+    onderneming: langeOndernemingsnaam,
     straatEnNummer: "Bekaertstraat 8/1",
     postcode: "8550",
     plaats: "Zwevegem",
@@ -50,11 +52,11 @@ async function voerTestUit() {
   assert.equal(pdf.getPageCount(), 1, "De rookbrief moet exact één pagina tellen.");
   assert.equal(
     pdf.getTitle(),
-    "Schriftelijke waarschuwing roken - LiquidFloors",
+    `Schriftelijke waarschuwing roken - ${langeOndernemingsnaam}`,
   );
   assert.equal(
-    maakRokenPdfBestandsnaam("02/2026/2939", "LiquidFloors"),
-    "02 2026 2939 105 LIQUIDFLOORS.pdf",
+    maakRokenPdfBestandsnaam("02/2026/2939", langeOndernemingsnaam),
+    `02 2026 2939 105 ${langeOndernemingsnaam}.pdf`,
   );
 }
 

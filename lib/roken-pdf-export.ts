@@ -18,6 +18,7 @@ export const ROKEN_PDF_SJABLOON_SHA256 =
   "afcd501e417a4c135c3ef759fbd1732201cafa4b2c0616ec7e5f69c3d035faaf";
 export const MAX_PDF_LOCATIE_BREEDTESCORE = 63.5;
 export const MAX_FLOW_VOLGNUMMER_TEKENS = 8;
+export const MAX_ONDERNEMINGSNAAM_TEKENS = 100;
 
 type Invulveld = {
   x: number;
@@ -220,8 +221,11 @@ export async function maakRokenPdfBuffer(
     {
       x: 74.5,
       onderkantVanafBoven: 161.15,
-      wisBreedte: 230,
-      maximaleTekstbreedte: 230,
+      // Op deze regel staat rechts geen andere inhoud. Benut daarom de
+      // beschikbare paginabreedte, zodat ook lange officiële namen volledig
+      // en op een goed leesbare lettergrootte worden weergegeven.
+      wisBreedte: 440,
+      maximaleTekstbreedte: 440,
       lettergrootte: 10,
       minimaleLettergrootte: 8,
       tekst: gegevens.onderneming,

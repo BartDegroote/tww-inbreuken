@@ -16,6 +16,7 @@ import {
   formatteerRapportDatum,
   maakRokenPdfBestandsnaam,
   maakRokenPdfBuffer,
+  MAX_ONDERNEMINGSNAAM_TEKENS,
 } from "@/lib/roken-pdf-export";
 
 type LocatieType = "adres" | "autosnelweg";
@@ -512,7 +513,7 @@ export default function Roken105Pagina() {
                   <input
                     type="text"
                     required
-                    maxLength={60}
+                    maxLength={MAX_ONDERNEMINGSNAAM_TEKENS}
                     value={onderneming}
                     onChange={(event) => setOnderneming(event.target.value)}
                     className={INVOERKLASSE}
