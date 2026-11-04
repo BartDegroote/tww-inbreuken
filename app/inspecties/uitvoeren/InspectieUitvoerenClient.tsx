@@ -20,6 +20,7 @@ import {
   type VaststellingInput,
 } from "@/app/inspecties/actions";
 import AppBalk from "@/app/componenten/AppBalk";
+import FotoAnnotatieEditor from "@/app/inspecties/uitvoeren/FotoAnnotatieEditor";
 
 import type {
   EaoCodeOptie,
@@ -701,6 +702,9 @@ export default function InspectieUitvoerenClient({
 
   const [fotos, setFotos] =
     useState<InspectieFoto[]>([]);
+
+  const [fotoOmAanTeDuiden, setFotoOmAanTeDuiden] =
+    useState<InspectieFoto | null>(null);
 
   const [opslagStatus, setOpslagStatus] = useState("");
   const [persoonToevoegenBezig, setPersoonToevoegenBezig] =
@@ -1468,6 +1472,7 @@ export default function InspectieUitvoerenClient({
   }
 
   function sluitBewerkvenster() {
+    setFotoOmAanTeDuiden(null);
     maakFormulierLeeg();
     setGetoondeInspecteurInfo(null);
     setExportFout("");
@@ -1742,6 +1747,22 @@ export default function InspectieUitvoerenClient({
         (foto) => foto.id !== fotoId,
       ),
     );
+    setExportFout("");
+  }
+
+  function bewaarAangeduideFoto(fotoId: string, bestand: File) {
+    setFotos((huidigeFotos) =>
+      huidigeFotos.map((foto) =>
+        foto.id === fotoId
+          ? {
+              id: maakTijdelijkId(),
+              naam: bestand.name,
+              bestand,
+            }
+          : foto,
+      ),
+    );
+    setFotoOmAanTeDuiden(null);
     setExportFout("");
   }
 
@@ -4104,21 +4125,47 @@ export default function InspectieUitvoerenClient({
                             (foto, index) => (
                               <li
                                 key={`${foto.id}-${index}`}
-                                className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                                className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between"
                               >
                                 <span className="min-w-0 break-all">
                                   {foto.naam}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    verwijderFoto(foto.id)
-                                  }
-                                  aria-label={`Verwijder foto ${foto.naam}`}
-                                  className="shrink-0 rounded-md px-2 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-800"
-                                >
-                                  Verwijderen
-                                </button>
+                                <span className="flex shrink-0 items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setFotoOmAanTeDuiden(foto)
+                                    }
+                                    aria-label={`Open ${foto.naam} en plaats een pijl`}
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
+                                  >
+                                    <svg
+                                      aria-hidden="true"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      className="h-4 w-4"
+                                    >
+                                      <path
+                                        d="M19 5 8 16m0 0h7m-7 0V9"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                    Openen en aanduiden
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      verwijderFoto(foto.id)
+                                    }
+                                    aria-label={`Verwijder foto ${foto.naam}`}
+                                    className="min-h-10 shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-800"
+                                  >
+                                    Verwijderen
+                                  </button>
+                                </span>
                               </li>
                             ),
                           )}
@@ -4175,6 +4222,19 @@ export default function InspectieUitvoerenClient({
             )}
           </section>
         </div>
+
+        {fotoOmAanTeDuiden && (
+          <FotoAnnotatieEditor
+            foto={fotoOmAanTeDuiden}
+            onAnnuleren={() => setFotoOmAanTeDuiden(null)}
+            onOpslaan={(bestand) =>
+              bewaarAangeduideFoto(
+                fotoOmAanTeDuiden.id,
+                bestand,
+              )
+            }
+          />
+        )}
 
         <footer
           aria-label="Inspectieacties"

@@ -183,6 +183,62 @@ function haalIngebedLettertypeOp(
   );
 }
 
+function voegPaginaInhoudSamen(
+  pdf: PDFDocument,
+  pagina: PDFPage,
+): void {
+  const inhoud = pagina.node.Contents();
+
+  if (!inhoud) {
+    throw new Error("De afgewerkte PDF bevat geen pagina-inhoud.");
+  }
+
+  const inhoudsobjecten = inhoud instanceof PDFArray
+    ? Array.from(
+        { length: inhoud.size() },
+        (_, index) => inhoud.get(index),
+      )
+    : [inhoud];
+  const stromen = inhoudsobjecten.map((inhoudsobject) => {
+    const stroom = pdf.context.lookup(inhoudsobject);
+
+    if (!(stroom instanceof PDFRawStream)) {
+      throw new Error(
+        "De pagina-inhoud kon niet tot één PDF-laag worden samengevoegd.",
+      );
+    }
+
+    return stroom;
+  });
+  const gedecodeerdeStromen = stromen.map((stroom) =>
+    decodePDFRawStream(stroom).decode(),
+  );
+  const totaleLengte = gedecodeerdeStromen.reduce(
+    (totaal, stroom) => totaal + stroom.length + 1,
+    0,
+  );
+  const samengevoegdeInhoud = new Uint8Array(totaleLengte);
+  let positie = 0;
+
+  gedecodeerdeStromen.forEach((stroom) => {
+    samengevoegdeInhoud.set(stroom, positie);
+    positie += stroom.length;
+    samengevoegdeInhoud[positie] = 0x0a;
+    positie += 1;
+  });
+
+  const samengevoegdeStroom = pdf.context.flateStream(
+    samengevoegdeInhoud,
+  );
+  const samengevoegdeVerwijzing = pdf.context.register(
+    samengevoegdeStroom,
+  );
+  pagina.node.set(
+    PDFName.of("Contents"),
+    samengevoegdeVerwijzing,
+  );
+}
+
 export async function maakRokenPdfBuffer(
   sjabloon: ArrayBuffer,
   gegevens: RokenRapportGegevens,
@@ -424,5 +480,17 @@ export async function maakRokenPdfBuffer(
   pdf.setCreator("WebApp TWW");
   pdf.setProducer("WebApp TWW");
 
-  return pdf.save({ useObjectStreams: false });
+  // pdf-lib voegt de ingevulde gegevens standaard als afzonderlijke
+  // inhoudsstromen toe. Sommige PDF-lezers tonen daardoor tijdens het laden
+  // heel kort eerst het blanco sjabloon en daarna pas de invulling. Herlaad
+  // het afgewerkte document en voeg alle tekeninstructies samen tot één
+  // inhoudsstroom. De pagina blijft volledig vectorieel en scherp.
+  const tussentijdsePdf = await pdf.save({ useObjectStreams: false });
+  const samengevoegdePdf = await PDFDocument.load(tussentijdsePdf);
+  voegPaginaInhoudSamen(
+    samengevoegdePdf,
+    samengevoegdePdf.getPage(0),
+  );
+
+  return samengevoegdePdf.save({ useObjectStreams: false });
 }

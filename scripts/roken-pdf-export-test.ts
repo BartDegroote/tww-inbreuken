@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { PDFDocument } from "pdf-lib";
+import { PDFArray, PDFDocument } from "pdf-lib";
 
 const SJABLOON_PAD = "public/sjablonen/105-roken-sjabloon.pdf";
 const EXPORT_MODULE_PAD = "../lib/roken-pdf-export.ts";
@@ -50,6 +50,11 @@ async function voerTestUit() {
 
   const pdf = await PDFDocument.load(resultaat);
   assert.equal(pdf.getPageCount(), 1, "De rookbrief moet exact één pagina tellen.");
+  assert.equal(
+    pdf.getPage(0).node.Contents() instanceof PDFArray,
+    false,
+    "De afgewerkte rookbrief moet één samengevoegde inhoudsstroom gebruiken.",
+  );
   assert.equal(
     pdf.getTitle(),
     `Schriftelijke waarschuwing roken - ${langeOndernemingsnaam}`,
