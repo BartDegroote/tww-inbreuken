@@ -5,7 +5,10 @@ import { haalBibliotheekGegevensOp } from "@/lib/bibliotheek-data";
 import { notFound, redirect } from "next/navigation";
 import type { OngevalsgegevensInput } from "@/app/inspecties/actions";
 
-import InspectieUitvoerenClient, { type Inbreuk } from "./InspectieUitvoerenClient";
+import InspectieUitvoerenClient, {
+  type AndereOpmerkingRij,
+  type Inbreuk,
+} from "./InspectieUitvoerenClient";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +110,14 @@ export default async function InspectieUitvoerenPagina({
         flow: true,
         ontmoetePersonen: true,
         andereOpmerkingen: true,
+        andereOpmerkingFotos: {
+          orderBy: { aangemaaktOp: "asc" },
+          select: {
+            id: true,
+            naam: true,
+            opmerkingId: true,
+          },
+        },
         ernstigArbeidsongeval: true,
         slachtofferVoornaam: true,
         slachtofferNaam: true,
@@ -325,15 +336,61 @@ export default async function InspectieUitvoerenPagina({
       )
     : [];
 
-  const initialAndereOpmerkingen = Array.isArray(
-    inspectie.andereOpmerkingen,
-  )
-    ? inspectie.andereOpmerkingen.filter(
-        (opmerking): opmerking is string =>
-          typeof opmerking === "string" &&
-          opmerking.trim().length > 0,
-      )
-    : [];
+  const initialAndereOpmerkingen: AndereOpmerkingRij[] =
+    Array.isArray(inspectie.andereOpmerkingen)
+      ? inspectie.andereOpmerkingen.flatMap(
+          (opmerking, index) => {
+            const id =
+              typeof opmerking === "object" &&
+              opmerking !== null &&
+              !Array.isArray(opmerking) &&
+              typeof (
+                opmerking as { id?: unknown }
+              ).id === "string"
+                ? (opmerking as { id: string }).id
+                : `legacy-opmerking-${index + 1}`;
+            const tekst =
+              typeof opmerking === "string"
+                ? opmerking
+                : typeof opmerking === "object" &&
+                    opmerking !== null &&
+                    !Array.isArray(opmerking) &&
+                    typeof (
+                      opmerking as {
+                        tekst?: unknown;
+                      }
+                    ).tekst === "string"
+                  ? (
+                      opmerking as {
+                        tekst: string;
+                      }
+                    ).tekst
+                  : "";
+
+            if (!tekst.trim()) {
+              return [];
+            }
+
+            return [
+              {
+                id,
+                tekst,
+                fotos:
+                  inspectie.andereOpmerkingFotos
+                    .filter(
+                      (foto) =>
+                        foto.opmerkingId === id,
+                    )
+                    .map((foto) => ({
+                      id: foto.id,
+                      naam: foto.naam,
+                      url: `/api/opmerking-fotos/${foto.id}`,
+                    })),
+              },
+            ];
+          },
+        )
+      : [];
 
   return (
     <InspectieUitvoerenClient

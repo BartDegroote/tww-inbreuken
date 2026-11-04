@@ -61,11 +61,25 @@ model Inspectie {
   gebruikerId           String
   gebruiker             Gebruiker          @relation(fields: [gebruikerId], references: [id], onDelete: Cascade)
   inbreuken             InspectieInbreuk[]
+  andereOpmerkingFotos  AndereOpmerkingFoto[]
   aangemaaktOp          DateTime           @default(now())
   gewijzigdOp           DateTime           @updatedAt
 
   @@index([gebruikerId, status])
   @@index([gebruikerId, gewijzigdOp])
+}
+
+model AndereOpmerkingFoto {
+  id           String    @id @default(cuid())
+  naam         String
+  mimeType     String
+  data         Bytes
+  opmerkingId  String
+  inspectieId  String
+  inspectie    Inspectie @relation(fields: [inspectieId], references: [id], onDelete: Cascade)
+  aangemaaktOp DateTime  @default(now())
+
+  @@index([inspectieId, opmerkingId])
 }
 
 model InspectieInbreuk {

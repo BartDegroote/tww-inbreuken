@@ -9,7 +9,10 @@ import {
   type InbreukType,
 } from "@/bibliotheek";
 import { vereisGebruiker } from "@/lib/auth";
-import { MAX_FOTOS_PER_INBREUK } from "@/lib/inspectie-limieten";
+import {
+  MAX_FOTOS_PER_INBREUK,
+  MAX_FOTOS_PER_OPMERKING,
+} from "@/lib/inspectie-limieten";
 import { prisma } from "@/lib/prisma";
 
 export type VaststellingInput = {
@@ -122,7 +125,11 @@ export type OntmoetePersoonInput = {
   functie: string;
 };
 
-export type AndereOpmerkingInput = string;
+export type AndereOpmerkingInput = {
+  id: string;
+  tekst: string;
+  bewaardeFotoIds: string[];
+};
 
 function controleerEaoCode(
   categorie: EaoCodeCategorie,
@@ -202,20 +209,53 @@ function normaliseerOntmoetePersonen(
 
 function normaliseerAndereOpmerkingen(
   opmerkingen: AndereOpmerkingInput[],
-): string[] {
+): AndereOpmerkingInput[] {
   if (opmerkingen.length > 50) {
     throw new Error(
       "Je kunt maximaal 50 andere opmerkingen toevoegen.",
     );
   }
 
+  const ids = opmerkingen.map((opmerking) =>
+    opmerking.id.trim(),
+  );
+
+  if (
+    ids.some(
+      (id) =>
+        !id ||
+        id.length > 100 ||
+        !/^[a-zA-Z0-9_-]+$/.test(id),
+    ) ||
+    new Set(ids).size !== ids.length
+  ) {
+    throw new Error(
+      "De andere opmerkingen bevatten een ongeldige identificatie.",
+    );
+  }
+
   return opmerkingen
-    .map((opmerking) => opmerking.trim())
-    .filter(Boolean)
+    .map((opmerking) => ({
+      id: opmerking.id.trim(),
+      tekst: opmerking.tekst.trim(),
+      bewaardeFotoIds: Array.from(
+        new Set(opmerking.bewaardeFotoIds),
+      ),
+    }))
+    .filter((opmerking) => Boolean(opmerking.tekst))
     .map((opmerking) => {
-      if (opmerking.length > 2_000) {
+      if (opmerking.tekst.length > 2_000) {
         throw new Error(
           "Een andere opmerking mag maximaal 2.000 tekens bevatten.",
+        );
+      }
+
+      if (
+        opmerking.bewaardeFotoIds.length >
+        MAX_FOTOS_PER_OPMERKING
+      ) {
+        throw new Error(
+          `Je kunt maximaal ${MAX_FOTOS_PER_OPMERKING} foto’s aan één andere opmerking koppelen.`,
         );
       }
 
@@ -565,7 +605,9 @@ export async function bewaarInspectie(
         ontmoetePersonen:
           genormaliseerdeOntmoetePersonen,
         andereOpmerkingen:
-          genormaliseerdeAndereOpmerkingen,
+          genormaliseerdeAndereOpmerkingen.map(
+            ({ id, tekst }) => ({ id, tekst }),
+          ),
         ernstigArbeidsongeval:
           eersteOngeval.ernstigArbeidsongeval,
         slachtofferVoornaam:
@@ -607,6 +649,43 @@ export async function bewaarInspectie(
         gewijzigdOp: new Date(),
       },
     });
+
+    const opmerkingIds =
+      genormaliseerdeAndereOpmerkingen.map(
+        (opmerking) => opmerking.id,
+      );
+
+    if (opmerkingIds.length === 0) {
+      await transactie.andereOpmerkingFoto.deleteMany({
+        where: { inspectieId },
+      });
+    } else {
+      await transactie.andereOpmerkingFoto.deleteMany({
+        where: {
+          inspectieId,
+          OR: [
+            {
+              opmerkingId: {
+                notIn: opmerkingIds,
+              },
+            },
+            ...genormaliseerdeAndereOpmerkingen.map(
+              (opmerking) => ({
+                opmerkingId: opmerking.id,
+                ...(opmerking.bewaardeFotoIds.length > 0
+                  ? {
+                      id: {
+                        notIn:
+                          opmerking.bewaardeFotoIds,
+                      },
+                    }
+                  : {}),
+              }),
+            ),
+          ],
+        },
+      });
+    }
   }, { timeout: 60_000 });
 
   revalidatePath("/inspecties");

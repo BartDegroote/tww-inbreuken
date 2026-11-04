@@ -376,10 +376,11 @@ function BeperkteTeksteditor({
       return;
     }
 
-    if (
-      editor.innerHTML !== html &&
-      laatsteVerzondenHtml.current !== html
-    ) {
+    if (laatsteVerzondenHtml.current === html) {
+      return;
+    }
+
+    if (editor.innerHTML !== html) {
       editor.innerHTML = html;
     }
   }, [html]);
@@ -402,8 +403,17 @@ function BeperkteTeksteditor({
         nieuweSegmenten,
       );
 
+    // Bewaar dezelfde genormaliseerde HTML die na de state-update via de
+    // props terugkomt. De browser kan contentEditable-HTML anders noteren
+    // (bijvoorbeeld rgb-kleuren of divs rond nieuwe regels). Als we hier de
+    // ruwe innerHTML bewaren, ziet de effect-hook elke toetsaanslag ten
+    // onrechte als een externe wijziging en springt de cursor naar het begin.
     laatsteVerzondenHtml.current =
-      editor.innerHTML;
+      segmentenNaarHtml(
+        nieuweTekst,
+        nieuweSegmenten,
+        opmaakType,
+      );
 
     onChange(
       nieuweTekst,

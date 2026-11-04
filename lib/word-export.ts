@@ -75,6 +75,11 @@ export type WordOntmoetePersoon = {
   functie: string;
 };
 
+export type WordAndereOpmerking = {
+  tekst: string;
+  fotos?: WordFoto[];
+};
+
 export type WordInspectie = {
   onderneming: string;
   adres: string;
@@ -82,7 +87,7 @@ export type WordInspectie = {
   inspecteur: string;
   flow: string;
   ontmoetePersonen?: WordOntmoetePersoon[];
-  andereOpmerkingen?: string[];
+  andereOpmerkingen?: WordAndereOpmerking[];
   inbreuken: WordInbreuk[];
   ernstigArbeidsongeval?: WordOngevalsgegevens | null;
   tweedeErnstigArbeidsongeval?: WordOngevalsgegevens | null;
@@ -491,11 +496,14 @@ function maakOntmoetePersonenParagrafen(
 }
 
 function maakAndereOpmerkingenParagrafen(
-  opmerkingen: string[] = [],
+  opmerkingen: WordAndereOpmerking[] = [],
 ): Paragraph[] {
   const geldigeOpmerkingen = opmerkingen
-    .map((opmerking) => opmerking.trim())
-    .filter(Boolean);
+    .map((opmerking) => ({
+      ...opmerking,
+      tekst: opmerking.tekst.trim(),
+    }))
+    .filter((opmerking) => Boolean(opmerking.tekst));
 
   if (geldigeOpmerkingen.length === 0) {
     return [];
@@ -503,8 +511,8 @@ function maakAndereOpmerkingenParagrafen(
 
   return [
     maakVerslagOnderdeelTitel("Andere opmerkingen:"),
-    ...geldigeOpmerkingen.map(
-      (opmerking) =>
+    ...geldigeOpmerkingen.flatMap(
+      (opmerking) => [
         new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
           numbering: {
@@ -519,12 +527,14 @@ function maakAndereOpmerkingenParagrafen(
           },
           children: [
             new TextRun({
-              text: opmerking,
+              text: opmerking.tekst,
               size: HOOFDTEKST_GROOTTE,
               font: LETTERTYPE,
             }),
           ],
         }),
+        ...maakFotoParagrafen(opmerking.fotos),
+      ],
     ),
   ];
 }
@@ -686,90 +696,127 @@ function maakFotoParagrafen(
     0,
     MAX_FOTOS_PER_INBREUK,
   );
-  const verhoudingen = getoondeFotos.map(
-    (foto) =>
-      foto.hoogte > 0 &&
-      foto.breedte > 0
+  const fotoRijen: WordFoto[][] = [];
+
+  for (
+    let index = 0;
+    index < getoondeFotos.length;
+    index += 2
+  ) {
+    fotoRijen.push(
+      getoondeFotos.slice(index, index + 2),
+    );
+  }
+
+  let vorigeRijHoogte: number | null = null;
+
+  return fotoRijen.map((fotoRij, rijIndex) => {
+    const verhoudingen = fotoRij.map((foto) =>
+      foto.hoogte > 0 && foto.breedte > 0
         ? foto.breedte / foto.hoogte
         : 1,
-  );
-  const beschikbareFotobreedte =
-    FOTO_REGELBREEDTE_PX -
-    (getoondeFotos.length > 1
-      ? FOTO_TUSSENRUIMTE_PX
-      : 0);
-  const gezamenlijkeVerhouding =
-    verhoudingen.reduce(
-      (totaal, verhouding) =>
-        totaal + verhouding,
-      0,
     );
-  // Beide foto's krijgen exact dezelfde hoogte en blijven samen op één regel.
-  const fotoHoogte = Math.max(
-    1,
-    Math.min(
-      FOTO_HOOGTE_PX,
-      Math.floor(
-        beschikbareFotobreedte /
-          Math.max(
-            gezamenlijkeVerhouding,
-            1,
-          ),
+    const beschikbareFotobreedte =
+      FOTO_REGELBREEDTE_PX -
+      Math.max(0, fotoRij.length - 1) *
+        FOTO_TUSSENRUIMTE_PX;
+    const gezamenlijkeVerhouding =
+      verhoudingen.reduce(
+        (totaal, verhouding) =>
+          totaal + verhouding,
+        0,
+      );
+    let fotoHoogte = Math.max(
+      1,
+      Math.min(
+        FOTO_HOOGTE_PX,
+        Math.floor(
+          beschikbareFotobreedte /
+            Math.max(
+              gezamenlijkeVerhouding,
+              1,
+            ),
+        ),
       ),
-    ),
-  );
-  const afbeeldingRuns = getoondeFotos.flatMap(
-    (foto, index) => {
-      const breedte = Math.max(
+    );
+
+    // Een losse derde foto blijft even hoog als de foto's op de eerste regel,
+    // in plaats van over de volledige regel te worden uitvergroot.
+    if (
+      fotoRij.length === 1 &&
+      vorigeRijHoogte !== null
+    ) {
+      fotoHoogte = Math.max(
         1,
-        Math.round(
-          fotoHoogte * verhoudingen[index],
+        Math.min(
+          vorigeRijHoogte,
+          Math.floor(
+            beschikbareFotobreedte /
+              Math.max(
+                verhoudingen[0],
+                1,
+              ),
+          ),
         ),
       );
-      const runs: Array<ImageRun | TextRun> = [];
+    }
 
-      if (index > 0) {
+    vorigeRijHoogte = fotoHoogte;
+
+    const afbeeldingRuns = fotoRij.flatMap(
+      (foto, index) => {
+        const breedte = Math.max(
+          1,
+          Math.round(
+            fotoHoogte * verhoudingen[index],
+          ),
+        );
+        const runs: Array<ImageRun | TextRun> = [];
+
+        if (index > 0) {
+          runs.push(
+            new TextRun({
+              text: FOTO_TUSSENRUIMTE,
+              size: HOOFDTEKST_GROOTTE,
+              font: LETTERTYPE,
+            }),
+          );
+        }
+
         runs.push(
-          new TextRun({
-            text: FOTO_TUSSENRUIMTE,
-            size: HOOFDTEKST_GROOTTE,
-            font: LETTERTYPE,
+          new ImageRun({
+            data: foto.data,
+            type: "png",
+            transformation: {
+              width: breedte,
+              height: fotoHoogte,
+            },
+            altText: {
+              title: foto.naam,
+              description: foto.naam,
+              name: foto.naam,
+            },
           }),
         );
-      }
 
-      runs.push(
-        new ImageRun({
-          data: foto.data,
-          type: "png",
-          transformation: {
-            width: breedte,
-            height: fotoHoogte,
-          },
-          altText: {
-            title: foto.naam,
-            description: foto.naam,
-            name: foto.naam,
-          },
-        }),
-      );
+        return runs;
+      },
+    );
 
-      return runs;
-    },
-  );
-
-  return [
-    new Paragraph({
+    return new Paragraph({
       indent: {
         left: TEKST_INSPrONG,
       },
       spacing: {
-        before: 50,
-        after: 140,
+        before: rijIndex === 0 ? 50 : 0,
+        after:
+          rijIndex === fotoRijen.length - 1
+            ? 140
+            : 50,
       },
       children: afbeeldingRuns,
-    }),
-  ];
+    });
+  });
 }
 
 function maakInbreukParagrafen(
@@ -1313,7 +1360,8 @@ function maakOngevalsParagrafen(
 export function maakWordDocument(inspectie: WordInspectie): Document {
   const heeftAndereOpmerkingen =
     inspectie.andereOpmerkingen?.some(
-      (opmerking) => opmerking.trim().length > 0,
+      (opmerking) =>
+        opmerking.tekst.trim().length > 0,
     ) ?? false;
 
   if (

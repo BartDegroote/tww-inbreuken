@@ -14,6 +14,7 @@ import {
   bewaarOntmoetePersonen,
   bewaarInspectie,
   type Aanspreking,
+  type AndereOpmerkingInput,
   type OntmoetePersoonInput,
   type OngevalsgegevensInput,
   type OpgeslagenInbreukInput,
@@ -46,7 +47,10 @@ import {
   type WordFoto,
   type WordInbreuk,
 } from "@/lib/word-export";
-import { MAX_FOTOS_PER_INBREUK } from "@/lib/inspectie-limieten";
+import {
+  MAX_FOTOS_PER_INBREUK,
+  MAX_FOTOS_PER_OPMERKING,
+} from "@/lib/inspectie-limieten";
 import { sorteerInbreukenJuridisch } from "@/lib/juridische-sortering";
 
 type WetgevingOptie = {
@@ -76,16 +80,17 @@ type OntmoetePersoonRij =
     id: string;
   };
 
-type AndereOpmerkingRij = {
-  id: string;
-  tekst: string;
-};
-
 export type InspectieFoto = {
   id: string;
   naam: string;
   url?: string;
   bestand?: File;
+};
+
+export type AndereOpmerkingRij = {
+  id: string;
+  tekst: string;
+  fotos: InspectieFoto[];
 };
 
 export type Inbreuk = {
@@ -118,7 +123,7 @@ type InspectieUitvoerenClientProps = {
   inspecteur: string;
   flow: string;
   initialOntmoetePersonen: OntmoetePersoonInput[];
-  initialAndereOpmerkingen: string[];
+  initialAndereOpmerkingen: AndereOpmerkingRij[];
   initialOngevalsgegevens: OngevalsgegevensInput;
   initialTweedeOngevalsgegevens: OngevalsgegevensInput;
   wetgevingen: WetgevingOptie[];
@@ -771,17 +776,22 @@ export default function InspectieUitvoerenClient({
   const [
     andereOpmerkingen,
     setAndereOpmerkingen,
-  ] = useState<AndereOpmerkingRij[]>(() =>
-    initialAndereOpmerkingen.map((tekst) => ({
-      id: maakTijdelijkId(),
-      tekst,
-    })),
+  ] = useState<AndereOpmerkingRij[]>(
+    initialAndereOpmerkingen,
   );
 
   const [
     toonAndereOpmerkingen,
     setToonAndereOpmerkingen,
   ] = useState(false);
+
+  const [
+    opmerkingFotoOmAanTeDuiden,
+    setOpmerkingFotoOmAanTeDuiden,
+  ] = useState<{
+    opmerkingId: string;
+    foto: InspectieFoto;
+  } | null>(null);
 
   const [ongevalsgegevens, setOngevalsgegevens] =
     useState<OngevalsgegevensInput>(
@@ -1329,10 +1339,16 @@ export default function InspectieUitvoerenClient({
     );
   }
 
-  function huidigeAndereOpmerkingen(): string[] {
+  function huidigeAndereOpmerkingen(): AndereOpmerkingInput[] {
     return andereOpmerkingen
-      .map((opmerking) => opmerking.tekst.trim())
-      .filter(Boolean);
+      .map((opmerking) => ({
+        id: opmerking.id,
+        tekst: opmerking.tekst.trim(),
+        bewaardeFotoIds: opmerking.fotos
+          .filter((foto) => Boolean(foto.url))
+          .map((foto) => foto.id),
+      }))
+      .filter((opmerking) => Boolean(opmerking.tekst));
   }
 
   function wisselOntmoetePersonenPaneel() {
@@ -1389,6 +1405,7 @@ export default function InspectieUitvoerenClient({
             {
               id: maakTijdelijkId(),
               tekst: "",
+              fotos: [],
             },
           ]);
         }
@@ -1410,6 +1427,7 @@ export default function InspectieUitvoerenClient({
         {
           id: maakTijdelijkId(),
           tekst: "",
+          fotos: [],
         },
       ],
     );
@@ -1438,6 +1456,108 @@ export default function InspectieUitvoerenClient({
           (opmerking) => opmerking.id !== id,
         ),
     );
+    setExportFout("");
+  }
+
+  function behandelOpmerkingFotos(
+    opmerkingId: string,
+    bestanden: FileList | null,
+  ) {
+    if (!bestanden) {
+      return;
+    }
+
+    const opmerking = andereOpmerkingen.find(
+      (item) => item.id === opmerkingId,
+    );
+
+    if (!opmerking) {
+      return;
+    }
+
+    const beschikbarePlaatsen =
+      MAX_FOTOS_PER_OPMERKING -
+      opmerking.fotos.length;
+
+    if (beschikbarePlaatsen <= 0) {
+      setExportFout(
+        `Je kunt maximaal ${MAX_FOTOS_PER_OPMERKING} foto’s aan één andere opmerking koppelen.`,
+      );
+      return;
+    }
+
+    const nieuweFotos = Array.from(bestanden)
+      .slice(0, beschikbarePlaatsen)
+      .map((bestand) => ({
+        id: maakTijdelijkId(),
+        naam: bestand.name,
+        bestand,
+      }));
+
+    setExportFout(
+      bestanden.length > beschikbarePlaatsen
+        ? `Er werden alleen ${beschikbarePlaatsen} foto${beschikbarePlaatsen === 1 ? "" : "’s"} toegevoegd.`
+        : "",
+    );
+
+    setAndereOpmerkingen((huidigeOpmerkingen) =>
+      huidigeOpmerkingen.map((item) =>
+        item.id === opmerkingId
+          ? {
+              ...item,
+              fotos: [
+                ...item.fotos,
+                ...nieuweFotos,
+              ],
+            }
+          : item,
+      ),
+    );
+  }
+
+  function verwijderOpmerkingFoto(
+    opmerkingId: string,
+    fotoId: string,
+  ) {
+    setAndereOpmerkingen((huidigeOpmerkingen) =>
+      huidigeOpmerkingen.map((opmerking) =>
+        opmerking.id === opmerkingId
+          ? {
+              ...opmerking,
+              fotos: opmerking.fotos.filter(
+                (foto) => foto.id !== fotoId,
+              ),
+            }
+          : opmerking,
+      ),
+    );
+    setExportFout("");
+  }
+
+  function bewaarAangeduideOpmerkingFoto(
+    opmerkingId: string,
+    fotoId: string,
+    bestand: File,
+  ) {
+    setAndereOpmerkingen((huidigeOpmerkingen) =>
+      huidigeOpmerkingen.map((opmerking) =>
+        opmerking.id === opmerkingId
+          ? {
+              ...opmerking,
+              fotos: opmerking.fotos.map((foto) =>
+                foto.id === fotoId
+                  ? {
+                      id: maakTijdelijkId(),
+                      naam: bestand.name,
+                      bestand,
+                    }
+                  : foto,
+              ),
+            }
+          : opmerking,
+      ),
+    );
+    setOpmerkingFotoOmAanTeDuiden(null);
     setExportFout("");
   }
 
@@ -1853,7 +1973,68 @@ export default function InspectieUitvoerenClient({
         }),
       );
 
+      const opgeslagenAndereOpmerkingen =
+        await Promise.all(
+          andereOpmerkingen.map(
+            async (opmerking) => {
+              if (!opmerking.tekst.trim()) {
+                return {
+                  ...opmerking,
+                  fotos: [],
+                };
+              }
+
+              const opgeslagenFotos: InspectieFoto[] = [];
+
+              for (const foto of opmerking.fotos) {
+                if (!foto.bestand) {
+                  opgeslagenFotos.push(foto);
+                  continue;
+                }
+
+                const formData = new FormData();
+                formData.set(
+                  "foto",
+                  await maakCompacteUpload(
+                    foto.bestand,
+                  ),
+                );
+                const response = await fetch(
+                  `/api/inspecties/${inspectieId}/opmerkingen/${opmerking.id}/fotos`,
+                  {
+                    method: "POST",
+                    body: formData,
+                  },
+                );
+
+                if (!response.ok) {
+                  const resultaat =
+                    (await response.json()) as {
+                      fout?: string;
+                    };
+                  throw new Error(
+                    resultaat.fout ??
+                      "Foto bij de opmerking opslaan mislukt.",
+                  );
+                }
+
+                opgeslagenFotos.push(
+                  (await response.json()) as InspectieFoto,
+                );
+              }
+
+              return {
+                ...opmerking,
+                fotos: opgeslagenFotos,
+              };
+            },
+          ),
+        );
+
       setInbreuken(opgeslagen);
+      setAndereOpmerkingen(
+        opgeslagenAndereOpmerkingen,
+      );
       const geselecteerd = opgeslagen.find((item) => item.id === geselecteerdeId);
       if (geselecteerd) setFotos(geselecteerd.fotos);
       setOpslagStatus("Opgeslagen");
@@ -2251,6 +2432,20 @@ export default function InspectieUitvoerenClient({
           ),
         );
 
+      const wordAndereOpmerkingen =
+        await Promise.all(
+          andereOpmerkingen
+            .filter((opmerking) =>
+              Boolean(opmerking.tekst.trim()),
+            )
+            .map(async (opmerking) => ({
+              tekst: opmerking.tekst.trim(),
+              fotos: await maakWordFotos(
+                opmerking.fotos,
+              ),
+            })),
+        );
+
       await downloadWordVerslag({
         onderneming,
         adres,
@@ -2260,7 +2455,7 @@ export default function InspectieUitvoerenClient({
         ontmoetePersonen:
           huidigeOntmoetePersonen(),
         andereOpmerkingen:
-          huidigeAndereOpmerkingen(),
+          wordAndereOpmerkingen,
         inbreuken: wordInbreuken,
         ernstigArbeidsongeval:
           ernstigArbeidsongeval
@@ -3083,24 +3278,119 @@ export default function InspectieUitvoerenClient({
                           {index + 1}
                         </span>
 
-                        <label className="block min-w-0">
-                          <span className="sr-only">
-                            Opmerking {index + 1}
-                          </span>
-                          <textarea
-                            value={opmerking.tekst}
-                            maxLength={2000}
-                            rows={3}
-                            onChange={(event) =>
-                              wijzigAndereOpmerking(
-                                opmerking.id,
-                                event.target.value,
-                              )
-                            }
-                            placeholder="Formuleer de opmerking zoals ze in het verslag moet verschijnen."
-                            className="min-h-24 w-full resize-y rounded-lg border border-violet-200 bg-white px-3 py-2 text-base leading-6 outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-200"
-                          />
-                        </label>
+                        <div className="min-w-0">
+                          <label className="block">
+                            <span className="sr-only">
+                              Opmerking {index + 1}
+                            </span>
+                            <textarea
+                              value={opmerking.tekst}
+                              maxLength={2000}
+                              rows={3}
+                              onChange={(event) =>
+                                wijzigAndereOpmerking(
+                                  opmerking.id,
+                                  event.target.value,
+                                )
+                              }
+                              placeholder="Formuleer de opmerking zoals ze in het verslag moet verschijnen."
+                              className="min-h-24 w-full resize-y rounded-lg border border-violet-200 bg-white px-3 py-2 text-base leading-6 outline-none focus:border-violet-600 focus:ring-2 focus:ring-violet-200"
+                            />
+                          </label>
+
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <input
+                              id={`opmerking-fotos-${opmerking.id}`}
+                              type="file"
+                              accept="image/*"
+                              multiple
+                              disabled={
+                                opmerking.fotos.length >=
+                                MAX_FOTOS_PER_OPMERKING
+                              }
+                              className="sr-only"
+                              onChange={(event) => {
+                                behandelOpmerkingFotos(
+                                  opmerking.id,
+                                  event.target.files,
+                                );
+                                event.target.value = "";
+                              }}
+                            />
+                            <label
+                              htmlFor={`opmerking-fotos-${opmerking.id}`}
+                              aria-disabled={
+                                opmerking.fotos.length >=
+                                MAX_FOTOS_PER_OPMERKING
+                              }
+                              className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-bold transition ${
+                                opmerking.fotos.length >=
+                                MAX_FOTOS_PER_OPMERKING
+                                  ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400"
+                                  : "cursor-pointer border-violet-300 bg-violet-50 text-violet-800 hover:bg-violet-100"
+                              }`}
+                            >
+                              <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                className="h-4 w-4"
+                              >
+                                <path d="M4 7h3l1.5-2h7L17 7h3v12H4V7Z" />
+                                <circle cx="12" cy="13" r="3" />
+                              </svg>
+                              Foto toevoegen
+                            </label>
+                            <span className="text-xs text-slate-500">
+                              Maximaal {MAX_FOTOS_PER_OPMERKING}
+                            </span>
+                          </div>
+
+                          {opmerking.fotos.length > 0 && (
+                            <ul className="mt-2 space-y-2">
+                              {opmerking.fotos.map((foto) => (
+                                <li
+                                  key={foto.id}
+                                  className="flex flex-col gap-2 rounded-lg border border-violet-100 bg-violet-50/50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                  <span className="min-w-0 break-all text-xs font-medium text-slate-700">
+                                    {foto.naam}
+                                  </span>
+                                  <span className="flex shrink-0 flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setOpmerkingFotoOmAanTeDuiden({
+                                          opmerkingId: opmerking.id,
+                                          foto,
+                                        })
+                                      }
+                                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                                    >
+                                      <span aria-hidden="true">↗</span>
+                                      Openen en aanduiden
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        verwijderOpmerkingFoto(
+                                          opmerking.id,
+                                          foto.id,
+                                        )
+                                      }
+                                      aria-label={`Verwijder foto ${foto.naam}`}
+                                      className="min-h-9 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-50"
+                                    >
+                                      Verwijderen
+                                    </button>
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
 
                         <button
                           type="button"
@@ -4230,6 +4520,22 @@ export default function InspectieUitvoerenClient({
             onOpslaan={(bestand) =>
               bewaarAangeduideFoto(
                 fotoOmAanTeDuiden.id,
+                bestand,
+              )
+            }
+          />
+        )}
+
+        {opmerkingFotoOmAanTeDuiden && (
+          <FotoAnnotatieEditor
+            foto={opmerkingFotoOmAanTeDuiden.foto}
+            onAnnuleren={() =>
+              setOpmerkingFotoOmAanTeDuiden(null)
+            }
+            onOpslaan={(bestand) =>
+              bewaarAangeduideOpmerkingFoto(
+                opmerkingFotoOmAanTeDuiden.opmerkingId,
+                opmerkingFotoOmAanTeDuiden.foto.id,
                 bestand,
               )
             }
