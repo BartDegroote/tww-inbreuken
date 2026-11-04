@@ -997,33 +997,6 @@ function formatteerDatumVoorWord(
   return datum;
 }
 
-function formatteerLangeDatumVoorWord(
-  datum: string,
-): string {
-  const [jaar, maand, dag] = datum
-    .split("-")
-    .map(Number);
-
-  if (
-    !jaar ||
-    !maand ||
-    !dag
-  ) {
-    return datum;
-  }
-
-  return new Intl.DateTimeFormat("nl-BE", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(
-    new Date(
-      Date.UTC(jaar, maand - 1, dag),
-    ),
-  );
-}
-
 const GEEN_TABELRAND = {
   style: BorderStyle.NONE,
   size: 0,
@@ -1294,33 +1267,6 @@ function maakEaoInbreukOnderdelen(
     }),
     maakEaoCodeTabel(inbreuk),
   ];
-
-  const werkhervatting =
-    gegevens.slachtofferWerkHervat === null
-      ? ""
-      : gegevens.slachtofferWerkHervat
-        ? gegevens.werkhervattingsdatum
-          ? `Het slachtoffer heeft het werk pas op ${formatteerLangeDatumVoorWord(
-              gegevens.werkhervattingsdatum,
-            )} hervat.`
-          : "Het slachtoffer heeft het werk inmiddels hervat."
-        : "Het slachtoffer heeft het werk nog niet hervat.";
-
-  const werkhervattingParagrafen: Paragraph[] =
-    [];
-  voegGewoneTekstParagrafenToe(
-    werkhervattingParagrafen,
-    werkhervatting,
-    {
-      inspringingLinks:
-        TEKST_INSPrONG,
-      afstandVoor: 0,
-      afstandNa: 0,
-    },
-  );
-  onderdelen.push(
-    ...werkhervattingParagrafen,
-  );
 
   onderdelen.push(
     ...maakFotoParagrafen(
