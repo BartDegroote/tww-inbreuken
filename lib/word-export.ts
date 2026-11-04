@@ -302,6 +302,39 @@ function maakOpgemaakteRuns(
   return runs;
 }
 
+function splitsOpgemaakteSegmentenPerRegel(
+  tekst: string,
+  segmenten?: TekstSegment[],
+): TekstSegment[][] {
+  const regels: TekstSegment[][] = [[]];
+
+  for (const segment of geldigeSegmenten(
+    tekst,
+    segmenten,
+  )) {
+    const segmentRegels = segment.tekst
+      .replace(/\r\n/g, "\n")
+      .split("\n");
+
+    segmentRegels.forEach((regel, index) => {
+      if (index > 0) {
+        regels.push([]);
+      }
+
+      if (regel.length > 0) {
+        regels[regels.length - 1].push({
+          ...segment,
+          tekst: regel,
+        });
+      }
+    });
+  }
+
+  return regels.filter((regel) =>
+    regel.some((segment) => segment.tekst.length > 0),
+  );
+}
+
 function voegGewoneTekstParagrafenToe(
   kinderen: Paragraph[],
   tekst: string,
@@ -1158,6 +1191,16 @@ function maakEaoInbreukOnderdelen(
     .filter(Boolean)
     .join(" ");
 
+  const beschrijvingsRegels =
+    splitsOpgemaakteSegmentenPerRegel(
+      inbreuk.beschrijving,
+      inbreuk.beschrijvingOpmaak,
+    );
+  const eersteBeschrijving =
+    beschrijvingsRegels[0] ?? [];
+  const volgendeBeschrijvingen =
+    beschrijvingsRegels.slice(1);
+
   const onderdelen: Array<
     Paragraph | Table
   > = [
@@ -1175,14 +1218,41 @@ function maakEaoInbreukOnderdelen(
       },
       keepNext: true,
       children: maakOpgemaakteRuns(
-        inbreuk.beschrijving,
-        inbreuk.beschrijvingOpmaak,
+        eersteBeschrijving
+          .map((segment) => segment.tekst)
+          .join(""),
+        eersteBeschrijving,
         {
           grootte:
             HOOFDTEKST_GROOTTE,
         },
       ),
     }),
+    ...volgendeBeschrijvingen.map(
+      (regel) =>
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          indent: {
+            left: TEKST_INSPrONG,
+          },
+          spacing: {
+            before: 0,
+            after: 0,
+            line: ENKELE_REGELAFSTAND,
+          },
+          keepNext: true,
+          children: maakOpgemaakteRuns(
+            regel
+              .map((segment) => segment.tekst)
+              .join(""),
+            regel,
+            {
+              grootte:
+                HOOFDTEKST_GROOTTE,
+            },
+          ),
+        }),
+    ),
     new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
       indent: {

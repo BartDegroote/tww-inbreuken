@@ -1,0 +1,76 @@
+INSERT INTO "Standaardinbreuk" (
+  "id",
+  "wetgevingId",
+  "boekId",
+  "titelId",
+  "beschrijving",
+  "extraInfo",
+  "wettelijkeVerwijzing",
+  "kernwoorden",
+  "aangemaaktOp",
+  "gewijzigdOp",
+  "aanvulling",
+  "aanvullingOpmaak",
+  "omschrijvingOpmaak",
+  "situering",
+  "onderwerp",
+  "specifiekeElementenIngeschakeld",
+  "geverifieerd",
+  "specifiekeElementenAlsSituering",
+  "inspecteurInfo",
+  "inbreukType",
+  "inspecteurInfoIngeschakeld",
+  "eigenElementenToegestaan"
+)
+VALUES (
+  'eao-omstandig-verslag-voorlopig',
+  'welzijnswet-1996',
+  'welzijnswet-hoofdstuk-i',
+  'welzijnswet-hoofdstuk-i-algemeen',
+  $tekst$De werkgever heeft het omstandig verslag naar aanleiding van een ernstig arbeidsongeval, zoals gedefinieerd in artikel I.6-2 van de codex over het welzijn op het werk, niet binnen de wettelijke termijn van 10 dagen overgemaakt aan de bevoegde ambtenaar.
+Evenmin werd binnen deze termijn het voorlopig omstandig verslag overgemaakt. De mogelijkheid tot aanvaarding van een voorlopig omstandig verslag werd bovendien niet voorafgaandelijk afgetoetst bij de met het toezicht belaste ambtenaar, in dit geval de sociaal inspecteur van de Arbeidsinspectie – Toezicht op het Welzijn op het Werk (TWW), regionale directie Oost-Vlaanderen.$tekst$,
+  NULL,
+  'Dit is een overtreding op art. 94ter van de wet van 4 augustus 1996 betreffende het welzijn van de werknemers bij de uitvoering van hun werk.',
+  ARRAY[]::TEXT[],
+  CURRENT_TIMESTAMP,
+  CURRENT_TIMESTAMP,
+  NULL,
+  '[]'::JSONB,
+  jsonb_build_array(
+    jsonb_build_object(
+      'tekst',
+      $tekst$De werkgever heeft het omstandig verslag naar aanleiding van een ernstig arbeidsongeval, zoals gedefinieerd in artikel I.6-2 van de codex over het welzijn op het werk, niet binnen de wettelijke termijn van 10 dagen overgemaakt aan de bevoegde ambtenaar.
+Evenmin werd binnen deze termijn het voorlopig omstandig verslag overgemaakt. De mogelijkheid tot aanvaarding van een voorlopig omstandig verslag werd bovendien niet voorafgaandelijk afgetoetst bij de met het toezicht belaste ambtenaar, in dit geval de sociaal inspecteur van de Arbeidsinspectie – Toezicht op het Welzijn op het Werk (TWW), regionale directie Oost-Vlaanderen.$tekst$
+    )
+  ),
+  NULL,
+  'I - Toepassingsgebied en definities',
+  FALSE,
+  FALSE,
+  FALSE,
+  NULL,
+  'EAO_CODES',
+  FALSE,
+  FALSE
+)
+ON CONFLICT ("id") DO UPDATE SET
+  "wetgevingId" = EXCLUDED."wetgevingId",
+  "boekId" = EXCLUDED."boekId",
+  "titelId" = EXCLUDED."titelId",
+  "beschrijving" = EXCLUDED."beschrijving",
+  "extraInfo" = EXCLUDED."extraInfo",
+  "wettelijkeVerwijzing" = EXCLUDED."wettelijkeVerwijzing",
+  "kernwoorden" = EXCLUDED."kernwoorden",
+  "gewijzigdOp" = CURRENT_TIMESTAMP,
+  "aanvulling" = EXCLUDED."aanvulling",
+  "aanvullingOpmaak" = EXCLUDED."aanvullingOpmaak",
+  "omschrijvingOpmaak" = EXCLUDED."omschrijvingOpmaak",
+  "situering" = EXCLUDED."situering",
+  "onderwerp" = EXCLUDED."onderwerp",
+  "specifiekeElementenIngeschakeld" = EXCLUDED."specifiekeElementenIngeschakeld",
+  "geverifieerd" = EXCLUDED."geverifieerd",
+  "specifiekeElementenAlsSituering" = EXCLUDED."specifiekeElementenAlsSituering",
+  "inspecteurInfo" = EXCLUDED."inspecteurInfo",
+  "inbreukType" = EXCLUDED."inbreukType",
+  "inspecteurInfoIngeschakeld" = EXCLUDED."inspecteurInfoIngeschakeld",
+  "eigenElementenToegestaan" = EXCLUDED."eigenElementenToegestaan";
