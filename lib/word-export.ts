@@ -67,6 +67,7 @@ export type WordOngevalsgegevens = {
   slachtofferWerkHervat: boolean | null;
   werkhervattingsdatum: string;
   werkpostBezocht: boolean | null;
+  actieplanBeoordeeld: boolean;
 };
 
 export type WordOntmoetePersoon = {
@@ -1297,7 +1298,9 @@ function maakOngevalsParagrafen(
     .join(" ");
 
   const tekst = [
-    "Het ernstig arbeidsongeval werd ter plaatse besproken en de voortgang van het actieplan werd geëvalueerd.",
+    gegevens.actieplanBeoordeeld
+      ? "Het ernstig arbeidsongeval werd ter plaatse besproken en de voortgang van het actieplan werd geëvalueerd."
+      : "Het ernstig arbeidsongeval werd ter plaatse besproken.",
     gegevens.slachtofferWerkHervat ===
       null
       ? ""

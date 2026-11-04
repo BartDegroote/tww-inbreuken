@@ -58,6 +58,7 @@ const inspectie: WordInspectie = {
     slachtofferWerkHervat: null,
     werkhervattingsdatum: "",
     werkpostBezocht: false,
+    actieplanBeoordeeld: false,
   },
   tweedeErnstigArbeidsongeval: {
     slachtofferVoornaam: "Eva",
@@ -66,6 +67,7 @@ const inspectie: WordInspectie = {
     slachtofferWerkHervat: true,
     werkhervattingsdatum: "2026-02-02",
     werkpostBezocht: true,
+    actieplanBeoordeeld: true,
   },
   inbreuken: [
     {

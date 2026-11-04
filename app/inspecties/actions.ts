@@ -62,6 +62,7 @@ export type OngevalsgegevensInput = {
   slachtofferWerkHervat: boolean | null;
   werkhervattingsdatum: string;
   werkpostBezocht: boolean | null;
+  actieplanBeoordeeld: boolean;
 };
 
 function normaliseerOngevalsgegevens(
@@ -81,6 +82,8 @@ function normaliseerOngevalsgegevens(
     werkhervattingsdatum:
       gegevens.werkhervattingsdatum.trim(),
     werkpostBezocht: gegevens.werkpostBezocht,
+    actieplanBeoordeeld:
+      gegevens.actieplanBeoordeeld !== false,
   };
 
   if (
@@ -636,6 +639,10 @@ export async function bewaarInspectie(
           eersteOngeval.ernstigArbeidsongeval
             ? eersteOngeval.werkpostBezocht
             : null,
+        actieplanBeoordeeld:
+          eersteOngeval.ernstigArbeidsongeval
+            ? eersteOngeval.actieplanBeoordeeld
+            : true,
         tweedeArbeidsongeval:
           tweedeOngeval.ernstigArbeidsongeval
             ? ({

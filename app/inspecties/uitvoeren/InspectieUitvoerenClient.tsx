@@ -226,6 +226,7 @@ function legeOngevalsgegevens(): OngevalsgegevensInput {
     slachtofferWerkHervat: null,
     werkhervattingsdatum: "",
     werkpostBezocht: null,
+    actieplanBeoordeeld: true,
   };
 }
 
@@ -322,29 +323,7 @@ function OngevalsgegevensVelden({
         </div>
       </fieldset>
 
-      {gegevens.slachtofferWerkHervat && (
-        <label className="block">
-          <span className="text-sm font-semibold text-slate-700">
-            Datum werkhervatting
-          </span>
-          <input
-            type="date"
-            value={gegevens.werkhervattingsdatum}
-            onChange={(event) =>
-              wijzig("werkhervattingsdatum", event.target.value)
-            }
-            className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
-          />
-        </label>
-      )}
-
-      <fieldset
-        className={
-          gegevens.slachtofferWerkHervat
-            ? "sm:col-span-2 lg:col-span-1"
-            : "sm:col-span-1 lg:col-span-2"
-        }
-      >
+      <fieldset>
         <legend className="text-sm font-semibold text-slate-700">
           Werkpost van het ongeval bezocht?
         </legend>
@@ -370,6 +349,51 @@ function OngevalsgegevensVelden({
           ))}
         </div>
       </fieldset>
+
+      <fieldset>
+        <legend className="text-sm font-semibold text-slate-700">
+          Actieplan beoordeeld?
+        </legend>
+        <div className="mt-2 grid max-w-xs grid-cols-2 gap-2">
+          {([true, false] as const).map((waarde) => (
+            <label
+              key={String(waarde)}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                gegevens.actieplanBeoordeeld === waarde
+                  ? "border-amber-600 bg-amber-200 text-amber-950"
+                  : "border-amber-300 bg-white text-slate-700 hover:bg-amber-100"
+              }`}
+            >
+              <input
+                type="radio"
+                name={`${naamPrefix}-actieplanBeoordeeld`}
+                checked={gegevens.actieplanBeoordeeld === waarde}
+                onChange={() =>
+                  wijzig("actieplanBeoordeeld", waarde)
+                }
+                className="h-4 w-4 accent-amber-600"
+              />
+              {waarde ? "Ja" : "Nee"}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {gegevens.slachtofferWerkHervat && (
+        <label className="block">
+          <span className="text-sm font-semibold text-slate-700">
+            Datum werkhervatting
+          </span>
+          <input
+            type="date"
+            value={gegevens.werkhervattingsdatum}
+            onChange={(event) =>
+              wijzig("werkhervattingsdatum", event.target.value)
+            }
+            className="mt-2 min-h-11 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-base outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-200"
+          />
+        </label>
+      )}
     </div>
   );
 }
@@ -2468,6 +2492,8 @@ export default function InspectieUitvoerenClient({
                 werkhervattingsdatum,
                 werkpostBezocht:
                   werkpostIsBezocht,
+                actieplanBeoordeeld:
+                  ongevalsgegevens.actieplanBeoordeeld,
               }
             : null,
         tweedeErnstigArbeidsongeval:
@@ -2485,6 +2511,8 @@ export default function InspectieUitvoerenClient({
                   tweedeOngevalsgegevens.werkhervattingsdatum,
                 werkpostBezocht:
                   tweedeOngevalsgegevens.werkpostBezocht,
+                actieplanBeoordeeld:
+                  tweedeOngevalsgegevens.actieplanBeoordeeld,
               }
             : null,
       });

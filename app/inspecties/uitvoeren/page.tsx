@@ -41,6 +41,7 @@ function leesOpgeslagenOngevalsgegevens(
     slachtofferWerkHervat: null,
     werkhervattingsdatum: "",
     werkpostBezocht: null,
+    actieplanBeoordeeld: true,
   };
 
   if (
@@ -80,6 +81,10 @@ function leesOpgeslagenOngevalsgegevens(
       typeof gegevens.werkpostBezocht === "boolean"
         ? gegevens.werkpostBezocht
         : null,
+    actieplanBeoordeeld:
+      typeof gegevens.actieplanBeoordeeld === "boolean"
+        ? gegevens.actieplanBeoordeeld
+        : true,
   };
 }
 
@@ -125,6 +130,7 @@ export default async function InspectieUitvoerenPagina({
         slachtofferWerkHervat: true,
         werkhervattingsdatum: true,
         werkpostBezocht: true,
+        actieplanBeoordeeld: true,
         tweedeArbeidsongeval: true,
         inbreuken: {
           orderBy: { volgorde: "asc" },
@@ -421,6 +427,8 @@ export default async function InspectieUitvoerenPagina({
           inspectie.werkhervattingsdatum ?? "",
         werkpostBezocht:
           inspectie.werkpostBezocht,
+        actieplanBeoordeeld:
+          inspectie.actieplanBeoordeeld,
       }}
       initialTweedeOngevalsgegevens={
         leesOpgeslagenOngevalsgegevens(

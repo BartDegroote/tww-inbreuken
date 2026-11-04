@@ -53,6 +53,7 @@ model Inspectie {
   slachtofferWerkHervat Boolean?
   werkhervattingsdatum  String?
   werkpostBezocht       Boolean?
+  actieplanBeoordeeld   Boolean            @default(true)
   tweedeArbeidsongeval  Json               @default("{}")
   ontmoetePersonen      Json               @default("[]")
   andereOpmerkingen     Json               @default("[]")
