@@ -605,17 +605,21 @@ function TekstMetOpmaak({
         (segment, index) => (
           <span
             key={`${index}-${segment.tekst}`}
-            className={[
-              "whitespace-pre-wrap",
-              segment.vet
-                ? "font-bold"
-                : "",
-              segment.donkergrijs
-                ? "text-[#666666]"
-                : "",
-            ]
-              .filter(Boolean)
-              .join(" ")}
+            className={
+              segment.lijstaccent
+                ? "whitespace-pre-wrap rounded-sm bg-amber-300 px-0.5 font-bold text-slate-950 ring-1 ring-inset ring-amber-500"
+                : [
+                    "whitespace-pre-wrap",
+                    segment.vet
+                      ? "font-bold"
+                      : "",
+                    segment.donkergrijs
+                      ? "text-[#666666]"
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+            }
           >
             {segment.tekst}
           </span>

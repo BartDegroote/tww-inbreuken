@@ -1672,15 +1672,9 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
             },
           ),
 
-          ...(inspectie.inbreuken.some(
-            (inbreuk) =>
-              inbreuk.inbreukType ===
-              "EAO_CODES",
-          )
-            ? []
-            : maakOngevalsParagrafen(
-                inspectie.ernstigArbeidsongeval,
-              )),
+          ...maakOngevalsParagrafen(
+            inspectie.ernstigArbeidsongeval,
+          ),
 
           ...maakOngevalsParagrafen(
             inspectie.tweedeErnstigArbeidsongeval,
