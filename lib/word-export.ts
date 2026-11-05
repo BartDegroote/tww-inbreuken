@@ -1032,20 +1032,10 @@ function maakHerinneringsParagrafen(
       keepNext: true,
       children: [
         new TextRun({
-          text: "1ste herinnering, zie schrijven ",
-          size: HOOFDTEKST_GROOTTE,
-          font: LETTERTYPE,
-        }),
-        new TextRun({
-          text: formatteerDatumVoorWord(
+          text: `1ste herinnering, zie schrijven ${formatteerDatumVoorWord(
             vorigeBriefDatum,
-          ),
-          bold: true,
-          size: HOOFDTEKST_GROOTTE,
-          font: LETTERTYPE,
-        }),
-        new TextRun({
-          text: ".",
+          )}.`,
+          color: "FF0000",
           size: HOOFDTEKST_GROOTTE,
           font: LETTERTYPE,
         }),
