@@ -26,6 +26,7 @@ export type OpgeslagenInbreukInput = {
   id: string;
   standaardinbreukId: string;
   inbreukType: InbreukType;
+  herinnering: boolean;
   beschrijving: string;
   beschrijvingOpmaak: Array<{
     tekst: string;
@@ -430,6 +431,7 @@ export async function bewaarOntmoetePersonen(
 export async function bewaarInspectie(
   inspectieId: string,
   inbreuken: OpgeslagenInbreukInput[],
+  vorigeBriefDatum: string,
   ongevalsgegevens: OngevalsgegevensInput,
   tweedeOngevalsgegevens: OngevalsgegevensInput,
   ontmoetePersonen: OntmoetePersoonInput[],
@@ -443,6 +445,20 @@ export async function bewaarInspectie(
 
   if (!inspectie) {
     throw new Error("Inspectie niet gevonden.");
+  }
+
+  const genormaliseerdeVorigeBriefDatum =
+    vorigeBriefDatum.trim();
+
+  if (
+    genormaliseerdeVorigeBriefDatum &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(
+      genormaliseerdeVorigeBriefDatum,
+    )
+  ) {
+    throw new Error(
+      "Controleer de datum van de vorige brief.",
+    );
   }
 
   const eersteOngeval = normaliseerOngevalsgegevens(
@@ -553,6 +569,7 @@ export async function bewaarInspectie(
       const data = {
         standaardinbreukId: inbreuk.standaardinbreukId || null,
         inbreukType,
+        herinnering: inbreuk.herinnering === true,
         volgorde,
         beschrijving: inbreuk.beschrijving,
         beschrijvingOpmaak: inbreuk.beschrijvingOpmaak,
@@ -605,6 +622,8 @@ export async function bewaarInspectie(
     await transactie.inspectie.update({
       where: { id: inspectieId },
       data: {
+        vorigeBriefDatum:
+          genormaliseerdeVorigeBriefDatum || null,
         ontmoetePersonen:
           genormaliseerdeOntmoetePersonen,
         andereOpmerkingen:

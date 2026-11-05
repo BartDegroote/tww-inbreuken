@@ -46,6 +46,7 @@ model Inspectie {
   inspectiedatum        String
   inspecteur            String
   flow                  String
+  vorigeBriefDatum      String?
   ernstigArbeidsongeval Boolean            @default(false)
   slachtofferVoornaam   String?
   slachtofferNaam       String?
@@ -89,6 +90,7 @@ model InspectieInbreuk {
   inspectie                         Inspectie       @relation(fields: [inspectieId], references: [id], onDelete: Cascade)
   standaardinbreukId                String?
   inbreukType                       String          @default("STANDAARD")
+  herinnering                       Boolean         @default(false)
   volgorde                          Int
   beschrijving                      String
   beschrijvingOpmaak                Json?

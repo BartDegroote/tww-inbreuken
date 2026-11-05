@@ -97,6 +97,7 @@ export type Inbreuk = {
   id: string;
   standaardinbreukId: string;
   inbreukType: InbreukType;
+  herinnering: boolean;
   beschrijving: string;
   beschrijvingOpmaak: TekstSegment[];
   inCasu: string;
@@ -122,6 +123,7 @@ type InspectieUitvoerenClientProps = {
   inspectiedatum: string;
   inspecteur: string;
   flow: string;
+  initialVorigeBriefDatum: string;
   initialOntmoetePersonen: OntmoetePersoonInput[];
   initialAndereOpmerkingen: AndereOpmerkingRij[];
   initialOngevalsgegevens: OngevalsgegevensInput;
@@ -685,6 +687,16 @@ function maakCompacteWettelijkeVerwijzing(
     : korteWetgevingNaam;
 }
 
+function formatteerDatumVoorScherm(
+  datum: string,
+): string {
+  const [jaar, maand, dag] = datum.split("-");
+
+  return jaar && maand && dag
+    ? `${dag}/${maand}/${jaar}`
+    : "Datum";
+}
+
 export default function InspectieUitvoerenClient({
   inspectieId,
   onderneming,
@@ -692,6 +704,7 @@ export default function InspectieUitvoerenClient({
   inspectiedatum,
   inspecteur,
   flow,
+  initialVorigeBriefDatum,
   initialOntmoetePersonen,
   initialAndereOpmerkingen,
   initialOngevalsgegevens,
@@ -720,6 +733,15 @@ export default function InspectieUitvoerenClient({
 
   const [beschrijving, setBeschrijving] =
     useState("");
+
+  const [herinnering, setHerinnering] =
+    useState(false);
+
+  const [vorigeBriefDatum, setVorigeBriefDatum] =
+    useState(initialVorigeBriefDatum);
+
+  const [toonVorigeBriefDatum, setToonVorigeBriefDatum] =
+    useState(false);
 
   const [vaststellingen, setVaststellingen] =
     useState<VaststellingInput[]>([]);
@@ -1341,6 +1363,7 @@ export default function InspectieUitvoerenClient({
   function maakFormulierLeeg() {
     setGeselecteerdeId(null);
     setBeschrijving("");
+    setHerinnering(false);
     setVaststellingen([]);
     setWettelijkeVerwijzing("");
     setAfwijkendeGebeurtenisCode("");
@@ -1739,6 +1762,7 @@ export default function InspectieUitvoerenClient({
       id: maakTijdelijkId(),
       standaardinbreukId: standaard.id,
       inbreukType: standaard.inbreukType,
+      herinnering: false,
       beschrijving: standaard.omschrijving,
       beschrijvingOpmaak: kopieerSegmenten(
         standaard.omschrijvingOpmaak,
@@ -1799,6 +1823,7 @@ export default function InspectieUitvoerenClient({
     setBeschrijving(
       nieuweInbreuk.beschrijving,
     );
+    setHerinnering(false);
     setVaststellingen(
       nieuweInbreuk.vaststellingen,
     );
@@ -1818,6 +1843,7 @@ export default function InspectieUitvoerenClient({
   ) {
     setGeselecteerdeId(inbreuk.id);
     setBeschrijving(inbreuk.beschrijving);
+    setHerinnering(inbreuk.herinnering);
     setVaststellingen(
       inbreuk.vaststellingen.map(
         (vaststelling) => ({
@@ -1923,6 +1949,7 @@ export default function InspectieUitvoerenClient({
           standaardinbreukId:
             inbreuk.standaardinbreukId,
           inbreukType: inbreuk.inbreukType,
+          herinnering: inbreuk.herinnering,
           beschrijving: inbreuk.beschrijving,
           beschrijvingOpmaak:
             inbreuk.beschrijvingOpmaak,
@@ -1957,6 +1984,7 @@ export default function InspectieUitvoerenClient({
       await bewaarInspectie(
         inspectieId,
         invoer,
+        vorigeBriefDatum,
         huidigeOngevalsgegevens(),
         tweedeOngevalsgegevens,
         huidigeOntmoetePersonen(),
@@ -2237,6 +2265,7 @@ export default function InspectieUitvoerenClient({
 
         return {
           ...inbreuk,
+          herinnering,
           beschrijving,
           beschrijvingOpmaak:
             beschrijvingGewijzigd
@@ -2371,6 +2400,19 @@ export default function InspectieUitvoerenClient({
       const actueleInbreuken =
         synchroniseerFormulier(inbreuken);
 
+      if (
+        actueleInbreuken.some(
+          (inbreuk) => inbreuk.herinnering,
+        ) &&
+        !vorigeBriefDatum
+      ) {
+        setToonVorigeBriefDatum(true);
+        setExportFout(
+          "Vul de datum van de vorige brief in voor de herinnering.",
+        );
+        return;
+      }
+
       const onvolledigeEaoInbreuk =
         actueleInbreuken.find(
           (inbreuk) =>
@@ -2401,6 +2443,7 @@ export default function InspectieUitvoerenClient({
           opgeslagenInbreuken.map(
             async (inbreuk) => ({
               inbreukType: inbreuk.inbreukType,
+              herinnering: inbreuk.herinnering,
               beschrijving:
                 inbreuk.beschrijving,
               beschrijvingOpmaak:
@@ -2476,6 +2519,7 @@ export default function InspectieUitvoerenClient({
         inspectiedatum,
         inspecteur,
         flow,
+        vorigeBriefDatum,
         ontmoetePersonen:
           huidigeOntmoetePersonen(),
         andereOpmerkingen:
@@ -2685,16 +2729,72 @@ export default function InspectieUitvoerenClient({
               </h1>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 lg:min-w-[48rem] lg:grid-cols-4">
-              <div className="col-span-2 rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-4 py-3 sm:col-span-1">
+            <div className="grid grid-cols-2 gap-2 lg:min-w-0 lg:flex-1 lg:grid-cols-[minmax(9rem,0.75fr)_minmax(7.5rem,0.55fr)_repeat(3,minmax(11rem,1fr))]">
+              <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-3 py-2.5">
                 <p className="text-xs text-blue-700">
                   Flow
                 </p>
 
-                <p className="text-lg font-bold text-blue-950">
+                <p className="truncate text-base font-bold text-blue-950">
                   {flow || "Niet ingevuld"}
                 </p>
               </div>
+
+              <button
+                type="button"
+                aria-expanded={toonVorigeBriefDatum}
+                aria-controls="vorige-brief-datum-paneel"
+                onClick={() => {
+                  setToonVorigeBriefDatum(
+                    (huidigeWaarde) =>
+                      !huidigeWaarde,
+                  );
+                  setExportFout("");
+                }}
+                className={`flex min-h-16 items-center gap-2 rounded-xl border px-2.5 py-2 text-left transition focus:outline-none focus:ring-2 focus:ring-indigo-300 ${
+                  toonVorigeBriefDatum
+                    ? "border-indigo-500 bg-indigo-100 text-indigo-950 shadow-sm"
+                    : vorigeBriefDatum
+                      ? "border-emerald-300 bg-emerald-50 text-slate-800 hover:border-indigo-300 hover:bg-indigo-50"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50"
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                    toonVorigeBriefDatum
+                      ? "bg-indigo-600 text-white"
+                      : "bg-indigo-100 text-indigo-700"
+                  }`}
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    className="h-4 w-4"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"
+                    />
+                  </svg>
+                </span>
+
+                <span className="min-w-0">
+                  <span className="block text-xs font-bold leading-4">
+                    Vorige brief
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11px] opacity-75">
+                    {vorigeBriefDatum
+                      ? formatteerDatumVoorScherm(
+                          vorigeBriefDatum,
+                        )
+                      : "Datum"}
+                  </span>
+                </span>
+              </button>
 
               <button
                 type="button"
@@ -2958,6 +3058,54 @@ export default function InspectieUitvoerenClient({
               </button>
             </div>
           </div>
+
+          {toonVorigeBriefDatum && (
+            <section
+              id="vorige-brief-datum-paneel"
+              aria-labelledby="vorige-brief-datum-titel"
+              className="ml-auto mt-4 max-w-md rounded-xl border border-indigo-200 bg-indigo-50/70 p-4"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                <div className="min-w-0 flex-1">
+                  <label
+                    id="vorige-brief-datum-titel"
+                    htmlFor="vorige-brief-datum"
+                    className="block text-sm font-bold text-indigo-950"
+                  >
+                    Datum vorige brief
+                  </label>
+                  <p className="mt-0.5 text-xs text-indigo-800">
+                    Word gebruikt deze datum bij iedere aangeduide herinnering.
+                  </p>
+                  <input
+                    id="vorige-brief-datum"
+                    type="date"
+                    value={vorigeBriefDatum}
+                    onChange={(event) => {
+                      setVorigeBriefDatum(
+                        event.target.value,
+                      );
+                      setExportFout("");
+                    }}
+                    className="mt-2 min-h-11 w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-base text-slate-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100"
+                  />
+                </div>
+
+                {vorigeBriefDatum && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setVorigeBriefDatum("");
+                      setExportFout("");
+                    }}
+                    className="min-h-11 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-800 transition hover:bg-indigo-100"
+                  >
+                    Wissen
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
 
           <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-slate-200 pt-4 sm:grid-cols-3">
             <div className="min-w-0">
@@ -3495,6 +3643,11 @@ export default function InspectieUitvoerenClient({
                               "EAO_CODES" && (
                               <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
                                 EAO
+                              </span>
+                            )}
+                            {inbreuk.herinnering && (
+                              <span className="rounded-full border border-indigo-300 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-800">
+                                Herinnering
                               </span>
                             )}
                           </span>
@@ -4069,6 +4222,44 @@ export default function InspectieUitvoerenClient({
                         </article>
                       )}
                     </div>
+                  </section>
+
+                  <section className="rounded-xl border border-indigo-200 bg-indigo-50/70 px-4 py-3">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={herinnering}
+                        onChange={(event) => {
+                          const aangevinkt =
+                            event.target.checked;
+                          setHerinnering(aangevinkt);
+
+                          if (
+                            aangevinkt &&
+                            !vorigeBriefDatum
+                          ) {
+                            setToonVorigeBriefDatum(
+                              true,
+                            );
+                          }
+
+                          setExportFout("");
+                        }}
+                        className="mt-0.5 h-5 w-5 shrink-0 accent-indigo-700"
+                      />
+                      <span className="min-w-0">
+                        <span className="block text-sm font-bold text-indigo-950">
+                          1ste herinnering
+                        </span>
+                        <span className="mt-0.5 block text-xs leading-5 text-indigo-800">
+                          Vermeldt na de inbreuktekst: “1ste herinnering, zie schrijven{vorigeBriefDatum
+                            ? ` ${formatteerDatumVoorScherm(
+                                vorigeBriefDatum,
+                              )}`
+                            : " [datum vorige brief]"}.”
+                        </span>
+                      </span>
+                    </label>
                   </section>
 
                   {geselecteerdeInbreuk

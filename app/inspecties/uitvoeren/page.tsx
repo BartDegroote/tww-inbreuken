@@ -113,6 +113,7 @@ export default async function InspectieUitvoerenPagina({
         inspectiedatum: true,
         inspecteur: true,
         flow: true,
+        vorigeBriefDatum: true,
         ontmoetePersonen: true,
         andereOpmerkingen: true,
         andereOpmerkingFotos: {
@@ -138,6 +139,7 @@ export default async function InspectieUitvoerenPagina({
             id: true,
             standaardinbreukId: true,
             inbreukType: true,
+            herinnering: true,
             beschrijving: true,
             beschrijvingOpmaak: true,
             inCasu: true,
@@ -272,6 +274,7 @@ export default async function InspectieUitvoerenPagina({
         inbreuk.inbreukType === "EAO_CODES"
           ? "EAO_CODES"
           : "STANDAARD",
+      herinnering: inbreuk.herinnering,
       beschrijving: inbreuk.beschrijving,
       beschrijvingOpmaak: leesTekstSegmenten(inbreuk.beschrijvingOpmaak),
       inCasu: inbreuk.inCasu,
@@ -406,6 +409,9 @@ export default async function InspectieUitvoerenPagina({
       inspectiedatum={inspectie.inspectiedatum}
       inspecteur={inspectie.inspecteur}
       flow={inspectie.flow}
+      initialVorigeBriefDatum={
+        inspectie.vorigeBriefDatum ?? ""
+      }
       initialOntmoetePersonen={
         initialOntmoetePersonen
       }

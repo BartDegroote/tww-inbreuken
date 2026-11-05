@@ -38,6 +38,7 @@ export type WordFoto = {
 
 export type WordInbreuk = {
   inbreukType: InbreukType;
+  herinnering?: boolean;
   beschrijving: string;
   beschrijvingOpmaak?: TekstSegment[];
   inCasu: string;
@@ -87,6 +88,7 @@ export type WordInspectie = {
   inspectiedatum: string;
   inspecteur: string;
   flow: string;
+  vorigeBriefDatum?: string;
   ontmoetePersonen?: WordOntmoetePersoon[];
   andereOpmerkingen?: WordAndereOpmerking[];
   inbreuken: WordInbreuk[];
@@ -856,6 +858,7 @@ function maakFotoParagrafen(
 function maakInbreukParagrafen(
   inbreuk: WordInbreuk,
   index: number,
+  vorigeBriefDatum?: string,
 ): Paragraph[] {
   const beschrijvingsRuns =
     maakOpgemaakteRuns(
@@ -884,6 +887,10 @@ function maakInbreukParagrafen(
       keepNext: true,
       children: beschrijvingsRuns,
     }),
+    ...maakHerinneringsParagrafen(
+      inbreuk,
+      vorigeBriefDatum,
+    ),
   ];
 
   const vaststellingen =
@@ -995,6 +1002,56 @@ function formatteerDatumVoorWord(
   }
 
   return datum;
+}
+
+function maakHerinneringsParagrafen(
+  inbreuk: WordInbreuk,
+  vorigeBriefDatum?: string,
+): Paragraph[] {
+  if (!inbreuk.herinnering) {
+    return [];
+  }
+
+  if (!vorigeBriefDatum) {
+    throw new Error(
+      "Vul de datum van de vorige brief in voor de herinnering.",
+    );
+  }
+
+  return [
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      indent: {
+        left: TEKST_INSPrONG,
+      },
+      spacing: {
+        before: 0,
+        after: 0,
+        line: ENKELE_REGELAFSTAND,
+      },
+      keepNext: true,
+      children: [
+        new TextRun({
+          text: "1ste herinnering, zie schrijven ",
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+        new TextRun({
+          text: formatteerDatumVoorWord(
+            vorigeBriefDatum,
+          ),
+          bold: true,
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+        new TextRun({
+          text: ".",
+          size: HOOFDTEKST_GROOTTE,
+          font: LETTERTYPE,
+        }),
+      ],
+    }),
+  ];
 }
 
 const GEEN_TABELRAND = {
@@ -1154,6 +1211,7 @@ function maakEaoInbreukOnderdelen(
   inbreuk: WordInbreuk,
   index: number,
   gegevens: WordOngevalsgegevens,
+  vorigeBriefDatum?: string,
 ): Array<Paragraph | Table> {
   const volledigeNaam = [
     gegevens.slachtofferVoornaam.trim(),
@@ -1225,6 +1283,10 @@ function maakEaoInbreukOnderdelen(
             },
           ),
         }),
+    ),
+    ...maakHerinneringsParagrafen(
+      inbreuk,
+      vorigeBriefDatum,
     ),
     new Paragraph({
       alignment: AlignmentType.JUSTIFIED,
@@ -1608,12 +1670,14 @@ export function maakWordDocument(inspectie: WordInspectie): Document {
                   inbreuk,
                   index,
                   inspectie.ernstigArbeidsongeval,
+                  inspectie.vorigeBriefDatum,
                 );
               }
 
               return maakInbreukParagrafen(
                 inbreuk,
                 index,
+                inspectie.vorigeBriefDatum,
               );
             },
           ),
