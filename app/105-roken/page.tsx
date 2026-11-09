@@ -4,7 +4,6 @@ import { FormEvent, useMemo, useRef, useState } from "react";
 
 import AppBalk from "@/app/componenten/AppBalk";
 import {
-  BELGISCHE_GEMEENTEPOSTCODES,
   BELGISCHE_POSTPLAATSEN,
   type BelgischePostplaats,
 } from "@/lib/belgische-postplaatsen";
@@ -284,7 +283,7 @@ export default function Roken105Pagina() {
   const qStraatEnNummer =
     locatieType === "adres" ? locatieStraat.trim() : autosnelweg.trim().toUpperCase();
   const qPostcode = locatieType === "adres" ? locatiePostcode : autosnelwegPostcode;
-  const qGemeente =
+  const qPlaats =
     locatieType === "adres" ? locatiePlaats.trim() : autosnelwegPlaats.trim();
   const qRegels = [
     {
@@ -300,7 +299,7 @@ export default function Roken105Pagina() {
     },
     { id: "straat", label: "Straat / nr.", waarde: qStraatEnNummer },
     { id: "postcode", label: "Postcode", waarde: qPostcode },
-    { id: "gemeente", label: "Gemeente", waarde: qGemeente },
+    { id: "plaats", label: "Plaats", waarde: qPlaats },
   ];
   const locatieBreedtescore = berekenWordBreedtescore(locatie);
   const locatieTeLang = locatieBreedtescore > MAX_PDF_LOCATIE_BREEDTESCORE;
@@ -746,13 +745,12 @@ export default function Roken105Pagina() {
                     />
                   </label>
                   <label className="block text-sm font-semibold text-slate-700">
-                    Gemeente
+                    Plaats
                     <PostplaatsZoeker
                       id="autosnelweg-plaats"
                       waarde={autosnelwegPlaats}
                       postcode={autosnelwegPostcode}
-                      opties={BELGISCHE_GEMEENTEPOSTCODES}
-                      placeholder="Typ een gemeente of postcode"
+                      placeholder="Typ een plaats of postcode"
                       onWijzig={(waarde) => {
                         setAutosnelwegPlaats(waarde);
                         setAutosnelwegPostcode("");
