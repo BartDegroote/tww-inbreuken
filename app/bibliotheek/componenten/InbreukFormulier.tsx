@@ -342,6 +342,176 @@ function segmentenNaarTekst(
     .join("");
 }
 
+function pasLijstaccentOpSelectieToe(
+  segmenten: TekstSegment[],
+  selectieStart: number,
+  selectieEinde: number,
+): TekstSegment[] | null {
+  if (selectieEinde <= selectieStart) {
+    return null;
+  }
+
+  let positie = 0;
+  let heeftGeselecteerdeTekst = false;
+  let volledigeSelectieHeeftAccent = true;
+
+  for (const segment of segmenten) {
+    const segmentStart = positie;
+    const segmentEinde =
+      segmentStart + segment.tekst.length;
+
+    if (
+      segmentEinde > selectieStart &&
+      segmentStart < selectieEinde
+    ) {
+      heeftGeselecteerdeTekst = true;
+      volledigeSelectieHeeftAccent &&=
+        Boolean(segment.lijstaccent);
+    }
+
+    positie = segmentEinde;
+  }
+
+  if (!heeftGeselecteerdeTekst) {
+    return null;
+  }
+
+  const lijstaccentInschakelen =
+    !volledigeSelectieHeeftAccent;
+  const nieuweSegmenten: TekstSegment[] = [];
+
+  positie = 0;
+
+  for (const segment of segmenten) {
+    const segmentStart = positie;
+    const segmentEinde =
+      segmentStart + segment.tekst.length;
+    const overlapStart = Math.max(
+      segmentStart,
+      selectieStart,
+    );
+    const overlapEinde = Math.min(
+      segmentEinde,
+      selectieEinde,
+    );
+
+    if (overlapStart >= overlapEinde) {
+      voegSegmentToe(nieuweSegmenten, {
+        ...segment,
+      });
+      positie = segmentEinde;
+      continue;
+    }
+
+    const lokaalStart =
+      overlapStart - segmentStart;
+    const lokaalEinde =
+      overlapEinde - segmentStart;
+
+    voegSegmentToe(nieuweSegmenten, {
+      ...segment,
+      tekst: segment.tekst.slice(0, lokaalStart),
+    });
+
+    const geselecteerdSegment: TekstSegment = {
+      ...segment,
+      tekst: segment.tekst.slice(
+        lokaalStart,
+        lokaalEinde,
+      ),
+    };
+
+    if (lijstaccentInschakelen) {
+      geselecteerdSegment.lijstaccent = true;
+    } else {
+      delete geselecteerdSegment.lijstaccent;
+    }
+
+    voegSegmentToe(
+      nieuweSegmenten,
+      geselecteerdSegment,
+    );
+
+    voegSegmentToe(nieuweSegmenten, {
+      ...segment,
+      tekst: segment.tekst.slice(lokaalEinde),
+    });
+
+    positie = segmentEinde;
+  }
+
+  return nieuweSegmenten;
+}
+
+function vindPositieInEditor(
+  editor: HTMLElement,
+  tekstPositie: number,
+): { knoop: Node; offset: number } {
+  let resterend = Math.max(0, tekstPositie);
+
+  function bezoekKnoop(
+    knoop: Node,
+  ): { knoop: Node; offset: number } | null {
+    if (knoop.nodeType === Node.TEXT_NODE) {
+      const lengte =
+        knoop.textContent?.length ?? 0;
+
+      if (resterend <= lengte) {
+        return {
+          knoop,
+          offset: resterend,
+        };
+      }
+
+      resterend -= lengte;
+      return null;
+    }
+
+    for (
+      let index = 0;
+      index < knoop.childNodes.length;
+      index += 1
+    ) {
+      const kind = knoop.childNodes[index];
+
+      if (
+        kind instanceof HTMLElement &&
+        kind.tagName === "BR"
+      ) {
+        if (resterend === 0) {
+          return { knoop, offset: index };
+        }
+
+        resterend -= 1;
+
+        if (resterend === 0) {
+          return {
+            knoop,
+            offset: index + 1,
+          };
+        }
+
+        continue;
+      }
+
+      const gevonden = bezoekKnoop(kind);
+
+      if (gevonden) {
+        return gevonden;
+      }
+    }
+
+    return null;
+  }
+
+  return (
+    bezoekKnoop(editor) ?? {
+      knoop: editor,
+      offset: editor.childNodes.length,
+    }
+  );
+}
+
 function BeperkteTeksteditor({
   label,
   tekst,
@@ -425,7 +595,7 @@ function BeperkteTeksteditor({
     opdracht:
       | "bold"
       | "foreColor"
-      | "backColor"
+      | "lijstaccent"
       | "removeFormat",
   ): void {
     const editor = editorRef.current;
@@ -436,17 +606,101 @@ function BeperkteTeksteditor({
 
     editor.focus();
 
+    if (opdracht === "lijstaccent") {
+      const selectie = window.getSelection();
+
+      if (
+        !selectie ||
+        selectie.rangeCount === 0 ||
+        selectie.isCollapsed
+      ) {
+        return;
+      }
+
+      const bereik = selectie.getRangeAt(0);
+
+      if (
+        !editor.contains(bereik.startContainer) ||
+        !editor.contains(bereik.endContainer)
+      ) {
+        return;
+      }
+
+      const bereikVoorStart = bereik.cloneRange();
+      bereikVoorStart.selectNodeContents(editor);
+      bereikVoorStart.setEnd(
+        bereik.startContainer,
+        bereik.startOffset,
+      );
+
+      const bereikVoorEinde = bereik.cloneRange();
+      bereikVoorEinde.selectNodeContents(editor);
+      bereikVoorEinde.setEnd(
+        bereik.endContainer,
+        bereik.endOffset,
+      );
+
+      const selectieStart =
+        bereikVoorStart.toString().length;
+      const selectieEinde =
+        bereikVoorEinde.toString().length;
+      const huidigeSegmenten =
+        leesSegmentenUitEditor(
+          editor,
+          opmaakType,
+        );
+      const nieuweSegmenten =
+        pasLijstaccentOpSelectieToe(
+          huidigeSegmenten,
+          selectieStart,
+          selectieEinde,
+        );
+
+      if (!nieuweSegmenten) {
+        return;
+      }
+
+      const nieuweTekst =
+        segmentenNaarTekst(nieuweSegmenten);
+      const nieuweHtml = segmentenNaarHtml(
+        nieuweTekst,
+        nieuweSegmenten,
+        opmaakType,
+      );
+
+      editor.innerHTML = nieuweHtml;
+      laatsteVerzondenHtml.current = nieuweHtml;
+      onChange(nieuweTekst, nieuweSegmenten);
+
+      const nieuweStart = vindPositieInEditor(
+        editor,
+        selectieStart,
+      );
+      const nieuweEinde = vindPositieInEditor(
+        editor,
+        selectieEinde,
+      );
+      const nieuwBereik = document.createRange();
+
+      nieuwBereik.setStart(
+        nieuweStart.knoop,
+        nieuweStart.offset,
+      );
+      nieuwBereik.setEnd(
+        nieuweEinde.knoop,
+        nieuweEinde.offset,
+      );
+      selectie.removeAllRanges();
+      selectie.addRange(nieuwBereik);
+
+      return;
+    }
+
     if (opdracht === "foreColor") {
       document.execCommand(
         "foreColor",
         false,
         "#475569",
-      );
-    } else if (opdracht === "backColor") {
-      document.execCommand(
-        "backColor",
-        false,
-        "#FCD34D",
       );
     } else {
       document.execCommand(
@@ -500,10 +754,10 @@ function BeperkteTeksteditor({
                 }
                 onClick={() =>
                   pasOpmaakToe(
-                    "backColor",
+                    "lijstaccent",
                   )
                 }
-                title="Laat geselecteerde woorden sterk opvallen in de app, maar niet in Word"
+                title="Voeg het lijstaccent toe of verwijder het opnieuw; dit verschijnt nooit in Word"
               >
                 Lijstaccent
               </button>
@@ -574,8 +828,9 @@ function BeperkteTeksteditor({
 
         {opmaakType === "donkergrijs" && (
           <span className="ml-1 font-medium text-amber-800">
-            Lijstaccent verschijnt alleen in
-            de app, nooit in Word.
+            Klik opnieuw op Lijstaccent om het
+            van de selectie te verwijderen. Het
+            verschijnt nooit in Word.
           </span>
         )}
       </p>
