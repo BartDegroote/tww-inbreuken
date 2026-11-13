@@ -183,62 +183,6 @@ function haalIngebedLettertypeOp(
   );
 }
 
-function voegPaginaInhoudSamen(
-  pdf: PDFDocument,
-  pagina: PDFPage,
-): void {
-  const inhoud = pagina.node.Contents();
-
-  if (!inhoud) {
-    throw new Error("De afgewerkte PDF bevat geen pagina-inhoud.");
-  }
-
-  const inhoudsobjecten = inhoud instanceof PDFArray
-    ? Array.from(
-        { length: inhoud.size() },
-        (_, index) => inhoud.get(index),
-      )
-    : [inhoud];
-  const stromen = inhoudsobjecten.map((inhoudsobject) => {
-    const stroom = pdf.context.lookup(inhoudsobject);
-
-    if (!(stroom instanceof PDFRawStream)) {
-      throw new Error(
-        "De pagina-inhoud kon niet tot één PDF-laag worden samengevoegd.",
-      );
-    }
-
-    return stroom;
-  });
-  const gedecodeerdeStromen = stromen.map((stroom) =>
-    decodePDFRawStream(stroom).decode(),
-  );
-  const totaleLengte = gedecodeerdeStromen.reduce(
-    (totaal, stroom) => totaal + stroom.length + 1,
-    0,
-  );
-  const samengevoegdeInhoud = new Uint8Array(totaleLengte);
-  let positie = 0;
-
-  gedecodeerdeStromen.forEach((stroom) => {
-    samengevoegdeInhoud.set(stroom, positie);
-    positie += stroom.length;
-    samengevoegdeInhoud[positie] = 0x0a;
-    positie += 1;
-  });
-
-  const samengevoegdeStroom = pdf.context.flateStream(
-    samengevoegdeInhoud,
-  );
-  const samengevoegdeVerwijzing = pdf.context.register(
-    samengevoegdeStroom,
-  );
-  pagina.node.set(
-    PDFName.of("Contents"),
-    samengevoegdeVerwijzing,
-  );
-}
-
 export async function maakRokenPdfBuffer(
   sjabloon: ArrayBuffer,
   gegevens: RokenRapportGegevens,
@@ -474,23 +418,54 @@ export async function maakRokenPdfBuffer(
     font: normaal,
   });
 
-  pdf.setTitle(`Schriftelijke waarschuwing roken - ${gegevens.onderneming}`);
-  pdf.setAuthor("Bart Degroote");
-  pdf.setSubject("Schriftelijke waarschuwing 105 - roken");
-  pdf.setCreator("WebApp TWW");
-  pdf.setProducer("WebApp TWW");
-
-  // pdf-lib voegt de ingevulde gegevens standaard als afzonderlijke
-  // inhoudsstromen toe. Sommige PDF-lezers tonen daardoor tijdens het laden
-  // heel kort eerst het blanco sjabloon en daarna pas de invulling. Herlaad
-  // het afgewerkte document en voeg alle tekeninstructies samen tot één
-  // inhoudsstroom. De pagina blijft volledig vectorieel en scherp.
-  const tussentijdsePdf = await pdf.save({ useObjectStreams: false });
-  const samengevoegdePdf = await PDFDocument.load(tussentijdsePdf);
-  voegPaginaInhoudSamen(
-    samengevoegdePdf,
-    samengevoegdePdf.getPage(0),
+  // Plaats de volledig afgewerkte brief als één vectoriële pagina in een
+  // nieuw PDF-document. Daardoor hoeft een PDF-lezer nog maar één tekenobject
+  // te tonen en kan hij niet langer eerst het blanco sjabloon renderen en pas
+  // daarna de ingevulde gegevens. De tekst en lijnen blijven vectorieel.
+  const ingevuldePdf = await pdf.save({ useObjectStreams: false });
+  const eindPdf = await PDFDocument.create();
+  const [ingebeddePagina] = await eindPdf.embedPdf(ingevuldePdf, [0]);
+  const [gekopieerdePagina] = await eindPdf.copyPages(pdf, [0]);
+  const oorspronkelijkeAanmaakdatum = pdf.context
+    .lookup(pdf.context.trailerInfo.Info, PDFDict)
+    .get(PDFName.of("CreationDate"))
+    ?.clone();
+  const eindPagina = eindPdf.addPage(gekopieerdePagina);
+  const legeInhoud = eindPdf.context.register(
+    eindPdf.context.flateStream(new Uint8Array()),
   );
 
-  return samengevoegdePdf.save({ useObjectStreams: false });
+  // De gekopieerde pagina bewaart de interne voetnootlinks en alle
+  // pagina-eigenschappen. Vervang alleen haar oude tekenstromen door het ene
+  // atomaire eindbeeld, zodat het blanco sjabloon nooit apart zichtbaar is.
+  eindPagina.node.set(PDFName.of("Contents"), legeInhoud);
+  eindPagina.node.set(
+    PDFName.of("Resources"),
+    eindPdf.context.obj({}),
+  );
+
+  eindPagina.drawPage(ingebeddePagina, {
+    x: 0,
+    y: 0,
+    width: ingebeddePagina.width,
+    height: ingebeddePagina.height,
+  });
+
+  eindPdf.setTitle(
+    `Schriftelijke waarschuwing roken - ${gegevens.onderneming}`,
+  );
+  eindPdf.setAuthor("Bart Degroote");
+  eindPdf.setSubject("Schriftelijke waarschuwing 105 - roken");
+  eindPdf.setCreator("WebApp TWW");
+
+  if (oorspronkelijkeAanmaakdatum) {
+    eindPdf.context
+      .lookup(eindPdf.context.trailerInfo.Info, PDFDict)
+      .set(
+        PDFName.of("CreationDate"),
+        oorspronkelijkeAanmaakdatum,
+      );
+  }
+
+  return eindPdf.save({ useObjectStreams: false });
 }

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { PDFArray, PDFDocument } from "pdf-lib";
+import {
+  PDFDict,
+  PDFDocument,
+  PDFName,
+} from "pdf-lib";
 
 const SJABLOON_PAD = "public/sjablonen/105-roken-sjabloon.pdf";
 const EXPORT_MODULE_PAD = "../lib/roken-pdf-export.ts";
@@ -50,10 +54,13 @@ async function voerTestUit() {
 
   const pdf = await PDFDocument.load(resultaat);
   assert.equal(pdf.getPageCount(), 1, "De rookbrief moet exact één pagina tellen.");
+  const paginaBronnen = pdf.getPage(0).node.Resources();
+  assert.ok(paginaBronnen, "De afgewerkte rookbrief moet paginabronnen bevatten.");
+  const tekenobjecten = paginaBronnen.lookup(PDFName.of("XObject"), PDFDict);
   assert.equal(
-    pdf.getPage(0).node.Contents() instanceof PDFArray,
-    false,
-    "De afgewerkte rookbrief moet één samengevoegde inhoudsstroom gebruiken.",
+    tekenobjecten.entries().length,
+    1,
+    "De afgewerkte rookbrief moet als één atomair tekenobject worden weergegeven.",
   );
   assert.equal(
     pdf.getTitle(),
