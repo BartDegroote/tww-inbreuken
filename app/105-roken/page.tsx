@@ -272,6 +272,7 @@ export default function Roken105Pagina() {
   const plaatLettersRef = useRef<HTMLInputElement>(null);
   const plaatCijfersRef = useRef<HTMLInputElement>(null);
 
+  const isTaxi = voertuigType === "taxi";
   const flow = `02/${flowJaar}/${flowNummer}`;
   const locatie =
     locatieType === "adres"
@@ -332,6 +333,21 @@ export default function Roken105Pagina() {
   );
 
   function verwerkNummerplaatPlakken(waarde: string): boolean {
+    if (isTaxi) {
+      const taxiMatch = waarde
+        .trim()
+        .toUpperCase()
+        .match(/^T[\s-]*([A-Z]{3})[\s-]*(\d{3})$/);
+
+      if (!taxiMatch) return false;
+
+      setPlaatEerste("T");
+      setPlaatLetters(taxiMatch[1]);
+      setPlaatCijfers(taxiMatch[2]);
+      plaatCijfersRef.current?.focus();
+      return true;
+    }
+
     const match = waarde.trim().toUpperCase().match(/^(\d)[\s-]*([A-Z]{3})[\s-]*(\d{3})$/);
 
     if (!match) return false;
@@ -643,7 +659,17 @@ export default function Roken105Pagina() {
                   Voertuig
                   <select
                     value={voertuigType}
-                    onChange={(event) => setVoertuigType(event.target.value as VoertuigType)}
+                    onChange={(event) => {
+                      const volgendType = event.target.value as VoertuigType;
+
+                      if (volgendType !== voertuigType) {
+                        setPlaatEerste(volgendType === "taxi" ? "T" : "");
+                        setPlaatLetters("");
+                        setPlaatCijfers("");
+                      }
+
+                      setVoertuigType(volgendType);
+                    }}
                     className={INVOERKLASSE}
                   >
                     <option value="bestelwagen">Bestelwagen</option>
@@ -811,15 +837,21 @@ export default function Roken105Pagina() {
                   </span>
                   <div className="mt-2 flex min-h-12 items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 focus-within:border-blue-600 focus-within:ring-4 focus-within:ring-blue-100">
                     <span className="sr-only" id="nummerplaat-hulp">
-                      U kunt ook een volledige nummerplaat zoals 1-ABC-123 plakken.
+                      {isTaxi
+                        ? "U kunt ook een volledige taxinummerplaat zoals T-XAV-284 plakken."
+                        : "U kunt ook een volledige nummerplaat zoals 1-ABC-123 plakken."}
                     </span>
                     <input
                       ref={plaatEersteRef}
-                      aria-label="Eerste cijfer van de nummerplaat"
+                      aria-label={
+                        isTaxi
+                          ? "Letter T van de taxinummerplaat"
+                          : "Eerste cijfer van de nummerplaat"
+                      }
                       type="text"
-                      inputMode="numeric"
+                      inputMode={isTaxi ? "text" : "numeric"}
                       required
-                      pattern="[0-9]"
+                      pattern={isTaxi ? "[Tt]" : "[0-9]"}
                       maxLength={1}
                       aria-describedby="nummerplaat-hulp"
                       value={plaatEerste}
@@ -829,7 +861,12 @@ export default function Roken105Pagina() {
                         }
                       }}
                       onChange={(event) => {
-                        const waarde = alleenCijfers(event.target.value, 1);
+                        const waarde = isTaxi
+                          ? event.target.value
+                              .replace(/[^tT]/g, "")
+                              .slice(0, 1)
+                              .toUpperCase()
+                          : alleenCijfers(event.target.value, 1);
                         setPlaatEerste(waarde);
                         if (waarde.length === 1) {
                           plaatLettersRef.current?.focus();
@@ -840,7 +877,11 @@ export default function Roken105Pagina() {
                     <span aria-hidden="true" className="font-bold text-slate-400">-</span>
                     <input
                       ref={plaatLettersRef}
-                      aria-label="Drie letters van de nummerplaat"
+                      aria-label={
+                        isTaxi
+                          ? "Drie letters na T van de taxinummerplaat"
+                          : "Drie letters van de nummerplaat"
+                      }
                       type="text"
                       required
                       pattern="[A-Za-z]{3}"
@@ -863,7 +904,11 @@ export default function Roken105Pagina() {
                         }
                       }}
                       onKeyDown={(event) => {
-                        if (event.key === "Backspace" && plaatLetters.length === 0) {
+                        if (
+                          !isTaxi &&
+                          event.key === "Backspace" &&
+                          plaatLetters.length === 0
+                        ) {
                           plaatEersteRef.current?.focus();
                         }
                       }}
@@ -895,7 +940,9 @@ export default function Roken105Pagina() {
                     />
                   </div>
                   <p className="mt-2 text-xs text-slate-500">
-                    Vorm: 1-ABC-123 · een volledige nummerplaat plakken kan ook.
+                    {isTaxi
+                      ? "Vorm: T-XAV-284 · een volledige taxinummerplaat plakken kan ook."
+                      : "Vorm: 1-ABC-123 · een volledige nummerplaat plakken kan ook."}
                   </p>
                 </div>
               </div>
