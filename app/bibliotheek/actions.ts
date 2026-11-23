@@ -7,10 +7,7 @@ import type {
   Standaardinbreuk,
   TekstSegment,
 } from "@/bibliotheek";
-import {
-  isVerborgenAfdeling,
-  isWelzijnswet,
-} from "@/bibliotheek/welzijnswet";
+import { isWelzijnswet } from "@/bibliotheek/welzijnswet";
 import { isKbBeveiligingLiften } from "@/bibliotheek/kb-liften";
 import { isWetgevingMetEnkelOnderwerpen } from "@/bibliotheek/wetgevingen";
 import { mapStandaardinbreuk } from "@/lib/bibliotheek-data";
@@ -329,23 +326,18 @@ export async function bewaarStandaardinbreuk(
     );
   }
 
-  const juridischeIndeling =
-    boekId && titelId
-      ? await controleerJuridischeIndeling({
-          wetgevingId,
-          boekId,
-          titelId,
-        })
-      : null;
+  if (boekId && titelId) {
+    await controleerJuridischeIndeling({
+      wetgevingId,
+      boekId,
+      titelId,
+    });
+  }
 
-  const onderwerp = welzijnswet
-    ? isVerborgenAfdeling(titelId ?? "")
-      ? juridischeIndeling?.boekNaam ?? ""
-      : juridischeIndeling?.titelNaam ?? ""
-    : verplichtTekstveld(
-        invoer.onderwerp,
-        "Onderwerp",
-      );
+  const onderwerp = verplichtTekstveld(
+    invoer.onderwerp,
+    "Onderwerp",
+  );
 
   const opgeslagenInbreuk =
     await prisma.$transaction(

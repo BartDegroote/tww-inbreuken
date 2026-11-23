@@ -149,6 +149,7 @@ export default function InbreukenLijst({
                   inbreuk.wetgevingId,
                 );
               const toonTitel =
+                !welzijnswet &&
                 !isVerborgenAfdeling(
                   inbreuk.titelId,
                 );
@@ -202,8 +203,7 @@ export default function InbreukenLijst({
                     </span>
 
                     <span className="mt-2 block">
-                      {!welzijnswet &&
-                        inbreuk.onderwerp.trim() && (
+                      {inbreuk.onderwerp.trim() && (
                         <span className="block text-sm font-semibold text-slate-800">
                           {inbreuk.onderwerp}
                         </span>

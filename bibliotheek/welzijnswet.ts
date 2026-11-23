@@ -93,21 +93,13 @@ export const welzijnswetHoofdstukken: WelzijnswetHoofdstuk[] = [
   },
 ];
 
-const hoofdstukkenZonderAfdelingen = [
-  "welzijnswet-hoofdstuk-i",
-  "welzijnswet-hoofdstuk-ii",
-  "welzijnswet-hoofdstuk-iii",
-  "welzijnswet-hoofdstuk-vii",
-  "welzijnswet-hoofdstuk-ix",
-  "welzijnswet-hoofdstuk-x",
-  "welzijnswet-hoofdstuk-xi",
-  "welzijnswet-hoofdstuk-xii",
-] as const;
-
 export const welzijnswetAfdelingen: WelzijnswetAfdeling[] = [
-  ...hoofdstukkenZonderAfdelingen.map((boekId) => ({
-    id: `${boekId}${VERBORGEN_AFDELING_SUFFIX}`,
-    boekId,
+  // Intern blijft een titelId vereist. In de interface gebruikt de
+  // Welzijnswet alleen hoofdstuk en onderwerp, daarom krijgt elk hoofdstuk
+  // één verborgen technische titel.
+  ...welzijnswetHoofdstukken.map((hoofdstuk) => ({
+    id: `${hoofdstuk.id}${VERBORGEN_AFDELING_SUFFIX}`,
+    boekId: hoofdstuk.id,
     naam: "Rechtstreeks onder het hoofdstuk",
   })),
   {

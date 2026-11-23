@@ -1029,9 +1029,7 @@ export default function InspectieUitvoerenClient({
       : "Boek"
     : "Boek / hoofdstuk";
   const tweedeNiveauLabel = wetgevingFilter
-    ? welzijnswetGeselecteerd
-      ? "Afdeling"
-      : "Titel"
+    ? "Titel"
     : "Titel / afdeling";
 
   const wetgevingNaamPerId = useMemo(() => {
@@ -1243,7 +1241,7 @@ export default function InspectieUitvoerenClient({
           );
         const sleutel =
           isWelzijnswetInbreuk
-            ? `${inbreuk.wetgevingId}::welzijnswet`
+            ? `${inbreuk.boekId}::welzijnswet`
             : isEnkelOnderwerpenInbreuk
               ? `${inbreuk.wetgevingId}::enkel-onderwerpen`
             : isKbLiftenInbreuk
@@ -1268,7 +1266,7 @@ export default function InspectieUitvoerenClient({
             titelId: inbreuk.titelId,
             groepTitel:
               isWelzijnswetInbreuk
-                ? "Welzijnswet"
+                ? `Welzijnswet · ${boekNaam}`
                 : isEnkelOnderwerpenInbreuk
                   ? wetgevingNaamPerId.get(
                       inbreuk.wetgevingId,
@@ -3698,6 +3696,8 @@ export default function InspectieUitvoerenClient({
                   wetgevingFilter
                     ? enkelOnderwerpenGeselecteerd
                       ? "lg:grid-cols-3"
+                      : welzijnswetGeselecteerd
+                      ? "lg:grid-cols-4"
                       : kbLiftenGeselecteerd
                       ? "lg:grid-cols-4"
                       : "lg:grid-cols-3 xl:grid-cols-5"
@@ -3787,6 +3787,7 @@ export default function InspectieUitvoerenClient({
 
                 {wetgevingFilter &&
                   !enkelOnderwerpenGeselecteerd &&
+                  !welzijnswetGeselecteerd &&
                   !kbLiftenGeselecteerd && (
                   <div>
                     <label
@@ -3808,10 +3809,7 @@ export default function InspectieUitvoerenClient({
                       className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-600"
                     >
                       <option value="">
-                        Alle{" "}
-                        {welzijnswetGeselecteerd
-                          ? "afdelingen"
-                          : "titels"}
+                        Alle titels
                       </option>
 
                       {beschikbareTitels.map(

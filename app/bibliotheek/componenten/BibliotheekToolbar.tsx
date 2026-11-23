@@ -109,12 +109,9 @@ export default function BibliotheekToolbar({
         ? "Hoofdstuk"
         : "Boek"
       : "Boek / hoofdstuk";
-  const tweedeNiveauLabel =
-    filterWetgevingId
-      ? welzijnswetGeselecteerd
-        ? "Afdeling"
-        : "Titel"
-      : "Titel / afdeling";
+  const tweedeNiveauLabel = filterWetgevingId
+    ? "Titel"
+    : "Titel / afdeling";
 
   function wijzigWetgeving(
     wetgevingId: string,
@@ -255,6 +252,7 @@ export default function BibliotheekToolbar({
 
         {filterWetgevingId &&
           !enkelOnderwerpenGeselecteerd &&
+          !welzijnswetGeselecteerd &&
           !kbLiftenGeselecteerd && (
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -272,10 +270,7 @@ export default function BibliotheekToolbar({
               }
             >
               <option value="">
-                Alle{" "}
-                {welzijnswetGeselecteerd
-                  ? "afdelingen"
-                  : "titels"}
+                Alle titels
               </option>
 
               {beschikbareTitels.map(
@@ -292,8 +287,7 @@ export default function BibliotheekToolbar({
           </label>
         )}
 
-        {filterWetgevingId &&
-          !welzijnswetGeselecteerd && (
+        {filterWetgevingId && (
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-slate-700">
                 Onderwerp

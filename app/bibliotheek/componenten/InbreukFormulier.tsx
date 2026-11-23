@@ -1034,15 +1034,6 @@ function InbreukFormulierInhoud({
     welzijnswetGeselecteerd ||
     kbLiftenGeselecteerd;
 
-  const zichtbareTitels = useMemo(
-    () =>
-      beschikbareTitels.filter(
-        (titel) =>
-          !isVerborgenAfdeling(titel.id),
-      ),
-    [beschikbareTitels],
-  );
-
   const beschikbareOnderwerpSuggesties =
     useMemo(() => {
       if (
@@ -1821,9 +1812,7 @@ function InbreukFormulierInhoud({
     (enkelOnderwerpenGeselecteerd ||
       (formulier.boekId.trim().length > 0 &&
         formulier.titelId.trim().length > 0)) &&
-    (welzijnswetGeselecteerd ||
-      formulier.onderwerp.trim().length >
-        0) &&
+    formulier.onderwerp.trim().length > 0 &&
     formulier.omschrijving.trim().length >
       0 &&
     formulier.wettelijkeVerwijzing
@@ -2004,14 +1993,12 @@ function InbreukFormulierInhoud({
 
             {formulier.wetgevingId &&
               !enkelOnderwerpenGeselecteerd &&
+              !welzijnswetGeselecteerd &&
               !kbLiftenGeselecteerd &&
-              (!welzijnswetGeselecteerd ||
-                zichtbareTitels.length > 0) && (
+              (
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {welzijnswetGeselecteerd
-                    ? "Afdeling"
-                    : "Titel"}
+                  Titel
                   <span className="ml-1 text-red-600">
                     *
                   </span>
@@ -2034,15 +2021,10 @@ function InbreukFormulierInhoud({
                   required
                 >
                   <option value="">
-                    {welzijnswetGeselecteerd
-                      ? "Selecteer afdeling"
-                      : "Selecteer titel"}
+                    Selecteer titel
                   </option>
 
-                  {(welzijnswetGeselecteerd
-                    ? zichtbareTitels
-                    : beschikbareTitels
-                  ).map((titel) => (
+                  {beschikbareTitels.map((titel) => (
                     <option
                       key={titel.id}
                       value={titel.id}
@@ -2054,17 +2036,7 @@ function InbreukFormulierInhoud({
               </label>
             )}
 
-            {welzijnswetGeselecteerd &&
-              formulier.boekId &&
-              zichtbareTitels.length === 0 && (
-                <div className="flex min-h-11 items-center rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-800">
-                  Dit hoofdstuk bevat geen
-                  afzonderlijke afdelingen.
-                </div>
-              )}
-
-            {formulier.wetgevingId &&
-              !welzijnswetGeselecteerd && (
+            {formulier.wetgevingId && (
               <div className="block">
               <label
                 htmlFor="inbreuk-onderwerp"
