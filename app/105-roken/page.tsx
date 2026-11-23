@@ -19,12 +19,17 @@ import {
 } from "@/lib/roken-pdf-export";
 
 type LocatieType = "adres" | "autosnelweg";
-type VoertuigType = "bestelwagen" | "dienstwagen" | "vrachtwagen";
+type VoertuigType =
+  | "bestelwagen"
+  | "dienstwagen"
+  | "vrachtwagen"
+  | "taxi";
 
 const WERKRUIMTE_PER_VOERTUIG: Record<VoertuigType, string> = {
   bestelwagen: "Cabine van een bestelwagen (gesloten ruimte buiten onderneming)",
   dienstwagen: "Cabine van een dienstwagen",
   vrachtwagen: "Cabine van een vrachtwagen",
+  taxi: "Cabine van een taxi",
 };
 
 const HUIDIG_JAAR = String(new Date().getFullYear());
@@ -644,6 +649,7 @@ export default function Roken105Pagina() {
                     <option value="bestelwagen">Bestelwagen</option>
                     <option value="dienstwagen">Dienstwagen</option>
                     <option value="vrachtwagen">Vrachtwagen</option>
+                    <option value="taxi">Taxi</option>
                   </select>
                 </label>
               </div>
